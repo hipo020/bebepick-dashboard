@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#fffaf6" />
+  <title>베베픽 재고판</title>
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;background:#fffaf6;color:#2d2926;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif}
+    .wrap{max-width:760px;margin:auto;padding:20px 14px 90px}
+    .top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+    h1{font-size:24px;margin:0 0 5px}
+    .sub,.meta,.summary{color:#8a817b}
+    .sub{font-size:13px}
+    .shop{text-decoration:none;color:#2d2926;background:#fff;border:1px solid #eee5df;border-radius:12px;padding:10px 12px;font-size:13px}
+    .status{margin:14px 0 4px;background:#fff;border:1px solid #eee5df;border-radius:14px;padding:12px 14px;font-size:13px}
+    .status.err{background:#fff4f4;border-color:#f0b7b7}
+    .controls{position:sticky;top:0;z-index:5;padding:10px 0 12px;background:#fffaf6}
+    .search{width:100%;padding:13px 14px;border:1px solid #eee5df;border-radius:14px;background:#fff;font-size:15px;outline:none}
+    .row{display:flex;gap:7px;overflow:auto;margin-top:9px;padding-bottom:2px}
+    .chip,.sort,.refresh{white-space:nowrap;border:1px solid #eee5df;border-radius:999px;padding:9px 12px;background:#fff;color:#2d2926;font:inherit}
+    .chip.on{background:#2d2926;color:#fff;border-color:#2d2926}
+    .summary{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;margin:0 0 12px}
+    .summary b{color:#2d2926}
+    .grid{display:grid;gap:10px}
+    .card{display:grid;grid-template-columns:82px minmax(0,1fr) auto;gap:12px;align-items:center;background:#fff;border:1px solid #eee5df;border-radius:16px;padding:10px;box-shadow:0 5px 18px rgba(70,50,35,.06)}
+    .thumb,.ph{width:82px;height:82px;border-radius:12px;background:#f3eee9}
+    .thumb{object-fit:cover}
+    .ph{display:grid;place-items:center;font-size:27px}
+    .name{font-weight:750;font-size:15px;line-height:1.35;margin-bottom:5px}
+    .meta{font-size:12px;line-height:1.55}
+    .stock{text-align:right;min-width:65px;font-size:21px;font-weight:800}
+    .stock small{display:block;font-size:11px;margin-top:4px}
+    .ok{color:#238636}.low{color:#b7791f}.sold{color:#c62828}.hidden{color:#6b7280}
+    .empty{padding:50px 10px;text-align:center;color:#8a817b}
+    @media(min-width:650px){
+      .grid{grid-template-columns:1fr 1fr}
+      .card{grid-template-columns:72px minmax(0,1fr) auto}
+      .thumb,.ph{width:72px;height:72px}
+    }
+  </style>
+</head>
+<body>
+<main class="wrap">
+  <div class="top">
+    <div>
+      <h1>🧸 베베픽 재고판</h1>
+      <div class="sub">1분마다 감시되는 최신 재고</div>
+    </div>
+    <a class="shop" href="https://bebepick-web.pages.dev/" target="_blank" rel="noopener">베베픽 열기 ↗</a>
+  </div>
+
+  <div id="status" class="status">상태 불러오는 중…</div>
+
+  <div class="controls">
+    <input id="search" class="search" type="search" placeholder="상품명 검색" />
+    <div class="row">
+      <button class="chip on" data-f="all">전체</button>
+      <button class="chip" data-f="available">판매중</button>
+      <button class="chip" data-f="sold_out">품절</button>
+      <button class="chip" data-f="hidden">숨김/판매종료</button>
+      <select id="sort" class="sort" aria-label="정렬">
+        <option value="asc">재고 적은 순</option>
+        <option value="desc">재고 많은 순</option>
+        <option value="name">이름순</option>
+      </select>
+      <button id="refresh" class="refresh">새로고침</button>
+    </div>
+  </div>
+
+  <div id="summary" class="summary"></div>
+  <div id="grid" class="grid"><div class="empty">재고 불러오는 중…</div></div>
+</main>
+
+<script>
+const API_URL = "https://fergbabqmwnbkkxjvgkj.supabase.co/functions/v1/bebepick-dashboard?api=1";
+let products = [];
+let filter = "all";
+let query = "";
+let sort = "asc";
+
+const $ = (id) => document.getElementById(id);
+const fmt = (n) => Number(n || 0).toLocaleString("ko-KR");
+
+function esc(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function time(iso) {
+  if (!iso) return "확인 시간 없음";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "확인 시간 없음";
+  return new Intl.DateTimeFormat("ko-KR", {
+    timeZone: "Asia/Seoul",
+    month: "numeric",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false
+  }).format(d);
+}
+
+function label(p) {
+  if (p.state === "sold_out") return "품절";
+  if (p.state === "hidden") return "숨김/판매종료";
+  if (Number(p.current_stock) <= 2) return "재고 얼마 안 남음";
+  return "판매중";
+}
+
+function stockClass(p) {
+  if (p.state === "sold_out") return "sold";
+  if (p.state === "hidden") return "hidden";
+  return Number(p.current_stock) <= 2 ? "low" : "ok";
+}
+
+function imageHtml(p) {
+  if (!p.image_url) return '<div class="ph">🧸</div>';
+  const safe = esc(p.image_url);
+  return '<img class="thumb" src="' + safe + '" alt="" loading="lazy">';
+}
+
+function render() {
+  const q = query.trim().toLowerCase();
+
+  let list = products.filter((p) => {
+    if (filter !== "all" && p.state !== filter) return false;
+    if (q && !String(p.name || "").toLowerCase().includes(q)) return false;
+    return true;
+  });
+
+  list.sort((a, b) => {
+    if (sort === "name") return String(a.name).localeCompare(String(b.name), "ko");
+    if (sort === "desc") return Number(b.current_stock) - Number(a.current_stock);
+    return Number(a.current_stock) - Number(b.current_stock);
+  });
+
+  const available = products.filter((p) => p.state === "available").length;
+  const sold = products.filter((p) => p.state === "sold_out").length;
+  const hidden = products.filter((p) => p.state === "hidden").length;
+
+  $("summary").innerHTML =
+    "<span>판매중 <b>" + available + "</b></span>" +
+    "<span>품절 <b>" + sold + "</b></span>" +
+    "<span>숨김 <b>" + hidden + "</b></span>" +
+    "<span>표시 <b>" + list.length + "</b></span>";
+
+  if (!list.length) {
+    $("grid").innerHTML = '<div class="empty">조건에 맞는 상품이 없어</div>';
+    return;
+  }
+
+  $("grid").innerHTML = list.map((p) => {
+    const price = Number(p.price) > 0 ? fmt(p.price) + "원" : "";
+    const full = Number(p.fullbox_price) > 0 ? " · 풀박스 " + fmt(p.fullbox_price) + "원" : "";
+    const stock = p.state === "available"
+      ? fmt(p.current_stock) + "개"
+      : p.state === "sold_out" ? "0개" : "—";
+
+    return '<article class="card">' +
+      imageHtml(p) +
+      '<div>' +
+        '<div class="name">' + esc(p.name) + '</div>' +
+        '<div class="meta">' + esc(price + full) + '</div>' +
+        '<div class="meta">' + label(p) + '</div>' +
+      '</div>' +
+      '<div class="stock ' + stockClass(p) + '">' +
+        stock + '<small>' + label(p) + '</small>' +
+      '</div>' +
+    '</article>';
+  }).join("");
+
+  document.querySelectorAll(".thumb").forEach((img) => {
+    img.addEventListener("error", () => {
+      img.replaceWith(Object.assign(document.createElement("div"), {
+        className: "ph",
+        textContent: "🧸"
+      }));
+    }, { once: true });
+  });
+}
+
+async function load() {
+  try {
+    $("refresh").disabled = true;
+    const sep = API_URL.includes("?") ? "&" : "?";
+    const res = await fetch(API_URL + sep + "_=" + Date.now(), { cache: "no-store" });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+
+    const data = await res.json();
+    products = Array.isArray(data.products) ? data.products : [];
+
+    $("status").className = data.last_error ? "status err" : "status";
+    $("status").textContent = data.last_error
+      ? "⚠️ 감시 오류 · " + data.last_error
+      : "💚 정상 감시 중 · 최근 확인 " + time(data.checked_at);
+
+    render();
+  } catch (e) {
+    $("status").className = "status err";
+    $("status").textContent = "⚠️ 재고를 불러오지 못했어 · " + e.message;
+  } finally {
+    $("refresh").disabled = false;
+  }
+}
+
+$("search").addEventListener("input", (e) => {
+  query = e.target.value;
+  render();
+});
+
+$("sort").addEventListener("change", (e) => {
+  sort = e.target.value;
+  render();
+});
+
+document.querySelectorAll(".chip").forEach((button) => {
+  button.addEventListener("click", () => {
+    filter = button.dataset.f;
+    document.querySelectorAll(".chip").forEach((x) => x.classList.remove("on"));
+    button.classList.add("on");
+    render();
+  });
+});
+
+$("refresh").addEventListener("click", load);
+
+load();
+setInterval(load, 60000);
+</script>
+</body>
+</html>
