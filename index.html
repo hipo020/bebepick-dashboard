@@ -56,10 +56,9 @@
   <div class="controls">
     <input id="search" class="search" type="search" placeholder="상품명 검색" />
     <div class="row">
-      <button class="chip on" data-f="all">전체</button>
-      <button class="chip" data-f="available">판매중</button>
-      <button class="chip" data-f="sold_out">품절</button>
-      <button class="chip" data-f="hidden">숨김/판매종료</button>
+      <button class="chip on" data-f="available">판매중</button>
+      <button class="chip" data-f="unavailable">품절·판매종료</button>
+      <button class="chip" data-f="all">전체</button>
       <select id="sort" class="sort" aria-label="정렬">
         <option value="asc">재고 적은 순</option>
         <option value="desc">재고 많은 순</option>
@@ -76,7 +75,7 @@
 <script>
 const API_URL = "https://fergbabqmwnbkkxjvgkj.supabase.co/functions/v1/bebepick-dashboard?api=1";
 let products = [];
-let filter = "all";
+let filter = "available";
 let query = "";
 let sort = "asc";
 
@@ -130,7 +129,8 @@ function render() {
   const q = query.trim().toLowerCase();
 
   let list = products.filter((p) => {
-    if (filter !== "all" && p.state !== filter) return false;
+    if (filter === "available" && p.state !== "available") return false;
+    if (filter === "unavailable" && p.state === "available") return false;
     if (q && !String(p.name || "").toLowerCase().includes(q)) return false;
     return true;
   });
@@ -147,8 +147,7 @@ function render() {
 
   $("summary").innerHTML =
     "<span>판매중 <b>" + available + "</b></span>" +
-    "<span>품절 <b>" + sold + "</b></span>" +
-    "<span>숨김 <b>" + hidden + "</b></span>" +
+    "<span>품절·판매종료 <b>" + (sold + hidden) + "</b></span>" +
     "<span>표시 <b>" + list.length + "</b></span>";
 
   if (!list.length) {
