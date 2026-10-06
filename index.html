@@ -21,8 +21,8 @@
     .search{width:100%;min-width:0;padding:13px 14px;border:1px solid #eee5df;border-radius:14px;background:#fff;font-size:15px;outline:none}
     .refresh{border-radius:14px!important;padding:0 14px!important;font-weight:700}
     .row{display:flex;gap:7px;overflow:auto;margin-top:9px;padding-bottom:2px}
-    .chip,.sort,.refresh{white-space:nowrap;border:1px solid #eee5df;border-radius:999px;padding:9px 12px;background:#fff;color:#2d2926;font:inherit}
-    .chip.on{background:#2d2926;color:#fff;border-color:#2d2926}
+    .chip,.event-toggle,.sort,.refresh{white-space:nowrap;border:1px solid #eee5df;border-radius:999px;padding:9px 12px;background:#fff;color:#2d2926;font:inherit}
+    .chip.on,.event-toggle.on{background:#2d2926;color:#fff;border-color:#2d2926}
     .summary{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;margin:0 0 12px}
     .summary b{color:#2d2926}
     .grid{display:grid;gap:10px}
@@ -77,6 +77,7 @@
       <button class="chip" data-f="upcoming">👀 미공개 신상추정</button>
       <button class="chip" data-f="recent_restock">최근 재입고</button>
       <button class="chip" data-f="all">전체</button>
+      <button id="eventToggle" class="event-toggle" type="button">이벤트 보기</button>
       <select id="sort" class="sort" aria-label="정렬">
         <option value="desc">재고 많은 순</option>
         <option value="asc">재고 적은 순</option>
@@ -108,6 +109,7 @@ let products = [];
 let filter = "available";
 let query = "";
 let sort = "desc";
+let includeEvents = false;
 
 const $ = (id) => document.getElementById(id);
 const fmt = (n) => Number(n || 0).toLocaleString("ko-KR");
@@ -293,6 +295,10 @@ function isUpcomingCandidate(p) {
   return Number.isFinite(t) && Date.now() - t <= 72 * 60 * 60 * 1000;
 }
 
+function isEventProduct(p) {
+  return /이벤트/i.test(String(p?.name || ""));
+}
+
 function applyHistoryStats(p, rows) {
   const now = Date.now();
   const hourAgo = now - 60 * 60 * 1000;
@@ -416,7 +422,11 @@ async function toggleHistory(id) {
 function render() {
   const q = query.trim().toLowerCase();
 
-  let list = products.filter((p) => {
+  const baseProducts = includeEvents
+    ? products
+    : products.filter((p) => !isEventProduct(p));
+
+  let list = baseProducts.filter((p) => {
     if (filter === "available" && p.state !== "available") return false;
     if (filter === "unavailable" && p.state === "available") return false;
     if (filter === "hidden" && p.state !== "hidden") return false;
@@ -438,9 +448,9 @@ function render() {
     return Number(a.current_stock) - Number(b.current_stock);
   });
 
-  const available = products.filter((p) => p.state === "available").length;
-  const sold = products.filter((p) => p.state === "sold_out").length;
-  const hidden = products.filter((p) => p.state === "hidden").length;
+  const available = baseProducts.filter((p) => p.state === "available").length;
+  const sold = baseProducts.filter((p) => p.state === "sold_out").length;
+  const hidden = baseProducts.filter((p) => p.state === "hidden").length;
 
   $("summary").innerHTML =
     "<span>판매중 <b>" + available + "</b></span>" +
@@ -543,6 +553,14 @@ $("search").addEventListener("input", (e) => {
 
 $("sort").addEventListener("change", (e) => {
   sort = e.target.value;
+  render();
+});
+
+$("eventToggle").addEventListener("click", () => {
+  includeEvents = !includeEvents;
+  const btn = $("eventToggle");
+  btn.classList.toggle("on", includeEvents);
+  btn.textContent = includeEvents ? "이벤트 포함중" : "이벤트 보기";
   render();
 });
 
