@@ -34,6 +34,12 @@
     .stock small{display:block;font-size:11px;margin-top:4px}
     .ok{color:#238636}.low{color:#b7791f}.sold{color:#c62828}.hidden{color:#6b7280}
     .empty{padding:50px 10px;text-align:center;color:#8a817b}
+    .trend{margin-top:3px}.trend.up{color:#238636}.trend.out{color:#a15c00}
+    .history-btn{margin-top:7px;border:1px solid #eee5df;border-radius:9px;background:#fff;padding:6px 9px;color:#655d57;font-size:11px}
+    .history-panel{grid-column:1/-1;border-top:1px dashed #eee5df;margin-top:2px;padding:9px 4px 2px;font-size:11px;color:#655d57}
+    .history-panel[hidden]{display:none}
+    .history-row{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid #f5efeb}
+    .history-row:last-child{border-bottom:0}.delta-up{color:#238636;font-weight:700}.delta-down{color:#c62828;font-weight:700}
     @media(min-width:650px){
       .grid{grid-template-columns:1fr 1fr}
       .card{grid-template-columns:72px minmax(0,1fr) auto}
@@ -73,7 +79,9 @@
 </main>
 
 <script>
-const API_URL = "https://fergbabqmwnbkkxjvgkj.supabase.co/functions/v1/bebepick-dashboard?api=1";
+const EDGE_URL = "https://fergbabqmwnbkkxjvgkj.supabase.co/functions/v1/bebepick-dashboard";
+const API_URL = EDGE_URL + "?api=1";
+const historyCache = new Map();
 let products = [];
 let filter = "available";
 let query = "";
@@ -106,6 +114,33 @@ function time(iso) {
   }).format(d);
 }
 
+function timeShort(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return new Intl.DateTimeFormat("ko-KR", {
+    timeZone: "Asia/Seoul",
+    month: "numeric",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false
+  }).format(d);
+}
+
+function durationText(seconds) {
+  const s = Number(seconds);
+  if (!Number.isFinite(s) || s < 0) return "";
+  const mins = Math.round(s / 60);
+  if (mins < 60) return mins + "분";
+  const hours = Math.floor(mins / 60);
+  const rest = mins % 60;
+  if (hours < 24) return hours + "시간" + (rest ? " " + rest + "분" : "");
+  const days = Math.floor(hours / 24);
+  const restHours = hours % 24;
+  return days + "일" + (restHours ? " " + restHours + "시간" : "");
+}
+
 function label(p) {
   if (p.state === "sold_out") return "품절";
   if (p.state === "hidden") return "숨김/판매종료";
@@ -123,6 +158,61 @@ function imageHtml(p) {
   if (!p.image_url) return '<div class="ph">🧸</div>';
   const safe = esc(p.image_url);
   return '<img class="thumb" src="' + safe + '" alt="" loading="lazy">';
+}
+
+function historyLabel(type) {
+  return ({
+    baseline: "기록 시작",
+    new: "새 상품",
+    decrease: "재고 감소",
+    increase: "재고 증가",
+    restock: "재입고",
+    sold_out: "품절",
+    hidden: "판매 숨김",
+    visible: "재노출",
+    state_change: "상태 변경"
+  })[type] || type;
+}
+
+async function toggleHistory(id) {
+  const panel = $("history-" + id);
+  if (!panel) return;
+  if (!panel.hidden) {
+    panel.hidden = true;
+    return;
+  }
+  panel.hidden = false;
+
+  if (historyCache.has(id)) {
+    panel.innerHTML = historyCache.get(id);
+    return;
+  }
+
+  panel.innerHTML = "기록 불러오는 중…";
+  try {
+    const res = await fetch(EDGE_URL + "?api=history&doll_id=" + encodeURIComponent(id) + "&_=" + Date.now(), { cache: "no-store" });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    const rows = Array.isArray(data.history) ? data.history : [];
+    const html = rows.length ? rows.map((h) => {
+      const prev = h.previous_stock == null ? "—" : fmt(h.previous_stock);
+      const cur = fmt(h.current_stock);
+      const delta = Number(h.delta || 0);
+      const deltaHtml = delta > 0
+        ? ' <span class="delta-up">+' + fmt(delta) + '</span>'
+        : delta < 0
+          ? ' <span class="delta-down">' + fmt(delta) + '</span>'
+          : "";
+      const soldTime = h.sellout_duration_seconds == null
+        ? ""
+        : " · 입고 후 " + durationText(h.sellout_duration_seconds);
+      return '<div class="history-row"><span><b>' + esc(historyLabel(h.change_type)) + '</b> · ' + esc(timeShort(h.observed_at)) + soldTime + '</span><span>' + prev + ' → ' + cur + deltaHtml + '</span></div>';
+    }).join("") : "아직 재고 변화 기록이 없어";
+    historyCache.set(id, html);
+    panel.innerHTML = html;
+  } catch (e) {
+    panel.innerHTML = "기록을 불러오지 못했어 · " + esc(e.message);
+  }
 }
 
 function render() {
@@ -161,6 +251,12 @@ function render() {
     const stock = p.state === "available"
       ? fmt(p.current_stock) + "개"
       : p.state === "sold_out" ? "0개" : "—";
+    const recentIncrease = Number(p.last_increase_qty) > 0 && p.last_increase_at
+      ? '<div class="meta trend up">최근 입고 +' + fmt(p.last_increase_qty) + ' · ' + esc(timeShort(p.last_increase_at)) + '</div>'
+      : "";
+    const selloutSpeed = p.last_sellout_duration_seconds != null && p.last_sold_out_at
+      ? '<div class="meta trend out">최근 품절까지 ' + esc(durationText(p.last_sellout_duration_seconds)) + '</div>'
+      : "";
 
     return '<article class="card">' +
       imageHtml(p) +
@@ -168,10 +264,13 @@ function render() {
         '<div class="name">' + esc(p.name) + '</div>' +
         '<div class="meta">' + esc(price + full) + '</div>' +
         '<div class="meta">' + label(p) + '</div>' +
+        recentIncrease + selloutSpeed +
+        '<button class="history-btn" type="button" onclick="toggleHistory(' + Number(p.doll_id) + ')">재고 기록</button>' +
       '</div>' +
       '<div class="stock ' + stockClass(p) + '">' +
         stock + '<small>' + label(p) + '</small>' +
       '</div>' +
+      '<div id="history-' + Number(p.doll_id) + '" class="history-panel" hidden></div>' +
     '</article>';
   }).join("");
 
