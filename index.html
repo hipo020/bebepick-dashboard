@@ -17,14 +17,18 @@
     .status{margin:14px 0 4px;background:#fff;border:1px solid #eee5df;border-radius:14px;padding:12px 14px;font-size:13px}
     .status.err{background:#fff4f4;border-color:#f0b7b7}
     .controls{position:sticky;top:0;z-index:5;padding:10px 0 12px;background:#fffaf6}
-    .search{width:100%;padding:13px 14px;border:1px solid #eee5df;border-radius:14px;background:#fff;font-size:15px;outline:none}
+    .searchline{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
+    .search{width:100%;min-width:0;padding:13px 14px;border:1px solid #eee5df;border-radius:14px;background:#fff;font-size:15px;outline:none}
+    .refresh{border-radius:14px!important;padding:0 14px!important;font-weight:700}
     .row{display:flex;gap:7px;overflow:auto;margin-top:9px;padding-bottom:2px}
     .chip,.sort,.refresh{white-space:nowrap;border:1px solid #eee5df;border-radius:999px;padding:9px 12px;background:#fff;color:#2d2926;font:inherit}
     .chip.on{background:#2d2926;color:#fff;border-color:#2d2926}
     .summary{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;margin:0 0 12px}
     .summary b{color:#2d2926}
     .grid{display:grid;gap:10px}
-    .card{display:grid;grid-template-columns:82px minmax(0,1fr) auto;gap:12px;align-items:center;background:#fff;border:1px solid #eee5df;border-radius:16px;padding:10px;box-shadow:0 5px 18px rgba(70,50,35,.06)}
+    .card{display:grid;grid-template-columns:82px minmax(0,1fr) auto;gap:12px;align-items:center;background:#fff;border:1px solid #eee5df;border-radius:16px;padding:10px;box-shadow:0 5px 18px rgba(70,50,35,.06);cursor:pointer}
+    .card:active{transform:scale(.995)}
+    .rt{font-size:11px;color:#238636;margin-top:5px}.rt.off{color:#a15c00}
     .thumb,.ph{width:82px;height:82px;border-radius:12px;background:#f3eee9}
     .thumb{object-fit:cover}
     .ph{display:grid;place-items:center;font-size:27px}
@@ -52,15 +56,18 @@
   <div class="top">
     <div>
       <h1>🧸 베베픽 재고판</h1>
-      <div class="sub">1분마다 감시되는 최신 재고</div>
+      <div class="sub">실시간 재고 신호 + 1분 안전망</div>
     </div>
     <a class="shop" href="https://bebepick-web.pages.dev/" target="_blank" rel="noopener">베베픽 열기 ↗</a>
   </div>
 
-  <div id="status" class="status">상태 불러오는 중…</div>
+  <div id="status" class="status">상태 불러오는 중…<div id="rtStatus" class="rt off">실시간 연결 준비 중…</div></div>
 
   <div class="controls">
-    <input id="search" class="search" type="search" placeholder="상품명 검색" />
+    <div class="searchline">
+      <input id="search" class="search" type="search" placeholder="상품명 검색" />
+      <button id="refresh" class="refresh" type="button">새로고침</button>
+    </div>
     <div class="row">
       <button class="chip on" data-f="available">판매중</button>
       <button class="chip" data-f="unavailable">품절·판매종료</button>
@@ -70,7 +77,6 @@
         <option value="desc">재고 많은 순</option>
         <option value="name">이름순</option>
       </select>
-      <button id="refresh" class="refresh">새로고침</button>
     </div>
   </div>
 
@@ -78,10 +84,19 @@
   <div id="grid" class="grid"><div class="empty">재고 불러오는 중…</div></div>
 </main>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const EDGE_URL = "https://fergbabqmwnbkkxjvgkj.supabase.co/functions/v1/bebepick-dashboard";
 const API_URL = EDGE_URL + "?api=1";
+const SHOP_URL = "https://bebepick-web.pages.dev/";
+const BEBEPICK_URL = "https://kswhgzweesuwacgqruok.supabase.co";
+const BEBEPICK_KEY = "sb_publishable_XSYCZ48RRSxjI24XoR9CUg_-D5ae3KV";
 const historyCache = new Map();
+const liveSb = window.supabase.createClient(BEBEPICK_URL, BEBEPICK_KEY, {
+  auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+});
+let realtimeChannel = null;
+let liveRefreshTimer = null;
 let products = [];
 let filter = "available";
 let query = "";
@@ -152,6 +167,104 @@ function stockClass(p) {
   if (p.state === "sold_out") return "sold";
   if (p.state === "hidden") return "hidden";
   return Number(p.current_stock) <= 2 ? "low" : "ok";
+}
+
+function liveState(visible, stock) {
+  if (Number(visible) !== 1) return "hidden";
+  if (Number(stock) <= 0) return "sold_out";
+  return "available";
+}
+
+async function refreshLiveProducts() {
+  try {
+    const [dollsRes, shopRes] = await Promise.all([
+      liveSb.from("dolls").select("id,name,price,current_stock,fullbox_price,image_url"),
+      liveSb.from("shop_products").select("doll_id,visible,image_url")
+    ]);
+    if (dollsRes.error) throw dollsRes.error;
+    if (shopRes.error) throw shopRes.error;
+
+    const shopMap = new Map((shopRes.data || []).map((s) => [Number(s.doll_id), s]));
+    const productMap = new Map(products.map((p) => [Number(p.doll_id), p]));
+    let changed = false;
+
+    for (const d of (dollsRes.data || [])) {
+      const name = String(d.name || "");
+      if (/\(풀\)/.test(name)) continue;
+
+      const s = shopMap.get(Number(d.id));
+      const visible = Number(s?.visible || 0);
+      const stock = Number(d.current_stock || 0);
+      const state = liveState(visible, stock);
+      const existing = productMap.get(Number(d.id));
+
+      if (existing) {
+        Object.assign(existing, {
+          name,
+          price: Number(d.price || 0),
+          fullbox_price: Number(d.fullbox_price || 0),
+          current_stock: stock,
+          image_url: String(s?.image_url || d.image_url || existing.image_url || ""),
+          visible,
+          state
+        });
+        changed = true;
+      } else if (state === "available") {
+        const added = {
+          doll_id: Number(d.id),
+          name,
+          price: Number(d.price || 0),
+          fullbox_price: Number(d.fullbox_price || 0),
+          current_stock: stock,
+          image_url: String(s?.image_url || d.image_url || ""),
+          visible,
+          state,
+          last_observed_at: null,
+          last_event: null,
+          last_event_at: null,
+          last_stock_change_at: null,
+          last_stock_delta: null,
+          last_increase_at: null,
+          last_increase_qty: null,
+          stock_cycle_started_at: null,
+          last_sold_out_at: null,
+          last_sellout_duration_seconds: null
+        };
+        products.push(added);
+        productMap.set(Number(d.id), added);
+        changed = true;
+      }
+    }
+
+    if (changed) render();
+  } catch (e) {
+    console.warn("live refresh failed", e);
+  }
+}
+
+function scheduleLiveRefresh() {
+  clearTimeout(liveRefreshTimer);
+  liveRefreshTimer = setTimeout(refreshLiveProducts, 250);
+}
+
+function startRealtime() {
+  if (realtimeChannel) return;
+
+  realtimeChannel = liveSb
+    .channel("bebepick-dashboard-live")
+    .on("postgres_changes", { event: "*", schema: "public", table: "dolls" }, scheduleLiveRefresh)
+    .on("postgres_changes", { event: "*", schema: "public", table: "shop_products" }, scheduleLiveRefresh)
+    .subscribe((status) => {
+      const el = $("rtStatus");
+      if (!el) return;
+      if (status === "SUBSCRIBED") {
+        el.className = "rt";
+        el.textContent = "⚡ 베베픽 실시간 신호 연결됨";
+      } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+        el.className = "rt off";
+        el.textContent = "실시간 재연결 중 · 1분 안전망은 계속 작동";
+      }
+    });
 }
 
 function imageHtml(p) {
@@ -300,6 +413,7 @@ async function load() {
       : "💚 정상 감시 중 · 최근 확인 " + time(data.checked_at);
 
     render();
+    await refreshLiveProducts();
   } catch (e) {
     $("status").className = "status err";
     $("status").textContent = "⚠️ 재고를 불러오지 못했어 · " + e.message;
@@ -327,8 +441,19 @@ document.querySelectorAll(".chip").forEach((button) => {
   });
 });
 
-$("refresh").addEventListener("click", load);
+$("refresh").addEventListener("click", async () => {
+  historyCache.clear();
+  await load();
+});
 
+$("grid").addEventListener("click", (e) => {
+  if (e.target.closest("button")) return;
+  const card = e.target.closest(".card");
+  if (!card) return;
+  window.open(SHOP_URL, "_blank", "noopener");
+});
+
+startRealtime();
 load();
 setInterval(load, 60000);
 </script>
