@@ -13,6 +13,18 @@ body{margin:0;background:#fffaf6;color:#2d2926;font-family:-apple-system,BlinkMa
 h1{margin:0;font-size:24px}
 .sub{margin-top:5px;color:#8a817b;font-size:13px}
 .back{padding:9px 11px;border:1px solid #eee5df;border-radius:12px;background:#fff;color:#2d2926;text-decoration:none;font-size:13px}
+.main-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:16px 0 4px;padding:4px;background:#f1ebe6;border-radius:14px}
+.main-tab{text-align:center;text-decoration:none;color:#786f69;padding:10px 8px;border-radius:11px;font-size:13px;font-weight:750}
+.main-tab.on{background:#fff;color:#2d2926;box-shadow:0 2px 8px rgba(70,50,35,.08)}
+.details{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.detail{padding:10px;border-radius:12px;background:#faf8f6;border:1px solid #f0e8e2}
+.detail .k{font-size:11px;color:#8a817b;margin-bottom:4px}
+.detail .v{font-size:13px;font-weight:700;word-break:break-all}
+.memo{margin-top:10px;padding:11px;border-radius:12px;background:#faf8f6;border:1px solid #f0e8e2}
+.memo .k{font-size:11px;color:#8a817b;margin-bottom:5px}
+.memo .v{font-size:13px;white-space:pre-wrap;word-break:break-word}
+.item-meta{margin-top:5px;font-size:11px;color:#8a817b;line-height:1.55}
+.section-title{font-size:13px;font-weight:800;margin:14px 0 6px}
 .box{margin-top:16px;background:#fff;border:1px solid #eee5df;border-radius:16px;padding:14px;box-shadow:0 5px 18px rgba(70,50,35,.06)}
 .search{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
 input{width:100%;min-width:0;border:1px solid #e8ded7;border-radius:12px;padding:13px 14px;font:inherit;text-transform:uppercase;outline:none}
@@ -48,12 +60,17 @@ button{border:0;border-radius:12px;padding:0 16px;background:#2d2926;color:#fff;
     <a class="back" href="./">재고판 ←</a>
   </div>
 
+  <nav class="main-tabs" aria-label="베베픽 도구">
+    <a class="main-tab" href="./">🧸 재고표</a>
+    <a class="main-tab on" href="./order.html">📦 주문옵션 조회</a>
+  </nav>
+
   <section class="box">
     <div class="search">
       <input id="orderNo" inputmode="text" autocomplete="off" placeholder="예: BP261007AD3D">
       <button id="lookup" type="button">조회</button>
     </div>
-    <div class="note">정확한 주문번호가 있어야 조회돼. 이 페이지에는 전화번호·주소·회원명은 표시하지 않아.</div>
+    <div class="note">정확한 주문번호가 있어야 조회돼. 주문·상품·옵션 정보는 최대한 보여주고, 전화번호·주소·회원명 같은 개인정보는 표시하지 않아.</div>
   </section>
 
   <section id="result"></section>
@@ -117,12 +134,23 @@ async function lookup(){
 
     const itemHtml=items.length ? items.map(x=>{
       const qty=Number(x.quantity || 0);
+      const itemPrice=Number(x.price || 0);
+      const dollPrice=Number(x.doll_price || 0);
+      const unitPrice=itemPrice || dollPrice;
       const opt=String(x.option || "");
       return '<div class="item">'+
         '<div><div class="item-name">'+esc(x.doll_name || "상품")+
         (opt?'<span class="badge">'+esc(opt)+'</span>':'')+
-        '</div><div class="meta">'+fmt(x.price || x.doll_price)+'원 × '+fmt(qty)+'</div></div>'+
-        '<div><b>'+fmt(Number(x.price || x.doll_price)*qty)+'원</b></div>'+
+        '</div>'+
+        '<div class="item-meta">'+
+          'item ID '+esc(x.id ?? "—")+
+          ' · doll ID '+esc(x.doll_id ?? "—")+
+          '<br>수량 '+fmt(qty)+
+          ' · 주문단가 '+fmt(itemPrice)+'원'+
+          ' · 상품기준가 '+fmt(dollPrice)+'원'+
+          (opt?'<br>원본 옵션 '+esc(opt):'')+
+        '</div></div>'+
+        '<div><b>'+fmt(unitPrice*qty)+'원</b></div>'+
       '</div>';
     }).join("") : '<div class="empty">상품 정보가 없어.</div>';
 
@@ -133,6 +161,17 @@ async function lookup(){
           '<div class="meta">'+esc(timeKst(order.created_at))+(order.status?' · '+esc(statusText(order.status)):'')+'</div></div>'+
         '</div>'+
         '<div class="flags">'+flagHtml("📦 보관",keep)+flagHtml("✂️ 개봉",open)+'</div>'+
+        '<div class="section-title">주문 상세</div>'+
+        '<div class="details">'+
+          '<div class="detail"><div class="k">주문 내부 ID</div><div class="v">'+esc(order.id ?? "—")+'</div></div>'+
+          '<div class="detail"><div class="k">주문번호</div><div class="v">'+esc(order.order_no || orderNo)+'</div></div>'+
+          '<div class="detail"><div class="k">상태</div><div class="v">'+esc(statusText(order.status))+(order.status?' ('+esc(order.status)+')':'')+'</div></div>'+
+          '<div class="detail"><div class="k">생성시각</div><div class="v">'+esc(timeKst(order.created_at) || "—")+'</div></div>'+
+          '<div class="detail"><div class="k">주문 총액</div><div class="v">'+fmt(order.total_amount)+'원</div></div>'+
+          '<div class="detail"><div class="k">상품 종류 수</div><div class="v">'+fmt(items.length)+'개</div></div>'+
+        '</div>'+
+        '<div class="memo"><div class="k">원본 고객 메모</div><div class="v">'+esc(memo || "없음")+'</div></div>'+
+        '<div class="section-title">상품 상세</div>'+
         '<div class="items">'+itemHtml+'</div>'+
         '<div class="total"><span>주문 총액</span><span>'+fmt(order.total_amount)+'원</span></div>'+
       '</section>';
