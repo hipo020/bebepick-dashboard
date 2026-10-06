@@ -74,8 +74,8 @@
       <button class="chip" data-f="all">전체</button>
       <button class="chip" data-f="recent_restock">최근 재입고</button>
       <select id="sort" class="sort" aria-label="정렬">
-        <option value="asc">재고 적은 순</option>
         <option value="desc">재고 많은 순</option>
+        <option value="asc">재고 적은 순</option>
         <option value="popular">최근 인기순</option>
         <option value="name">이름순</option>
       </select>
@@ -103,7 +103,7 @@ let statsHydratedAt = 0;
 let products = [];
 let filter = "available";
 let query = "";
-let sort = "asc";
+let sort = "desc";
 
 const $ = (id) => document.getElementById(id);
 const fmt = (n) => Number(n || 0).toLocaleString("ko-KR");
