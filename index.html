@@ -39,6 +39,7 @@
     .ok{color:#238636}.low{color:#b7791f}.sold{color:#c62828}.hidden{color:#6b7280}
     .empty{padding:50px 10px;text-align:center;color:#8a817b}
     .trend{margin-top:3px}.trend.up{color:#238636}.trend.out{color:#a15c00}
+    .prep{display:inline-block;margin:0 0 5px;padding:4px 7px;border-radius:999px;background:#fff3cd;color:#7a5a00;font-size:11px;font-weight:750}
     .history-btn{margin-top:7px;border:1px solid #eee5df;border-radius:9px;background:#fff;padding:6px 9px;color:#655d57;font-size:11px}
     .history-panel{grid-column:1/-1;border-top:1px dashed #eee5df;margin-top:2px;padding:9px 4px 2px;font-size:11px;color:#655d57}
     .history-panel[hidden]{display:none}
@@ -71,8 +72,11 @@
     <div class="row">
       <button class="chip on" data-f="available">판매중</button>
       <button class="chip" data-f="unavailable">품절·판매종료</button>
-      <button class="chip" data-f="all">전체</button>
+      <button class="chip" data-f="hidden">숨김 전체</button>
+      <button class="chip" data-f="hidden_stock">숨김·재고 있음</button>
+      <button class="chip" data-f="upcoming">👀 미공개 신상추정</button>
       <button class="chip" data-f="recent_restock">최근 재입고</button>
+      <button class="chip" data-f="all">전체</button>
       <select id="sort" class="sort" aria-label="정렬">
         <option value="desc">재고 많은 순</option>
         <option value="asc">재고 적은 순</option>
@@ -181,7 +185,7 @@ function liveState(visible, stock) {
 async function refreshLiveProducts() {
   try {
     const [dollsRes, shopRes] = await Promise.all([
-      liveSb.from("dolls").select("id,name,price,current_stock,fullbox_price,pack_size,image_url"),
+      liveSb.from("dolls").select("id,name,price,current_stock,fullbox_price,pack_size,is_new,created_at,image_url"),
       liveSb.from("shop_products").select("doll_id,visible,image_url")
     ]);
     if (dollsRes.error) throw dollsRes.error;
@@ -207,6 +211,8 @@ async function refreshLiveProducts() {
           price: Number(d.price || 0),
           fullbox_price: Number(d.fullbox_price || 0),
           pack_size: Number(d.pack_size || existing.pack_size || 1),
+          is_new: Number(d.is_new || 0),
+          source_created_at: d.created_at || existing.source_created_at || null,
           current_stock: stock,
           image_url: String(s?.image_url || d.image_url || existing.image_url || ""),
           visible,
@@ -220,6 +226,8 @@ async function refreshLiveProducts() {
           price: Number(d.price || 0),
           fullbox_price: Number(d.fullbox_price || 0),
           pack_size: Number(d.pack_size || 1),
+          is_new: Number(d.is_new || 0),
+          source_created_at: d.created_at || null,
           current_stock: stock,
           image_url: String(s?.image_url || d.image_url || ""),
           visible,
@@ -276,6 +284,13 @@ function isRecentRestock(p) {
   if (!p.last_increase_at) return false;
   const t = new Date(p.last_increase_at).getTime();
   return Number.isFinite(t) && Date.now() - t <= 24 * 60 * 60 * 1000;
+}
+
+function isUpcomingCandidate(p) {
+  if (p.state !== "hidden" || Number(p.current_stock) <= 0) return false;
+  if (p.hidden_recent_with_stock === true) return true;
+  const t = p.source_created_at ? new Date(p.source_created_at).getTime() : NaN;
+  return Number.isFinite(t) && Date.now() - t <= 72 * 60 * 60 * 1000;
 }
 
 function applyHistoryStats(p, rows) {
@@ -404,6 +419,9 @@ function render() {
   let list = products.filter((p) => {
     if (filter === "available" && p.state !== "available") return false;
     if (filter === "unavailable" && p.state === "available") return false;
+    if (filter === "hidden" && p.state !== "hidden") return false;
+    if (filter === "hidden_stock" && !(p.state === "hidden" && Number(p.current_stock) > 0)) return false;
+    if (filter === "upcoming" && !isUpcomingCandidate(p)) return false;
     if (filter === "recent_restock" && !(p.recent_restock_24h ?? isRecentRestock(p))) return false;
     if (q && !String(p.name || "").toLowerCase().includes(q)) return false;
     return true;
@@ -440,7 +458,11 @@ function render() {
     const full = Number(p.fullbox_price) > 0 ? " · 풀박스 " + fmt(p.fullbox_price) + "원" : "";
     const stock = p.state === "available"
       ? fmt(p.current_stock) + "개"
-      : p.state === "sold_out" ? "0개" : "—";
+      : p.state === "sold_out"
+        ? "0개"
+        : Number.isFinite(Number(p.current_stock))
+          ? fmt(p.current_stock) + "개"
+          : "—";
     const recentIncrease = Number(p.last_increase_qty) > 0 && p.last_increase_at
       ? '<div class="meta trend up">최근 입고 +' + fmt(p.last_increase_qty) + ' · ' + esc(timeShort(p.last_increase_at)) + '</div>'
       : "";
@@ -450,6 +472,9 @@ function render() {
     const recentDecrease = Number(p.recent_decrease_60m || 0) > 0
       ? '<div class="meta">최근 ' + fmt(p.trend_window_minutes || 60) + '분 재고 -' + fmt(p.recent_decrease_60m) + '개</div>'
       : "";
+    const prepBadge = isUpcomingCandidate(p)
+      ? '<div class="prep">👀 미공개 신상추정 · 최근 등록</div>'
+      : "";
     const etaMinutes = Number(p.estimated_sellout_minutes);
     const eta = Number.isFinite(etaMinutes) && etaMinutes > 0 && etaMinutes <= 720
       ? '<div class="meta trend out">⏱ 현재 속도면 약 ' + esc(durationText(etaMinutes * 60)) + ' 내 품절 예상</div>'
@@ -458,6 +483,7 @@ function render() {
     return '<article class="card">' +
       imageHtml(p) +
       '<div>' +
+        prepBadge +
         '<div class="name">' + esc(p.name) + '</div>' +
         '<div class="meta">' + esc(price + pack + full) + '</div>' +
         '<div class="meta">' + label(p) + '</div>' +
