@@ -30,7 +30,12 @@
     .card:active{transform:scale(.995)}
     .rt{font-size:11px;color:#238636;margin-top:5px}.rt.off{color:#a15c00}
     .thumb,.ph{width:82px;height:82px;border-radius:12px;background:#f3eee9}
-    .thumb{object-fit:cover}
+    .thumb{object-fit:cover;cursor:zoom-in}
+    .lightbox{position:fixed;inset:0;z-index:9999;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.82)}
+    .lightbox.open{display:flex}
+    .lightbox-inner{position:relative;max-width:min(94vw,900px);max-height:92vh}
+    .lightbox-img{display:block;max-width:94vw;max-height:88vh;object-fit:contain;border-radius:14px;background:#fff}
+    .lightbox-close{position:absolute;top:-14px;right:-14px;width:38px;height:38px;border:0;border-radius:999px;background:#fff;color:#222;font-size:25px;line-height:38px;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.25)}
     .ph{display:grid;place-items:center;font-size:27px}
     .name{font-weight:750;font-size:15px;line-height:1.35;margin-bottom:5px}
     .meta{font-size:12px;line-height:1.55}
@@ -90,6 +95,13 @@
   <div id="summary" class="summary"></div>
   <div id="grid" class="grid"><div class="empty">재고 불러오는 중…</div></div>
 </main>
+
+<div id="lightbox" class="lightbox" aria-hidden="true">
+  <div class="lightbox-inner">
+    <button id="lightboxClose" class="lightbox-close" type="button" aria-label="이미지 닫기">×</button>
+    <img id="lightboxImg" class="lightbox-img" alt="">
+  </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -361,7 +373,28 @@ async function hydrateClientStats(force = false) {
 function imageHtml(p) {
   if (!p.image_url) return '<div class="ph">🧸</div>';
   const safe = esc(p.image_url);
-  return '<img class="thumb" src="' + safe + '" alt="" loading="lazy">';
+  return '<img class="thumb" src="' + safe + '" alt="' + esc(p.name || "") + '" loading="lazy" data-zoom-src="' + safe + '" title="이미지 크게 보기">';
+}
+
+function openLightbox(src, alt = "") {
+  const box = $("lightbox");
+  const img = $("lightboxImg");
+  if (!box || !img || !src) return;
+  img.src = src;
+  img.alt = alt;
+  box.classList.add("open");
+  box.setAttribute("aria-hidden", "false");
+  document.body.style.overflow = "hidden";
+}
+
+function closeLightbox() {
+  const box = $("lightbox");
+  const img = $("lightboxImg");
+  if (!box || !img) return;
+  box.classList.remove("open");
+  box.setAttribute("aria-hidden", "true");
+  img.src = "";
+  document.body.style.overflow = "";
 }
 
 function historyLabel(type) {
@@ -581,10 +614,24 @@ $("refresh").addEventListener("click", async () => {
 });
 
 $("grid").addEventListener("click", (e) => {
+  const zoomImg = e.target.closest("[data-zoom-src]");
+  if (zoomImg) {
+    e.stopPropagation();
+    openLightbox(zoomImg.dataset.zoomSrc, zoomImg.alt || "");
+    return;
+  }
   if (e.target.closest("button")) return;
   const card = e.target.closest(".card");
   if (!card) return;
   window.open(SHOP_URL, "_blank", "noopener");
+});
+
+$("lightboxClose").addEventListener("click", closeLightbox);
+$("lightbox").addEventListener("click", (e) => {
+  if (e.target === $("lightbox")) closeLightbox();
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") closeLightbox();
 });
 
 startRealtime();
