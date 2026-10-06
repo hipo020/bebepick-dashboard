@@ -181,7 +181,7 @@ function liveState(visible, stock) {
 async function refreshLiveProducts() {
   try {
     const [dollsRes, shopRes] = await Promise.all([
-      liveSb.from("dolls").select("id,name,price,current_stock,fullbox_price,image_url"),
+      liveSb.from("dolls").select("id,name,price,current_stock,fullbox_price,pack_size,image_url"),
       liveSb.from("shop_products").select("doll_id,visible,image_url")
     ]);
     if (dollsRes.error) throw dollsRes.error;
@@ -206,6 +206,7 @@ async function refreshLiveProducts() {
           name,
           price: Number(d.price || 0),
           fullbox_price: Number(d.fullbox_price || 0),
+          pack_size: Number(d.pack_size || existing.pack_size || 1),
           current_stock: stock,
           image_url: String(s?.image_url || d.image_url || existing.image_url || ""),
           visible,
@@ -218,6 +219,7 @@ async function refreshLiveProducts() {
           name,
           price: Number(d.price || 0),
           fullbox_price: Number(d.fullbox_price || 0),
+          pack_size: Number(d.pack_size || 1),
           current_stock: stock,
           image_url: String(s?.image_url || d.image_url || ""),
           visible,
@@ -434,6 +436,7 @@ function render() {
 
   $("grid").innerHTML = list.map((p) => {
     const price = Number(p.price) > 0 ? fmt(p.price) + "원" : "";
+    const pack = Number(p.pack_size) > 1 ? " · " + fmt(p.pack_size) + "입" : "";
     const full = Number(p.fullbox_price) > 0 ? " · 풀박스 " + fmt(p.fullbox_price) + "원" : "";
     const stock = p.state === "available"
       ? fmt(p.current_stock) + "개"
@@ -456,7 +459,7 @@ function render() {
       imageHtml(p) +
       '<div>' +
         '<div class="name">' + esc(p.name) + '</div>' +
-        '<div class="meta">' + esc(price + full) + '</div>' +
+        '<div class="meta">' + esc(price + pack + full) + '</div>' +
         '<div class="meta">' + label(p) + '</div>' +
         recentIncrease + recentDecrease + eta + selloutSpeed +
         '<button class="history-btn" type="button" onclick="toggleHistory(' + Number(p.doll_id) + ')">재고 기록</button>' +
