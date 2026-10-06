@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fffaf6">
+<title>베베픽 주문 옵션 조회</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#fffaf6;color:#2d2926;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif}
+.wrap{max-width:680px;margin:auto;padding:22px 14px 80px}
+.top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+h1{margin:0;font-size:24px}
+.sub{margin-top:5px;color:#8a817b;font-size:13px}
+.back{padding:9px 11px;border:1px solid #eee5df;border-radius:12px;background:#fff;color:#2d2926;text-decoration:none;font-size:13px}
+.box{margin-top:16px;background:#fff;border:1px solid #eee5df;border-radius:16px;padding:14px;box-shadow:0 5px 18px rgba(70,50,35,.06)}
+.search{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
+input{width:100%;min-width:0;border:1px solid #e8ded7;border-radius:12px;padding:13px 14px;font:inherit;text-transform:uppercase;outline:none}
+button{border:0;border-radius:12px;padding:0 16px;background:#2d2926;color:#fff;font:inherit;font-weight:750}
+.note{margin-top:9px;color:#8a817b;font-size:12px;line-height:1.5}
+#result{margin-top:14px}
+.empty{padding:30px 8px;text-align:center;color:#8a817b}
+.head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:12px}
+.order-no{font-weight:800;font-size:16px}
+.meta{font-size:12px;color:#8a817b;line-height:1.55}
+.flags{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
+.flag{padding:16px 12px;border-radius:14px;text-align:center;border:1px solid #eee5df;background:#faf8f6}
+.flag b{display:block;font-size:21px;margin-top:5px}
+.flag.yes{background:#effaf3;border-color:#c9ead3}
+.flag.no{background:#f7f4f2;color:#8a817b}
+.items{border-top:1px dashed #eee5df;margin-top:10px;padding-top:10px}
+.item{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid #f5efeb}
+.item:last-child{border-bottom:0}
+.item-name{font-weight:700}
+.badge{display:inline-block;margin-left:5px;padding:2px 6px;border-radius:999px;background:#f3eee9;font-size:10px;color:#665e58;vertical-align:1px}
+.total{margin-top:12px;display:flex;justify-content:space-between;font-weight:800}
+.err{padding:14px;border-radius:12px;background:#fff2f2;color:#a12929;border:1px solid #efcaca}
+.loading{padding:26px;text-align:center;color:#8a817b}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="top">
+    <div>
+      <h1>📦 주문 옵션 조회</h1>
+      <div class="sub">주문번호로 보관·개봉 여부 확인</div>
+    </div>
+    <a class="back" href="./">재고판 ←</a>
+  </div>
+
+  <section class="box">
+    <div class="search">
+      <input id="orderNo" inputmode="text" autocomplete="off" placeholder="예: BP261007AD3D">
+      <button id="lookup" type="button">조회</button>
+    </div>
+    <div class="note">정확한 주문번호가 있어야 조회돼. 이 페이지에는 전화번호·주소·회원명은 표시하지 않아.</div>
+  </section>
+
+  <section id="result"></section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const BEBEPICK_URL = "https://kswhgzweesuwacgqruok.supabase.co";
+const BEBEPICK_KEY = "sb_publishable_XSYCZ48RRSxjI24XoR9CUg_-D5ae3KV";
+const sb = window.supabase.createClient(BEBEPICK_URL, BEBEPICK_KEY, {
+  auth: { persistSession:false, autoRefreshToken:false, detectSessionInUrl:false }
+});
+
+const $ = id => document.getElementById(id);
+const fmt = n => Number(n || 0).toLocaleString("ko-KR");
+
+function esc(v){
+  return String(v ?? "")
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
+}
+function timeKst(iso){
+  if(!iso) return "";
+  const d=new Date(iso);
+  if(Number.isNaN(d.getTime())) return "";
+  return new Intl.DateTimeFormat("ko-KR",{
+    timeZone:"Asia/Seoul",year:"numeric",month:"numeric",day:"numeric",
+    hour:"2-digit",minute:"2-digit",hour12:false
+  }).format(d);
+}
+function statusText(s){
+  return ({pending:"접수/대기",paid:"결제완료",completed:"완료",cancelled:"취소"})[s] || s || "";
+}
+function flagHtml(label,on){
+  return '<div class="flag '+(on?'yes':'no')+'"><span>'+label+'</span><b>'+(on?'YES ✓':'NO')+'</b></div>';
+}
+
+async function lookup(){
+  const orderNo=$("orderNo").value.trim().toUpperCase();
+  if(!orderNo){
+    $("result").innerHTML='<div class="box err">주문번호를 입력해줘.</div>';
+    return;
+  }
+
+  $("result").innerHTML='<div class="box loading">조회하는 중…</div>';
+  $("lookup").disabled=true;
+
+  try{
+    const {data,error}=await sb.rpc("get_order_by_no",{p_order_no:orderNo});
+    if(error) throw error;
+    if(!data || !data.order){
+      $("result").innerHTML='<div class="box empty">해당 주문번호를 찾지 못했어.</div>';
+      return;
+    }
+
+    const order=data.order || {};
+    const items=Array.isArray(data.items)?data.items:[];
+    const memo=String(order.customer_memo || "");
+    const keep=/\[보관\]/.test(memo);
+    const open=/\[개봉\]/.test(memo);
+
+    const itemHtml=items.length ? items.map(x=>{
+      const qty=Number(x.quantity || 0);
+      const opt=String(x.option || "");
+      return '<div class="item">'+
+        '<div><div class="item-name">'+esc(x.doll_name || "상품")+
+        (opt?'<span class="badge">'+esc(opt)+'</span>':'')+
+        '</div><div class="meta">'+fmt(x.price || x.doll_price)+'원 × '+fmt(qty)+'</div></div>'+
+        '<div><b>'+fmt(Number(x.price || x.doll_price)*qty)+'원</b></div>'+
+      '</div>';
+    }).join("") : '<div class="empty">상품 정보가 없어.</div>';
+
+    $("result").innerHTML=
+      '<section class="box">'+
+        '<div class="head">'+
+          '<div><div class="order-no">'+esc(order.order_no || orderNo)+'</div>'+
+          '<div class="meta">'+esc(timeKst(order.created_at))+(order.status?' · '+esc(statusText(order.status)):'')+'</div></div>'+
+        '</div>'+
+        '<div class="flags">'+flagHtml("📦 보관",keep)+flagHtml("✂️ 개봉",open)+'</div>'+
+        '<div class="items">'+itemHtml+'</div>'+
+        '<div class="total"><span>주문 총액</span><span>'+fmt(order.total_amount)+'원</span></div>'+
+      '</section>';
+  }catch(e){
+    $("result").innerHTML='<div class="box err">조회하지 못했어 · '+esc(e.message || e)+'</div>';
+  }finally{
+    $("lookup").disabled=false;
+  }
+}
+
+$("lookup").addEventListener("click",lookup);
+$("orderNo").addEventListener("keydown",e=>{ if(e.key==="Enter") lookup(); });
+
+const qs=new URLSearchParams(location.search).get("order_no");
+if(qs){
+  $("orderNo").value=qs.toUpperCase();
+  lookup();
+}
+</script>
+</body>
+</html>
