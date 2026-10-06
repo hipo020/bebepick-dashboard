@@ -219,7 +219,7 @@ async function refreshLiveProducts() {
           state
         });
         changed = true;
-      } else if (state === "available") {
+      } else {
         const added = {
           doll_id: Number(d.id),
           name,
