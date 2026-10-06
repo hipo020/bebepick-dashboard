@@ -108,6 +108,16 @@ function flagHtml(label,on){
   return '<div class="flag '+(on?'yes':'no')+'"><span>'+label+'</span><b>'+(on?'YES ✓':'NO')+'</b></div>';
 }
 
+function safeMemoText(memo){
+  const text=String(memo || "").trim();
+  if(!text) return "없음";
+  const remainder=text
+    .replace(/\[보관\]/g,"")
+    .replace(/\[개봉\]/g,"")
+    .replace(/[\s,./|·-]/g,"");
+  return remainder ? "보관·개봉 외 메모 원문은 개인정보 보호를 위해 표시하지 않음" : text;
+}
+
 async function lookup(){
   const orderNo=$("orderNo").value.trim().toUpperCase();
   if(!orderNo){
@@ -170,7 +180,7 @@ async function lookup(){
           '<div class="detail"><div class="k">주문 총액</div><div class="v">'+fmt(order.total_amount)+'원</div></div>'+
           '<div class="detail"><div class="k">상품 종류 수</div><div class="v">'+fmt(items.length)+'개</div></div>'+
         '</div>'+
-        '<div class="memo"><div class="k">원본 고객 메모</div><div class="v">'+esc(memo || "없음")+'</div></div>'+
+        '<div class="memo"><div class="k">고객 메모</div><div class="v">'+esc(safeMemoText(memo))+'</div></div>'+
         '<div class="section-title">상품 상세</div>'+
         '<div class="items">'+itemHtml+'</div>'+
         '<div class="total"><span>주문 총액</span><span>'+fmt(order.total_amount)+'원</span></div>'+
