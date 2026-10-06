@@ -50,6 +50,24 @@
     .history-panel[hidden]{display:none}
     .history-row{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid #f5efeb}
     .history-row:last-child{border-bottom:0}.delta-up{color:#238636;font-weight:700}.delta-down{color:#c62828;font-weight:700}
+    @media(max-width:649px){
+      .row{
+        display:grid;
+        grid-template-columns:repeat(3,minmax(0,1fr));
+        gap:7px;
+        overflow:visible;
+      }
+      .chip,.special-toggle,.filter-select,.sort{
+        width:100%;
+        min-width:0;
+        padding:9px 6px;
+        font-size:12px;
+        text-align:center;
+      }
+      .filter-select,.sort{
+        text-overflow:ellipsis;
+      }
+    }
     @media(min-width:650px){
       .grid{grid-template-columns:1fr 1fr}
       .card{grid-template-columns:72px minmax(0,1fr) auto}
