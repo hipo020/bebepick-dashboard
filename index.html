@@ -61,7 +61,7 @@
     <a class="shop" href="https://bebepick-web.pages.dev/" target="_blank" rel="noopener">베베픽 열기 ↗</a>
   </div>
 
-  <div id="status" class="status">상태 불러오는 중…<div id="rtStatus" class="rt off">실시간 연결 준비 중…</div></div>
+  <div id="status" class="status"><div id="statusMain">상태 불러오는 중…</div><div id="rtStatus" class="rt off">실시간 연결 준비 중…</div></div>
 
   <div class="controls">
     <div class="searchline">
@@ -72,9 +72,11 @@
       <button class="chip on" data-f="available">판매중</button>
       <button class="chip" data-f="unavailable">품절·판매종료</button>
       <button class="chip" data-f="all">전체</button>
+      <button class="chip" data-f="recent_restock">최근 재입고</button>
       <select id="sort" class="sort" aria-label="정렬">
         <option value="asc">재고 적은 순</option>
         <option value="desc">재고 많은 순</option>
+        <option value="popular">최근 인기순</option>
         <option value="name">이름순</option>
       </select>
     </div>
@@ -334,6 +336,7 @@ function render() {
   let list = products.filter((p) => {
     if (filter === "available" && p.state !== "available") return false;
     if (filter === "unavailable" && p.state === "available") return false;
+    if (filter === "recent_restock" && !p.recent_restock_24h) return false;
     if (q && !String(p.name || "").toLowerCase().includes(q)) return false;
     return true;
   });
@@ -341,6 +344,11 @@ function render() {
   list.sort((a, b) => {
     if (sort === "name") return String(a.name).localeCompare(String(b.name), "ko");
     if (sort === "desc") return Number(b.current_stock) - Number(a.current_stock);
+    if (sort === "popular") {
+      const d = Number(b.recent_decrease_60m || 0) - Number(a.recent_decrease_60m || 0);
+      if (d !== 0) return d;
+      return Number(a.current_stock) - Number(b.current_stock);
+    }
     return Number(a.current_stock) - Number(b.current_stock);
   });
 
@@ -370,6 +378,13 @@ function render() {
     const selloutSpeed = p.last_sellout_duration_seconds != null && p.last_sold_out_at
       ? '<div class="meta trend out">최근 품절까지 ' + esc(durationText(p.last_sellout_duration_seconds)) + '</div>'
       : "";
+    const recentDecrease = Number(p.recent_decrease_60m || 0) > 0
+      ? '<div class="meta">최근 ' + fmt(p.trend_window_minutes || 60) + '분 재고 -' + fmt(p.recent_decrease_60m) + '개</div>'
+      : "";
+    const etaMinutes = Number(p.estimated_sellout_minutes);
+    const eta = Number.isFinite(etaMinutes) && etaMinutes > 0 && etaMinutes <= 720
+      ? '<div class="meta trend out">⏱ 현재 속도면 약 ' + esc(durationText(etaMinutes * 60)) + ' 내 품절 예상</div>'
+      : "";
 
     return '<article class="card">' +
       imageHtml(p) +
@@ -377,7 +392,7 @@ function render() {
         '<div class="name">' + esc(p.name) + '</div>' +
         '<div class="meta">' + esc(price + full) + '</div>' +
         '<div class="meta">' + label(p) + '</div>' +
-        recentIncrease + selloutSpeed +
+        recentIncrease + recentDecrease + eta + selloutSpeed +
         '<button class="history-btn" type="button" onclick="toggleHistory(' + Number(p.doll_id) + ')">재고 기록</button>' +
       '</div>' +
       '<div class="stock ' + stockClass(p) + '">' +
@@ -408,7 +423,7 @@ async function load() {
     products = Array.isArray(data.products) ? data.products : [];
 
     $("status").className = data.last_error ? "status err" : "status";
-    $("status").textContent = data.last_error
+    $("statusMain").textContent = data.last_error
       ? "⚠️ 감시 오류 · " + data.last_error
       : "💚 정상 감시 중 · 최근 확인 " + time(data.checked_at);
 
@@ -416,7 +431,7 @@ async function load() {
     await refreshLiveProducts();
   } catch (e) {
     $("status").className = "status err";
-    $("status").textContent = "⚠️ 재고를 불러오지 못했어 · " + e.message;
+    $("statusMain").textContent = "⚠️ 재고를 불러오지 못했어 · " + e.message;
   } finally {
     $("refresh").disabled = false;
   }
