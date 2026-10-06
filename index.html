@@ -14,6 +14,9 @@
     .sub,.meta,.summary{color:#8a817b}
     .sub{font-size:13px}
     .shop{text-decoration:none;color:#2d2926;background:#fff;border:1px solid #eee5df;border-radius:12px;padding:10px 12px;font-size:13px}
+    .main-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:16px 0 4px;padding:4px;background:#f1ebe6;border-radius:14px}
+    .main-tab{text-align:center;text-decoration:none;color:#786f69;padding:10px 8px;border-radius:11px;font-size:13px;font-weight:750}
+    .main-tab.on{background:#fff;color:#2d2926;box-shadow:0 2px 8px rgba(70,50,35,.08)}
     .status{margin:14px 0 4px;background:#fff;border:1px solid #eee5df;border-radius:14px;padding:12px 14px;font-size:13px}
     .status.err{background:#fff4f4;border-color:#f0b7b7}
     .controls{position:sticky;top:0;z-index:5;padding:10px 0 12px;background:#fffaf6}
@@ -84,6 +87,11 @@
     </div>
     <a class="shop" href="https://bebepick-web.pages.dev/" target="_blank" rel="noopener">베베픽 열기 ↗</a>
   </div>
+
+  <nav class="main-tabs" aria-label="베베픽 도구">
+    <a class="main-tab on" href="./">🧸 재고표</a>
+    <a class="main-tab" href="./order.html">📦 주문옵션 조회</a>
+  </nav>
 
   <div id="status" class="status"><div id="statusMain">상태 불러오는 중…</div><div id="rtStatus" class="rt off">실시간 연결 준비 중…</div></div>
 
