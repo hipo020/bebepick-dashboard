@@ -39,7 +39,7 @@
     .chip.on b{background:rgba(255,255,255,.16);color:#fff}
     .filter-select,.sort{appearance:none;-webkit-appearance:none;background-image:linear-gradient(45deg,transparent 50%,#8a817b 50%),linear-gradient(135deg,#8a817b 50%,transparent 50%);background-position:calc(100% - 14px) 50%,calc(100% - 10px) 50%;background-size:4px 4px,4px 4px;background-repeat:no-repeat;padding-right:24px}
     .filter-select.on{background-image:linear-gradient(45deg,transparent 50%,#fff 50%),linear-gradient(135deg,#fff 50%,transparent 50%)}
-    .summary{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:12px;margin:2px 0 12px;color:#8a817b}
+    .summary{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:11.5px;margin:2px 2px 12px;color:#8a817b}
     .summary b{color:#2d2926}
     .grid{display:grid;gap:10px}
     .card{display:grid;grid-template-columns:82px minmax(0,1fr) auto;gap:12px;align-items:center;background:#fff;border:1px solid #eee5df;border-radius:16px;padding:10px;box-shadow:0 5px 18px rgba(70,50,35,.06);cursor:pointer}
@@ -395,7 +395,7 @@ async function refreshBroadcastState() {
         .replace(/^\d{8}_/, "")
         .replace(/^베플/, "베플 ")
         .replace(/^베베픽/, "베베픽 ");
-      return shortName ? channel + " · " + shortName : channel;
+      return shortName || channel;
     });
 
     el.className = "broadcast-state live";
@@ -711,12 +711,18 @@ function render() {
   syncFilterUI();
   syncSearchClear();
 
+  const filterLabel = ({
+    available: "판매중",
+    hidden_stock: "숨김·재고",
+    upcoming: "신상추정",
+    unavailable: "품절·판매종료",
+    hidden: "숨김 전체",
+    recent_restock: "최근 재입고",
+    all: "전체"
+  })[filter] || "현재";
   $("summary").innerHTML =
-    "<span>판매중 <b>" + available + "</b></span>" +
-    "<span>·</span>" +
-    "<span>품절·판매종료 <b>" + (sold + hidden) + "</b></span>" +
-    "<span>·</span>" +
-    "<span>표시 <b>" + list.length + "</b></span>";
+    "<span>" + esc(filterLabel) + " <b>" + list.length + "</b>개</span>" +
+    (q ? "<span>·</span><span>검색 결과</span>" : "");
 
   if (!list.length) {
     $("grid").innerHTML = '<div class="empty">조건에 맞는 상품이 없어</div>';
@@ -757,7 +763,6 @@ function render() {
         prepBadge +
         '<div class="name">' + esc(p.name) + '</div>' +
         '<div class="meta">' + esc(price + pack + full) + '</div>' +
-        '<div class="meta">' + label(p) + '</div>' +
         recentIncrease + recentDecrease + eta + selloutSpeed +
         '<button class="history-btn" type="button" onclick="toggleHistory(' + Number(p.doll_id) + ')">재고 기록</button>' +
       '</div>' +
