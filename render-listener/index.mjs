@@ -1,5 +1,6 @@
 import http from "node:http";
 import { createClient } from "@supabase/supabase-js";
+import { probeYoutubeLive, YOUTUBE_CHANNELS } from "./youtube-live.mjs";
 
 const BEBEPICK_URL =
   process.env.BEBEPICK_URL || "https://kswhgzweesuwacgqruok.supabase.co";
@@ -23,6 +24,8 @@ const sb = createClient(BEBEPICK_URL, BEBEPICK_KEY, {
 });
 
 let realtimeStatus = "STARTING";
+const youtubeStatus = new Map();
+let checkingYouTube = false;
 let lastRealtimeEventAt = null;
 let lastTriggerAt = null;
 let lastTriggerReason = null;
@@ -125,6 +128,29 @@ const channel = sb
     if (status === "SUBSCRIBED") schedule("realtime:subscribed");
   });
 
+async function refreshYoutube() {
+  if (checkingYouTube) return;
+  checkingYouTube = true;
+  try {
+    for (const config of YOUTUBE_CHANNELS) {
+      try {
+        const state = await probeYoutubeLive(config);
+        youtubeStatus.set(config.slug, { ...state, checkedAt: now(), error: null });
+      } catch (error) {
+        youtubeStatus.set(config.slug, {
+          ...(youtubeStatus.get(config.slug) || {}),
+          checkedAt: now(),
+          error: String(error)
+        });
+      }
+    }
+  } finally {
+    checkingYouTube = false;
+  }
+}
+setTimeout(refreshYoutube, 1000);
+setInterval(refreshYoutube, 12000).unref();
+
 async function readJsonBody(req) {
   const chunks = [];
   for await (const chunk of req) chunks.push(chunk);
@@ -186,7 +212,8 @@ const server = http.createServer(async (req, res) => {
     last_trigger_at: lastTriggerAt,
     last_trigger_reason: lastTriggerReason,
     last_trigger_result: lastTriggerResult,
-    last_trigger_error: lastTriggerError
+    last_trigger_error: lastTriggerError,
+    youtube: Object.fromEntries(youtubeStatus)
   }));
 });
 
