@@ -32,6 +32,10 @@
     .card{display:grid;grid-template-columns:82px minmax(0,1fr) auto;gap:12px;align-items:center;background:#fff;border:1px solid #eee5df;border-radius:16px;padding:10px;box-shadow:0 5px 18px rgba(70,50,35,.06);cursor:pointer}
     .card:active{transform:scale(.995)}
     .rt{font-size:11px;color:#238636;margin-top:5px}.rt.off{color:#a15c00}
+    .broadcast-state{font-size:12px;font-weight:750;margin-top:7px;padding-top:7px;border-top:1px dashed #eee5df}
+    .broadcast-state.live{color:#238636}
+    .broadcast-state.off{color:#8a817b}
+    .broadcast-state.warn{color:#a15c00}
     .thumb,.ph{width:82px;height:82px;border-radius:12px;background:#f3eee9}
     .thumb{object-fit:cover;cursor:zoom-in}
     .lightbox{position:fixed;inset:0;z-index:9999;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.82)}
@@ -93,7 +97,11 @@
     <a class="main-tab" href="./order.html">📦 주문옵션 조회</a>
   </nav>
 
-  <div id="status" class="status"><div id="statusMain">상태 불러오는 중…</div><div id="rtStatus" class="rt off">실시간 연결 준비 중…</div></div>
+  <div id="status" class="status">
+    <div id="statusMain">상태 불러오는 중…</div>
+    <div id="rtStatus" class="rt off">실시간 연결 준비 중…</div>
+    <div id="broadcastState" class="broadcast-state off">🎥 방송 상태 확인 중…</div>
+  </div>
 
   <div class="controls">
     <div class="searchline">
@@ -306,6 +314,50 @@ function scheduleLiveRefresh() {
   liveRefreshTimer = setTimeout(refreshLiveProducts, 250);
 }
 
+function broadcastLabel(slug) {
+  return ({
+    bebepick: "베베픽",
+    bebepick_plus: "베베픽 플러스",
+    test_be: "테스트",
+    pickandfun: "픽앤펀",
+    pickandfun_plus: "픽앤펀 플러스"
+  })[String(slug || "")] || String(slug || "방송");
+}
+
+async function refreshBroadcastState() {
+  const el = $("broadcastState");
+  if (!el) return;
+
+  try {
+    const { data, error } = await liveSb
+      .from("broadcast_queue")
+      .select("broadcast_id,broadcast_name,channel_slug,status")
+      .eq("status", "active")
+      .order("broadcast_id");
+
+    if (error) throw error;
+
+    const rows = Array.isArray(data) ? data : [];
+    if (!rows.length) {
+      el.className = "broadcast-state off";
+      el.textContent = "🌙 방송 없음 · 주문번호 생성 불가";
+      return;
+    }
+
+    const labels = rows.map((row) => {
+      const channel = broadcastLabel(row.channel_slug);
+      const name = String(row.broadcast_name || "").trim();
+      return name ? channel + " · " + name : channel;
+    });
+
+    el.className = "broadcast-state live";
+    el.textContent = "🎥 방송중 · 주문번호 생성 가능 · " + labels.join(" / ");
+  } catch (e) {
+    el.className = "broadcast-state warn";
+    el.textContent = "⚠️ 방송 상태 확인 실패";
+  }
+}
+
 function startRealtime() {
   if (realtimeChannel) return;
 
@@ -313,6 +365,7 @@ function startRealtime() {
     .channel("bebepick-dashboard-live")
     .on("postgres_changes", { event: "*", schema: "public", table: "dolls" }, scheduleLiveRefresh)
     .on("postgres_changes", { event: "*", schema: "public", table: "shop_products" }, scheduleLiveRefresh)
+    .on("postgres_changes", { event: "*", schema: "public", table: "broadcast_queue" }, refreshBroadcastState)
     .subscribe((status) => {
       const el = $("rtStatus");
       if (!el) return;
@@ -601,7 +654,10 @@ async function load() {
       p.recent_restock_24h = p.recent_restock_24h ?? isRecentRestock(p);
     });
     render();
-    await refreshLiveProducts();
+    await Promise.all([
+      refreshLiveProducts(),
+      refreshBroadcastState()
+    ]);
     await hydrateClientStats();
   } catch (e) {
     $("status").className = "status err";
