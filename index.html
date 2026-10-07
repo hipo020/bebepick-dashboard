@@ -335,15 +335,26 @@ async function refreshBroadcastState() {
   if (!el) return;
 
   try {
-    const { data, error } = await liveSb
-      .from("broadcast_queue")
-      .select("broadcast_id,broadcast_name,channel_slug,status,current_idx,queue_data")
-      .eq("status", "active")
-      .order("broadcast_id");
+    const [queueRes, etaRes] = await Promise.all([
+      liveSb
+        .from("broadcast_queue")
+        .select("broadcast_id,broadcast_name,channel_slug,status,current_idx,queue_data")
+        .eq("status", "active")
+        .order("broadcast_id"),
+      fetch(EDGE_URL + "?api=queue&_=" + Date.now(), { cache: "no-store" })
+        .then((res) => res.ok ? res.json() : ({ broadcasts: [] }))
+        .catch(() => ({ broadcasts: [] }))
+    ]);
 
-    if (error) throw error;
+    if (queueRes.error) throw queueRes.error;
 
-    const rows = Array.isArray(data) ? data : [];
+    const rows = Array.isArray(queueRes.data) ? queueRes.data : [];
+    const etaMap = new Map(
+      (Array.isArray(etaRes?.broadcasts) ? etaRes.broadcasts : []).map((x) => [
+        Number(x.broadcast_id) + ":" + String(x.channel_slug || ""),
+        x
+      ])
+    );
     if (!rows.length) {
       el.className = "broadcast-state off";
       el.textContent = "🌙 방송 없음 · 주문번호 생성 불가";
@@ -386,10 +397,16 @@ async function refreshBroadcastState() {
         const future = positions.filter((index) => index >= currentIdx);
         const position = future.length ? Math.min(...future) : Math.max(...positions);
         const ahead = position - currentIdx;
+        const eta = etaMap.get(
+          Number(row.broadcast_id) + ":" + String(row.channel_slug || "")
+        );
         mineRows.push({
           channel: broadcastLabel(row.channel_slug),
           position,
-          ahead
+          ahead,
+          etaMinutes: Number.isFinite(Number(eta?.estimated_wait_minutes))
+            ? Number(eta.estimated_wait_minutes)
+            : null
         });
       }
 
@@ -403,7 +420,10 @@ async function refreshBroadcastState() {
         mine.textContent = "👤 " + mineRows.map((x) => {
           if (x.ahead === 0) return x.channel + " · 지금 내 차례";
           if (x.ahead < 0) return x.channel + " · 순서 지나감";
-          return x.channel + " · " + (x.position + 1) + "번째 · 앞 " + x.ahead + "명";
+          const etaText = x.etaMinutes !== null && x.etaMinutes > 0
+            ? " · 예상 약 " + x.etaMinutes + "분"
+            : " · 예상시간 계산 중";
+          return x.channel + " · " + (x.position + 1) + "번째 · 앞 " + x.ahead + "명" + etaText;
         }).join(" / ");
       }
     }
