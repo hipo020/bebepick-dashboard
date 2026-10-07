@@ -8,19 +8,25 @@
   <style>
     *{box-sizing:border-box}
     body{margin:0;background:#fffaf6;color:#2d2926;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif}
-    .wrap{max-width:760px;margin:auto;padding:20px 14px 90px}
+    .wrap{max-width:760px;margin:auto;padding:16px 14px 90px}
     .top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
     h1{font-size:24px;margin:0 0 5px}
     .sub,.meta,.summary{color:#8a817b}
     .sub{font-size:13px}
     .shop{text-decoration:none;color:#2d2926;background:#fff;border:1px solid #eee5df;border-radius:12px;padding:10px 12px;font-size:13px}
-    .main-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:16px 0 4px;padding:4px;background:#f1ebe6;border-radius:14px}
-    .main-tab{text-align:center;text-decoration:none;color:#786f69;padding:10px 8px;border-radius:11px;font-size:13px;font-weight:750}
+    .main-tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:13px 0 4px;padding:3px;background:#f1ebe6;border-radius:13px}
+    .main-tab{text-align:center;text-decoration:none;color:#786f69;padding:9px 8px;border-radius:10px;font-size:13px;font-weight:750}
     .main-tab.on{background:#fff;color:#2d2926;box-shadow:0 2px 8px rgba(70,50,35,.08)}
-    .status{margin:14px 0 4px;background:#fff;border:1px solid #eee5df;border-radius:14px;padding:13px 14px;font-size:13px}
+    .status{margin:12px 0 2px;background:#fff;border:1px solid #eee5df;border-radius:14px;padding:0;font-size:13px;overflow:hidden}
     .status.err{background:#fff4f4;border-color:#f0b7b7}
-    .status-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
-    .controls{position:sticky;top:0;z-index:5;padding:10px 0 12px;background:rgba(255,250,246,.96);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+    .status-summary{width:100%;min-height:48px;padding:11px 13px;border:0;background:transparent;color:#2d2926;display:flex;align-items:center;justify-content:space-between;gap:10px;text-align:left;font:inherit;font-weight:750;cursor:pointer}
+    .status-summary:active{background:#faf8f6}
+    .status-chevron{font-size:15px;color:#8a817b;transition:transform .18s}
+    .status.open .status-chevron{transform:rotate(180deg)}
+    .status-details{padding:0 13px 12px;border-top:1px dashed #eee5df}
+    .status-details[hidden]{display:none}
+    .status-top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-top:10px}
+    .controls{position:sticky;top:0;z-index:5;padding:9px 0 8px;background:rgba(255,250,246,.96);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
     .searchline{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
     .searchbox{position:relative;min-width:0}
     .search-icon{position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:14px;opacity:.55;pointer-events:none}
@@ -29,8 +35,13 @@
     .search-clear{position:absolute;right:8px;top:50%;transform:translateY(-50%);display:none;width:30px;height:30px;border:0;border-radius:999px;background:transparent;color:#8a817b;font-size:18px;line-height:1;cursor:pointer}
     .search-clear.show{display:block}
     .refresh{width:46px;height:46px;border-radius:14px!important;padding:0!important;font-weight:800;font-size:20px;line-height:1}
-    .filter-row,.option-row{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-top:9px}
+    .filter-row,.option-row{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-top:8px}
     .option-row{margin-top:7px}
+    .option-row[hidden]{display:none!important}
+    .filter-tools{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:5px 2px 0;min-height:30px}
+    .option-toggle{border:0;background:transparent;color:#655d57;font:inherit;font-size:11.5px;font-weight:750;padding:6px 2px;cursor:pointer;white-space:nowrap}
+    .option-toggle .arrow{display:inline-block;margin-left:3px;transition:transform .18s}
+    .option-toggle.on .arrow{transform:rotate(180deg)}
     .chip,.special-toggle,.filter-select,.sort,.refresh{white-space:nowrap;border:1px solid #e7ddd6;border-radius:999px;padding:9px 12px;background:#fff;color:#2d2926;font:inherit;min-height:40px;transition:background .15s,border-color .15s,color .15s,transform .08s}
     .chip:active,.special-toggle:active,.refresh:active{transform:scale(.97)}
     .chip.on,.special-toggle.on,.filter-select.on{background:#2d2926;color:#fff;border-color:#2d2926}
@@ -39,7 +50,7 @@
     .chip.on b{background:rgba(255,255,255,.16);color:#fff}
     .filter-select,.sort{appearance:none;-webkit-appearance:none;background-image:linear-gradient(45deg,transparent 50%,#8a817b 50%),linear-gradient(135deg,#8a817b 50%,transparent 50%);background-position:calc(100% - 14px) 50%,calc(100% - 10px) 50%;background-size:4px 4px,4px 4px;background-repeat:no-repeat;padding-right:24px}
     .filter-select.on{background-image:linear-gradient(45deg,transparent 50%,#fff 50%),linear-gradient(135deg,#fff 50%,transparent 50%)}
-    .summary{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:11.5px;margin:2px 2px 12px;color:#8a817b}
+    .summary{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:11px;margin:0;color:#8a817b}
     .summary b{color:#2d2926}
     .grid{display:grid;gap:10px}
     .card{display:grid;grid-template-columns:82px minmax(0,1fr) auto;gap:12px;align-items:center;background:#fff;border:1px solid #eee5df;border-radius:16px;padding:10px;box-shadow:0 5px 18px rgba(70,50,35,.06);cursor:pointer}
@@ -78,6 +89,9 @@
     .history-row{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid #f5efeb}
     .history-row:last-child{border-bottom:0}.delta-up{color:#238636;font-weight:700}.delta-down{color:#c62828;font-weight:700}
     @media(max-width:649px){
+      h1{font-size:22px}
+      .sub{font-size:12px}
+      .shop{padding:9px 10px;font-size:12px}
       .filter-row,.option-row{
         display:grid;
         grid-template-columns:repeat(3,minmax(0,1fr));
@@ -118,12 +132,18 @@
   </nav>
 
   <div id="status" class="status">
-    <div class="status-top">
-      <div id="statusMain">상태 불러오는 중…</div>
-      <div id="rtStatus" class="rt off">실시간 준비 중…</div>
+    <button id="statusToggle" class="status-summary" type="button" aria-expanded="false">
+      <span id="statusCompact">상태 확인 중…</span>
+      <span class="status-chevron">⌄</span>
+    </button>
+    <div id="statusDetails" class="status-details" hidden>
+      <div class="status-top">
+        <div id="statusMain">상태 불러오는 중…</div>
+        <div id="rtStatus" class="rt off">실시간 준비 중…</div>
+      </div>
+      <div id="broadcastState" class="broadcast-state off">🎥 방송 상태 확인 중…</div>
+      <div id="myQueueState" class="my-queue">👤 내 대기 확인 중…</div>
     </div>
-    <div id="broadcastState" class="broadcast-state off">🎥 방송 상태 확인 중…</div>
-    <div id="myQueueState" class="my-queue">👤 내 대기 확인 중…</div>
   </div>
 
   <div class="controls">
@@ -142,7 +162,14 @@
       <button class="chip" data-f="upcoming" aria-pressed="false"><span>👀 신상추정</span><b id="countUpcoming">0</b></button>
     </div>
 
-    <div class="option-row">
+    <div class="filter-tools">
+      <div id="summary" class="summary"></div>
+      <button id="optionToggle" class="option-toggle" type="button" aria-expanded="false">
+        필터·정렬 <span class="arrow">⌄</span>
+      </button>
+    </div>
+
+    <div id="optionRow" class="option-row" hidden>
       <select id="filterSelect" class="filter-select" aria-label="기타 필터">
         <option value="">기타 필터</option>
         <option value="all">전체</option>
@@ -161,8 +188,6 @@
       </select>
     </div>
   </div>
-
-  <div id="summary" class="summary"></div>
   <div id="grid" class="grid"><div class="empty">재고 불러오는 중…</div></div>
 </main>
 
@@ -193,6 +218,7 @@ let filter = "available";
 let query = "";
 let sort = "desc";
 let includeSpecial = false;
+let optionPanelOpen = false;
 
 const $ = (id) => document.getElementById(id);
 const fmt = (n) => Number(n || 0).toLocaleString("ko-KR");
@@ -365,6 +391,40 @@ function queuePageUrl(slug) {
   })[String(slug || "")] || (SHOP_URL + encodeURIComponent(String(slug || "")) + "_que");
 }
 
+function updateStatusCompact() {
+  const compact = $("statusCompact");
+  if (!compact) return;
+
+  const parts = [];
+  const status = $("status");
+  const rt = $("rtStatus");
+  const broadcast = $("broadcastState");
+  const mine = $("myQueueState");
+
+  if (status?.classList.contains("err")) {
+    parts.push("⚠️ 감시 오류");
+  } else if (rt && !rt.classList.contains("off")) {
+    parts.push("💚 실시간");
+  } else {
+    parts.push("💚 감시중");
+  }
+
+  if (broadcast?.classList.contains("live")) parts.push("🎥 방송중");
+  else if (broadcast?.classList.contains("off")) parts.push("🌙 방송없음");
+
+  const mineText = String(mine?.textContent || "").replace(/\s+/g, " ").trim();
+  if (mineText.includes("지금 내 차례")) {
+    parts.push("👤 내 차례");
+  } else if (mineText.includes("순서 지나감")) {
+    parts.push("👤 순서 지나감");
+  } else {
+    const m = mineText.match(/(\d+번째 · 앞 \d+명(?: · 약 \d+분)?)/);
+    if (m) parts.push("👤 " + m[1]);
+  }
+
+  compact.textContent = parts.join(" · ");
+}
+
 async function refreshBroadcastState() {
   const el = $("broadcastState");
   const mine = $("myQueueState");
@@ -398,6 +458,7 @@ async function refreshBroadcastState() {
         mine.className = "my-queue";
         mine.textContent = "👤 내 대기 없음";
       }
+      updateStatusCompact();
       return;
     }
 
@@ -474,6 +535,7 @@ async function refreshBroadcastState() {
           (needsEta ? '<br><span class="status-muted">⏱ 예상시간 계산 중</span>' : "");
       }
     }
+    updateStatusCompact();
   } catch (e) {
     el.className = "broadcast-state warn";
     el.textContent = "⚠️ 방송 상태 확인 실패";
@@ -481,6 +543,7 @@ async function refreshBroadcastState() {
       mine.className = "my-queue";
       mine.textContent = "👤 내 대기 확인 실패";
     }
+    updateStatusCompact();
   }
 }
 
@@ -498,9 +561,11 @@ function startRealtime() {
       if (status === "SUBSCRIBED") {
         el.className = "rt";
         el.textContent = "⚡ 실시간";
+        updateStatusCompact();
       } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
         el.className = "rt off";
         el.textContent = "실시간 재연결 중";
+        updateStatusCompact();
       }
     });
 }
@@ -554,6 +619,8 @@ function applyHistoryStats(p, rows) {
 async function hydrateClientStats(force = false) {
   const backendHasStats = products.some((p) => p.recent_decrease_60m !== undefined);
   if (backendHasStats && !force) {
+    updateStatusCompact();
+
     products.forEach((p) => {
       p.recent_restock_24h = p.recent_restock_24h ?? isRecentRestock(p);
     });
@@ -826,11 +893,33 @@ async function load() {
   } catch (e) {
     $("status").className = "status err";
     $("statusMain").textContent = "⚠️ 재고를 불러오지 못했어 · " + e.message;
+    updateStatusCompact();
   } finally {
     $("refresh").disabled = false;
     $("refresh").textContent = "↻";
   }
 }
+
+$("statusToggle").addEventListener("click", () => {
+  const status = $("status");
+  const details = $("statusDetails");
+  const btn = $("statusToggle");
+  const open = details.hasAttribute("hidden");
+  if (open) details.removeAttribute("hidden");
+  else details.setAttribute("hidden", "");
+  status.classList.toggle("open", open);
+  btn.setAttribute("aria-expanded", open ? "true" : "false");
+});
+
+$("optionToggle").addEventListener("click", () => {
+  optionPanelOpen = !optionPanelOpen;
+  const row = $("optionRow");
+  const btn = $("optionToggle");
+  if (optionPanelOpen) row.removeAttribute("hidden");
+  else row.setAttribute("hidden", "");
+  btn.classList.toggle("on", optionPanelOpen);
+  btn.setAttribute("aria-expanded", optionPanelOpen ? "true" : "false");
+});
 
 $("search").addEventListener("input", (e) => {
   query = e.target.value;
