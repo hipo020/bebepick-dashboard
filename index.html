@@ -36,6 +36,9 @@
     .broadcast-state.live{color:#238636}
     .broadcast-state.off{color:#8a817b}
     .broadcast-state.warn{color:#a15c00}
+    .my-queue{font-size:11px;color:#655d57;margin-top:5px;line-height:1.45}
+    .my-queue.on{color:#7a4b00;font-weight:750}
+    .my-queue.turn{color:#c62828;font-weight:800}
     .thumb,.ph{width:82px;height:82px;border-radius:12px;background:#f3eee9}
     .thumb{object-fit:cover;cursor:zoom-in}
     .lightbox{position:fixed;inset:0;z-index:9999;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.82)}
@@ -101,6 +104,7 @@
     <div id="statusMain">상태 불러오는 중…</div>
     <div id="rtStatus" class="rt off">실시간 연결 준비 중…</div>
     <div id="broadcastState" class="broadcast-state off">🎥 방송 상태 확인 중…</div>
+    <div id="myQueueState" class="my-queue">👤 내 대기 확인 중…</div>
   </div>
 
   <div class="controls">
@@ -150,6 +154,7 @@ const API_URL = EDGE_URL + "?api=1";
 const SHOP_URL = "https://bebepick-web.pages.dev/";
 const BEBEPICK_URL = "https://kswhgzweesuwacgqruok.supabase.co";
 const BEBEPICK_KEY = "sb_publishable_XSYCZ48RRSxjI24XoR9CUg_-D5ae3KV";
+const QUEUE_NICKNAME = "leo-s8v2z";
 const historyCache = new Map();
 const liveSb = window.supabase.createClient(BEBEPICK_URL, BEBEPICK_KEY, {
   auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
@@ -326,12 +331,13 @@ function broadcastLabel(slug) {
 
 async function refreshBroadcastState() {
   const el = $("broadcastState");
+  const mine = $("myQueueState");
   if (!el) return;
 
   try {
     const { data, error } = await liveSb
       .from("broadcast_queue")
-      .select("broadcast_id,broadcast_name,channel_slug,status")
+      .select("broadcast_id,broadcast_name,channel_slug,status,current_idx,queue_data")
       .eq("status", "active")
       .order("broadcast_id");
 
@@ -341,6 +347,10 @@ async function refreshBroadcastState() {
     if (!rows.length) {
       el.className = "broadcast-state off";
       el.textContent = "🌙 방송 없음 · 주문번호 생성 불가";
+      if (mine) {
+        mine.className = "my-queue";
+        mine.textContent = "👤 내 대기 없음";
+      }
       return;
     }
 
@@ -352,9 +362,58 @@ async function refreshBroadcastState() {
 
     el.className = "broadcast-state live";
     el.textContent = "🎥 방송중 · 주문번호 생성 가능 · " + labels.join(" / ");
+
+    if (mine) {
+      const target = String(QUEUE_NICKNAME || "").trim().toLowerCase();
+      const mineRows = [];
+
+      for (const row of rows) {
+        let queue = row.queue_data;
+        if (typeof queue === "string") {
+          try { queue = JSON.parse(queue); } catch { queue = []; }
+        }
+        if (!Array.isArray(queue)) continue;
+
+        const currentIdx = Number(row.current_idx ?? -1);
+        const positions = queue
+          .map((entry, index) =>
+            String(entry?.nickname || "").trim().toLowerCase() === target ? index : -1
+          )
+          .filter((index) => index >= 0);
+
+        if (!positions.length) continue;
+
+        const future = positions.filter((index) => index >= currentIdx);
+        const position = future.length ? Math.min(...future) : Math.max(...positions);
+        const ahead = position - currentIdx;
+        mineRows.push({
+          channel: broadcastLabel(row.channel_slug),
+          position,
+          ahead
+        });
+      }
+
+      if (!mineRows.length) {
+        mine.className = "my-queue";
+        mine.textContent = "👤 내 대기 없음";
+      } else {
+        mine.className = mineRows.some((x) => x.ahead === 0)
+          ? "my-queue turn"
+          : "my-queue on";
+        mine.textContent = "👤 " + mineRows.map((x) => {
+          if (x.ahead === 0) return x.channel + " · 지금 내 차례";
+          if (x.ahead < 0) return x.channel + " · 순서 지나감";
+          return x.channel + " · " + (x.position + 1) + "번째 · 앞 " + x.ahead + "명";
+        }).join(" / ");
+      }
+    }
   } catch (e) {
     el.className = "broadcast-state warn";
     el.textContent = "⚠️ 방송 상태 확인 실패";
+    if (mine) {
+      mine.className = "my-queue";
+      mine.textContent = "👤 내 대기 확인 실패";
+    }
   }
 }
 
