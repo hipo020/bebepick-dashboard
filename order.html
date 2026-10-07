@@ -27,7 +27,8 @@ h1{margin:0;font-size:24px}
 .section-title{font-size:13px;font-weight:800;margin:14px 0 6px}
 .box{margin-top:16px;background:#fff;border:1px solid #eee5df;border-radius:16px;padding:14px;box-shadow:0 5px 18px rgba(70,50,35,.06)}
 .search{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
-input{width:100%;min-width:0;border:1px solid #e8ded7;border-radius:12px;padding:13px 14px;font:inherit;text-transform:uppercase;outline:none}
+input{width:100%;min-width:0;border:1px solid #e8ded7;border-radius:12px;padding:13px 14px;font:inherit;outline:none}
+#orderNo{text-transform:uppercase}
 button{border:0;border-radius:12px;padding:0 16px;background:#2d2926;color:#fff;font:inherit;font-weight:750}
 .note{margin-top:9px;color:#8a817b;font-size:12px;line-height:1.5}
 #result{margin-top:14px}
@@ -60,6 +61,17 @@ button{border:0;border-radius:12px;padding:0 16px;background:#2d2926;color:#fff;
 .saved-order-meta{margin-top:3px;font-size:11px;color:#8a817b;line-height:1.45}
 .saved-total{font-size:13px;font-weight:800;white-space:nowrap}
 .save-state{font-size:11px;color:#238636;margin-top:8px}
+.vault{margin-top:12px;padding-top:12px;border-top:1px dashed #eee5df}
+.vault-title{font-size:12px;font-weight:800}
+.vault-note{margin-top:4px;font-size:10.5px;color:#8a817b;line-height:1.5}
+.vault-code{margin-top:9px;padding:10px 11px;border-radius:10px;background:#faf8f6;border:1px solid #f0e8e2;font:600 12px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;word-break:break-all;letter-spacing:.2px}
+.vault-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
+.vault-actions button{min-height:36px;padding:0 11px;border:1px solid #e8ded7;background:#faf8f6;color:#655d57;font-size:11px}
+.vault-actions button.primary{background:#2d2926;color:#fff;border-color:#2d2926}
+.vault-import{display:none;grid-template-columns:minmax(0,1fr) auto;gap:7px;margin-top:8px}
+.vault-import.show{display:grid}
+.vault-import input{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;text-transform:none}
+.vault-msg{min-height:16px;margin-top:6px;font-size:10.5px;color:#8a817b}
 </style>
 </head>
 <body>
@@ -89,9 +101,24 @@ button{border:0;border-radius:12px;padding:0 16px;background:#2d2926;color:#fff;
     <div class="saved-head">
       <div>
         <div class="saved-title">🗂️ 내 주문내역</div>
-        <div class="saved-sub">이 기기에서 직접 조회한 주문만 자동 저장돼</div>
+        <div class="saved-sub">직접 조회한 주문을 저장하고, 연결코드로 다른 기기에서도 볼 수 있어</div>
       </div>
       <button id="savedRefresh" class="ghost" type="button" aria-label="저장 주문 새로고침">↻</button>
+    </div>
+    <div class="vault">
+      <div class="vault-title">🔐 내 주문 연결코드</div>
+      <div class="vault-note">다른 기기에서 같은 코드를 입력하면 같은 주문내역이 보여. 이 코드는 비밀번호처럼 혼자 보관해줘.</div>
+      <div id="vaultCode" class="vault-code">•••• •••• •••• •••• •••• ••••</div>
+      <div class="vault-actions">
+        <button id="vaultReveal" type="button">코드 보기</button>
+        <button id="vaultCopy" type="button">복사</button>
+        <button id="vaultImportToggle" type="button">다른 기기 연결</button>
+      </div>
+      <div id="vaultImport" class="vault-import">
+        <input id="vaultInput" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="연결코드 붙여넣기">
+        <button id="vaultApply" class="primary" type="button">연결</button>
+      </div>
+      <div id="vaultMsg" class="vault-msg"></div>
     </div>
     <div id="savedOrders" class="saved-list"><div class="saved-empty">저장된 주문 불러오는 중…</div></div>
   </section>
@@ -154,6 +181,76 @@ function vaultToken(){
     .replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
   try{ localStorage.setItem(VAULT_STORAGE_KEY,token); }catch{}
   return token;
+}
+
+function normalizeVaultCode(value){
+  return String(value || "").replace(/\s+/g,"").trim();
+}
+
+function formatVaultCode(value){
+  const raw=normalizeVaultCode(value);
+  return raw.match(/.{1,4}/g)?.join(" ") || raw;
+}
+
+let vaultVisible=false;
+
+function renderVaultCode(){
+  const el=$("vaultCode");
+  if(!el) return;
+  el.textContent=vaultVisible
+    ? formatVaultCode(vaultToken())
+    : "•••• •••• •••• •••• •••• ••••";
+  const btn=$("vaultReveal");
+  if(btn) btn.textContent=vaultVisible ? "코드 숨기기" : "코드 보기";
+}
+
+function setVaultMessage(text,good=false){
+  const el=$("vaultMsg");
+  if(!el) return;
+  el.textContent=text || "";
+  el.style.color=good ? "#238636" : "#8a817b";
+}
+
+async function copyVaultCode(){
+  const code=vaultToken();
+  try{
+    await navigator.clipboard.writeText(code);
+    setVaultMessage("연결코드를 복사했어 ✓",true);
+  }catch{
+    vaultVisible=true;
+    renderVaultCode();
+    setVaultMessage("복사가 안 돼서 코드를 화면에 보여줬어.");
+  }
+}
+
+async function applyVaultCode(){
+  const input=$("vaultInput");
+  const code=normalizeVaultCode(input?.value || "");
+  if(!/^[A-Za-z0-9_-]{24,300}$/.test(code)){
+    setVaultMessage("연결코드를 다시 확인해줘.");
+    return;
+  }
+
+  const current=vaultToken();
+  if(code===current){
+    setVaultMessage("이미 이 연결코드를 사용 중이야 ✓",true);
+    return;
+  }
+
+  const ok=confirm("이 기기를 입력한 주문 연결코드에 연결할까?\n현재 기기의 연결코드는 바뀌어.");
+  if(!ok) return;
+
+  try{
+    localStorage.setItem(VAULT_STORAGE_KEY,code);
+    vaultVisible=false;
+    renderVaultCode();
+    if(input) input.value="";
+    $("vaultImport")?.classList.remove("show");
+    await loadSavedOrders();
+    setVaultMessage("다른 기기의 주문내역과 연결됐어 ✓",true);
+  }catch{
+    setVaultMessage("이 기기에서 연결코드를 저장하지 못했어.");
+  }
 }
 
 async function orderVaultRequest(method,body){
@@ -342,6 +439,18 @@ async function lookup(){
 $("lookup").addEventListener("click",lookup);
 $("orderNo").addEventListener("keydown",e=>{ if(e.key==="Enter") lookup(); });
 $("savedRefresh").addEventListener("click",loadSavedOrders);
+$("vaultReveal").addEventListener("click",()=>{
+  vaultVisible=!vaultVisible;
+  renderVaultCode();
+});
+$("vaultCopy").addEventListener("click",copyVaultCode);
+$("vaultImportToggle").addEventListener("click",()=>{
+  const panel=$("vaultImport");
+  panel?.classList.toggle("show");
+  if(panel?.classList.contains("show")) $("vaultInput")?.focus();
+});
+$("vaultApply").addEventListener("click",applyVaultCode);
+$("vaultInput").addEventListener("keydown",e=>{ if(e.key==="Enter") applyVaultCode(); });
 $("savedOrders").addEventListener("click",e=>{
   const row=e.target.closest("[data-order-no]");
   if(!row) return;
@@ -349,6 +458,7 @@ $("savedOrders").addEventListener("click",e=>{
   lookup();
 });
 
+renderVaultCode();
 loadSavedOrders();
 
 const qs=new URLSearchParams(location.search).get("order_no");
