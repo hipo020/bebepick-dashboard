@@ -17,26 +17,28 @@
     .main-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:16px 0 4px;padding:4px;background:#f1ebe6;border-radius:14px}
     .main-tab{text-align:center;text-decoration:none;color:#786f69;padding:10px 8px;border-radius:11px;font-size:13px;font-weight:750}
     .main-tab.on{background:#fff;color:#2d2926;box-shadow:0 2px 8px rgba(70,50,35,.08)}
-    .status{margin:14px 0 4px;background:#fff;border:1px solid #eee5df;border-radius:14px;padding:12px 14px;font-size:13px}
+    .status{margin:14px 0 4px;background:#fff;border:1px solid #eee5df;border-radius:14px;padding:13px 14px;font-size:13px}
     .status.err{background:#fff4f4;border-color:#f0b7b7}
+    .status-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
     .controls{position:sticky;top:0;z-index:5;padding:10px 0 12px;background:#fffaf6}
     .searchline{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
     .search{width:100%;min-width:0;padding:13px 14px;border:1px solid #eee5df;border-radius:14px;background:#fff;font-size:15px;outline:none}
-    .refresh{border-radius:14px!important;padding:0 14px!important;font-weight:700}
+    .refresh{width:46px;height:46px;border-radius:14px!important;padding:0!important;font-weight:800;font-size:20px;line-height:1}
     .row{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-top:9px;padding-bottom:2px}
     .chip,.special-toggle,.filter-select,.sort,.refresh{white-space:nowrap;border:1px solid #eee5df;border-radius:999px;padding:9px 12px;background:#fff;color:#2d2926;font:inherit}
     .chip.on,.special-toggle.on{background:#2d2926;color:#fff;border-color:#2d2926}
-    .summary{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;margin:0 0 12px}
+    .summary{display:flex;gap:6px;flex-wrap:wrap;font-size:12px;margin:0 0 12px;color:#8a817b}
     .summary b{color:#2d2926}
     .grid{display:grid;gap:10px}
     .card{display:grid;grid-template-columns:82px minmax(0,1fr) auto;gap:12px;align-items:center;background:#fff;border:1px solid #eee5df;border-radius:16px;padding:10px;box-shadow:0 5px 18px rgba(70,50,35,.06);cursor:pointer}
     .card:active{transform:scale(.995)}
-    .rt{font-size:11px;color:#238636;margin-top:5px}.rt.off{color:#a15c00}
-    .broadcast-state{font-size:12px;font-weight:750;margin-top:7px;padding-top:7px;border-top:1px dashed #eee5df}
+    .rt{font-size:11px;color:#238636;margin:0}.rt.off{color:#a15c00}
+    .broadcast-state{font-size:12px;font-weight:750;margin-top:9px;padding-top:9px;border-top:1px dashed #eee5df;line-height:1.45}
     .broadcast-state.live{color:#238636}
     .broadcast-state.off{color:#8a817b}
     .broadcast-state.warn{color:#a15c00}
     .my-queue{font-size:11px;color:#655d57;margin-top:5px;line-height:1.45}
+    .status-muted{color:#8a817b;font-weight:500}
     .my-queue.on{color:#7a4b00;font-weight:750}
     .my-queue.turn{color:#c62828;font-weight:800}
     .thumb,.ph{width:82px;height:82px;border-radius:12px;background:#f3eee9}
@@ -55,7 +57,7 @@
     .empty{padding:50px 10px;text-align:center;color:#8a817b}
     .trend{margin-top:3px}.trend.up{color:#238636}.trend.out{color:#a15c00}
     .prep{display:inline-block;margin:0 0 5px;padding:4px 7px;border-radius:999px;background:#fff3cd;color:#7a5a00;font-size:11px;font-weight:750}
-    .history-btn{margin-top:7px;border:1px solid #eee5df;border-radius:9px;background:#fff;padding:6px 9px;color:#655d57;font-size:11px}
+    .history-btn{margin-top:7px;border:1px solid #eee5df;border-radius:9px;background:#faf8f6;padding:5px 8px;color:#7a716b;font-size:10.5px}
     .history-panel{grid-column:1/-1;border-top:1px dashed #eee5df;margin-top:2px;padding:9px 4px 2px;font-size:11px;color:#655d57}
     .history-panel[hidden]{display:none}
     .history-row{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid #f5efeb}
@@ -101,8 +103,10 @@
   </nav>
 
   <div id="status" class="status">
-    <div id="statusMain">상태 불러오는 중…</div>
-    <div id="rtStatus" class="rt off">실시간 연결 준비 중…</div>
+    <div class="status-top">
+      <div id="statusMain">상태 불러오는 중…</div>
+      <div id="rtStatus" class="rt off">실시간 준비 중…</div>
+    </div>
     <div id="broadcastState" class="broadcast-state off">🎥 방송 상태 확인 중…</div>
     <div id="myQueueState" class="my-queue">👤 내 대기 확인 중…</div>
   </div>
@@ -110,11 +114,11 @@
   <div class="controls">
     <div class="searchline">
       <input id="search" class="search" type="search" placeholder="상품명 검색" />
-      <button id="refresh" class="refresh" type="button">새로고침</button>
+      <button id="refresh" class="refresh" type="button" aria-label="새로고침" title="새로고침">↻</button>
     </div>
     <div class="row">
       <button class="chip on" data-f="available">판매중</button>
-      <button class="chip" data-f="hidden_stock">숨김·재고 있음</button>
+      <button class="chip" data-f="hidden_stock">숨김·재고</button>
       <button class="chip" data-f="upcoming">👀 신상추정</button>
 
       <select id="filterSelect" class="filter-select" aria-label="기타 필터">
@@ -125,7 +129,7 @@
         <option value="all">전체</option>
       </select>
 
-      <button id="specialToggle" class="special-toggle" type="button">특수상품 보기</button>
+      <button id="specialToggle" class="special-toggle" type="button">특수상품</button>
 
       <select id="sort" class="sort" aria-label="정렬">
         <option value="desc">재고 많은 순</option>
@@ -367,12 +371,18 @@ async function refreshBroadcastState() {
 
     const labels = rows.map((row) => {
       const channel = broadcastLabel(row.channel_slug);
-      const name = String(row.broadcast_name || "").trim();
-      return name ? channel + " · " + name : channel;
+      const rawName = String(row.broadcast_name || "").trim();
+      let shortName = rawName
+        .replace(/^\d{8}_/, "")
+        .replace(/^베플/, "베플 ")
+        .replace(/^베베픽/, "베베픽 ");
+      return shortName ? channel + " · " + shortName : channel;
     });
 
     el.className = "broadcast-state live";
-    el.textContent = "🎥 방송중 · 주문번호 생성 가능 · " + labels.join(" / ");
+    el.innerHTML =
+      "🎥 방송중 · 주문번호 생성 가능" +
+      "<br><span class=\"status-muted\">" + labels.map(esc).join(" / ") + "</span>";
 
     if (mine) {
       const target = String(QUEUE_NICKNAME || "").trim().toLowerCase();
@@ -417,14 +427,17 @@ async function refreshBroadcastState() {
         mine.className = mineRows.some((x) => x.ahead === 0)
           ? "my-queue turn"
           : "my-queue on";
-        mine.textContent = "👤 " + mineRows.map((x) => {
-          if (x.ahead === 0) return x.channel + " · 지금 내 차례";
-          if (x.ahead < 0) return x.channel + " · 순서 지나감";
+        const lines = mineRows.map((x) => {
+          if (x.ahead === 0) return "👤 " + x.channel + " · 지금 내 차례";
+          if (x.ahead < 0) return "👤 " + x.channel + " · 순서 지나감";
           const etaText = x.etaMinutes !== null && x.etaMinutes > 0
-            ? " · 예상 약 " + x.etaMinutes + "분"
-            : " · 예상시간 계산 중";
-          return x.channel + " · " + (x.position + 1) + "번째 · 앞 " + x.ahead + "명" + etaText;
-        }).join(" / ");
+            ? " · 약 " + x.etaMinutes + "분"
+            : "";
+          return "👤 " + x.channel + " · " + (x.position + 1) + "번째 · 앞 " + x.ahead + "명" + etaText;
+        });
+        const needsEta = mineRows.some((x) => x.ahead > 0 && !(x.etaMinutes !== null && x.etaMinutes > 0));
+        mine.innerHTML = lines.map(esc).join("<br>") +
+          (needsEta ? '<br><span class="status-muted">⏱ 예상시간 계산 중</span>' : "");
       }
     }
   } catch (e) {
@@ -450,10 +463,10 @@ function startRealtime() {
       if (!el) return;
       if (status === "SUBSCRIBED") {
         el.className = "rt";
-        el.textContent = "⚡ 베베픽 실시간 신호 연결됨";
+        el.textContent = "⚡ 실시간";
       } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
         el.className = "rt off";
-        el.textContent = "실시간 재연결 중 · 1분 안전망은 계속 작동";
+        el.textContent = "실시간 재연결 중";
       }
     });
 }
@@ -651,7 +664,9 @@ function render() {
 
   $("summary").innerHTML =
     "<span>판매중 <b>" + available + "</b></span>" +
+    "<span>·</span>" +
     "<span>품절·판매종료 <b>" + (sold + hidden) + "</b></span>" +
+    "<span>·</span>" +
     "<span>표시 <b>" + list.length + "</b></span>";
 
   if (!list.length) {
@@ -727,7 +742,7 @@ async function load() {
     $("status").className = data.last_error ? "status err" : "status";
     $("statusMain").textContent = data.last_error
       ? "⚠️ 감시 오류 · " + data.last_error
-      : "💚 정상 감시 중 · 최근 확인 " + time(data.checked_at);
+      : "💚 정상 감시 중 · " + time(data.checked_at);
 
     products.forEach((p) => {
       p.recent_restock_24h = p.recent_restock_24h ?? isRecentRestock(p);
@@ -768,7 +783,7 @@ $("specialToggle").addEventListener("click", () => {
   includeSpecial = !includeSpecial;
   const btn = $("specialToggle");
   btn.classList.toggle("on", includeSpecial);
-  btn.textContent = includeSpecial ? "특수상품 포함중" : "특수상품 보기";
+  btn.textContent = includeSpecial ? "특수상품 ON" : "특수상품 보기";
   render();
 });
 
