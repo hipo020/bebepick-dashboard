@@ -125,7 +125,56 @@ const channel = sb
     if (status === "SUBSCRIBED") schedule("realtime:subscribed");
   });
 
-const server = http.createServer((req, res) => {
+async function readJsonBody(req) {
+  const chunks = [];
+  for await (const chunk of req) chunks.push(chunk);
+  const text = Buffer.concat(chunks).toString("utf8");
+  return text ? JSON.parse(text) : {};
+}
+
+async function proxyNtfy(req, res) {
+  if (req.headers["x-bebepick-watch"] !== WATCH_KEY) {
+    res.writeHead(401, { "content-type": "application/json" });
+    res.end(JSON.stringify({ ok: false, error: "unauthorized" }));
+    return;
+  }
+
+  try {
+    const payload = await readJsonBody(req);
+    const topic = String(payload?.topic || "");
+    if (!topic.startsWith("bebepick-hipo020-")) {
+      res.writeHead(400, { "content-type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: "invalid topic" }));
+      return;
+    }
+
+    const upstream = await fetch("https://ntfy.sh/", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(15000)
+    });
+    const body = await upstream.text();
+
+    res.writeHead(upstream.status, {
+      "content-type": "application/json; charset=utf-8",
+      "cache-control": "no-store"
+    });
+    res.end(body || JSON.stringify({ ok: upstream.ok }));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("[notify-proxy-error]", message);
+    res.writeHead(500, { "content-type": "application/json" });
+    res.end(JSON.stringify({ ok: false, error: message }));
+  }
+}
+
+const server = http.createServer(async (req, res) => {
+  if (req.method === "POST" && req.url === "/notify") {
+    await proxyNtfy(req, res);
+    return;
+  }
+
   res.writeHead(200, {
     "content-type": "application/json; charset=utf-8",
     "cache-control": "no-store"
