@@ -51,6 +51,9 @@
     .broadcast-state.warn{color:#a15c00}
     .my-queue{font-size:11px;color:#655d57;margin-top:5px;line-height:1.45}
     .status-muted{color:#8a817b;font-weight:500}
+    .queue-links{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+    .queue-link{display:inline-flex;align-items:center;gap:4px;padding:5px 8px;border:1px solid #d7e8dc;border-radius:999px;background:#f4fbf6;color:#237a3b;text-decoration:none;font-size:10.5px;font-weight:750}
+    .queue-link:active{transform:scale(.98)}
     .my-queue.on{color:#7a4b00;font-weight:750}
     .my-queue.turn{color:#c62828;font-weight:800}
     .thumb,.ph{width:82px;height:82px;border-radius:12px;background:#f3eee9}
@@ -352,6 +355,16 @@ function broadcastLabel(slug) {
   })[String(slug || "")] || String(slug || "방송");
 }
 
+function queuePageUrl(slug) {
+  return ({
+    bebepick: SHOP_URL + "bebepick_que",
+    bebepick_plus: SHOP_URL + "bebepick_plus_que",
+    test_be: SHOP_URL + "test_be_que",
+    pickandfun: SHOP_URL + "pickandfun_que",
+    pickandfun_plus: SHOP_URL + "pickandfun_plus_que"
+  })[String(slug || "")] || (SHOP_URL + encodeURIComponent(String(slug || "")) + "_que");
+}
+
 async function refreshBroadcastState() {
   const el = $("broadcastState");
   const mine = $("myQueueState");
@@ -388,20 +401,22 @@ async function refreshBroadcastState() {
       return;
     }
 
-    const labels = rows.map((row) => {
+    const links = rows.map((row) => {
       const channel = broadcastLabel(row.channel_slug);
       const rawName = String(row.broadcast_name || "").trim();
       let shortName = rawName
         .replace(/^\d{8}_/, "")
         .replace(/^베플/, "베플 ")
         .replace(/^베베픽/, "베베픽 ");
-      return shortName || channel;
+      const label = shortName || channel;
+      return '<a class="queue-link" href="' + esc(queuePageUrl(row.channel_slug)) +
+        '" target="_blank" rel="noopener">📋 ' + esc(label) + ' 순서표 ↗</a>';
     });
 
     el.className = "broadcast-state live";
     el.innerHTML =
       "🎥 방송중 · 주문번호 생성 가능" +
-      "<br><span class=\"status-muted\">" + labels.map(esc).join(" / ") + "</span>";
+      '<div class="queue-links">' + links.join("") + "</div>";
 
     if (mine) {
       const target = String(QUEUE_NICKNAME || "").trim().toLowerCase();
