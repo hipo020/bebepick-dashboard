@@ -1,68 +1,81 @@
-// Public YouTube channel live-page probe. No YouTube account or API key required.
-// Intentionally strict: scheduled streams and recommendations are not LIVE.
-export function extractLiveFromHtml(html, finalUrl, expectedChannelId = null, expectedName = "") {
-  const m = html.match(/(?:var\s+)?ytInitialPlayerResponse\s*=\s*(\{[\s\S]*?\})\s*;/);
-  if (!m) return { live: false, videoId: null, reason: "no-player" };
-
-  let player;
-  try { player = JSON.parse(m[1]); }
-  catch { return { live: false, videoId: null, reason: "invalid-player" }; }
-
-  const details = player.videoDetails || {};
-  const broadcast = player.microformat?.playerMicroformatRenderer?.liveBroadcastDetails || {};
-  const videoId = String(details.videoId || "");
-  const channelId = String(details.channelId || "");
-  const author = String(details.author || "");
-
-  // Reject any video outside the intended channel.
-  if (expectedChannelId && channelId && channelId !== expectedChannelId) {
-    return { live: false, videoId: null, reason: "wrong-channel" };
-  }
-  const channelName = author.replace(/\s+/g, "").toLowerCase();
-  const expected = expectedName.replace(/\s+/g, "").toLowerCase();
-  if (expected && channelName && channelName !== expected) {
-    return { live: false, videoId: null, reason: "wrong-author" };
-  }
-
-  const realLive = broadcast.isLiveNow === true || details.isLive === true;
-  if (!realLive || !/^[a-zA-Z0-9_-]{11}$/.test(videoId)) {
-    return { live: false, videoId: null, reason: "not-live" };
-  }
-
-  return { live: true, videoId, url: finalUrl, reason: "active-live" };
-}
+// Probe the public LIVE player without YouTube Data API search quota.
+// This is best-effort monitoring: never interpret errors as offline or send on uncertain identity.
 
 export const YOUTUBE_CHANNELS = [
   {
     slug: "bebepick",
-    url: "https://www.youtube.com/@%EB%B2%A0%EB%B2%A0%ED%94%BD/live",
-    channelId: null,
+    url: "https://www.youtube.com/@베베픽/live",
     expectedName: "베베픽"
   },
   {
     slug: "bebepick_plus",
-    url: "https://www.youtube.com/channel/UCaj_w5UAMzh_rgd6ioI83xA/live",
-    channelId: "UCaj_w5UAMzh_rgd6ioI83xA",
+    url: "https://www.youtube.com/@베베픽플러스/live",
     expectedName: "베베픽플러스"
   }
 ];
 
+function embeddedJSON(html, marker) {
+  const start = html.indexOf(marker);
+  if (start < 0) return null;
+  const begin = html.indexOf("{", start + marker.length);
+  if (begin < 0 || begin - start > 128) return null;
+  let depth = 0, inString = false, escaped = false;
+  for (let i = begin; i < html.length && i < begin + 800000; i++) {
+    const ch = html[i];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (ch === "\\") escaped = true;
+      else if (ch === '"') inString = false;
+    } else if (ch === '"') inString = true;
+    else if (ch === "{") depth++;
+    else if (ch === "}") {
+      depth--;
+      if (depth === 0) {
+        try { return JSON.parse(html.slice(begin, i + 1)); }
+        catch { return null; }
+      }
+    }
+  }
+  return null;
+}
+
+export function extractLiveFromHtml(html, expectedName = "") {
+  const player = embeddedJSON(html, "ytInitialPlayerResponse");
+  if (!player) return { live: false, videoId: null, reason: "player-unavailable", trustworthy: false };
+  const video = player.videoDetails || {};
+  const broadcast = player.microformat?.playerMicroformatRenderer?.liveBroadcastDetails || {};
+  const author = String(video.author || "").replace(/\s/g, "").toLowerCase();
+  const expected = expectedName.replace(/\s/g, "").toLowerCase();
+  if (!author || (expected && author !== expected)) {
+    return { live: false, videoId: null, reason: "channel-not-verified", trustworthy: false };
+  }
+
+  const id = String(video.videoId || "");
+  if (broadcast.isLiveNow !== true || !/^[\w-]{11}$/.test(id)) {
+    return { live: false, videoId: null, reason: "not-live", trustworthy: true };
+  }
+
+  const started = Date.parse(String(broadcast.startTimestamp || ""));
+  return {
+    live: true, videoId: id, reason: "live-now", trustworthy: true,
+    startedAt: Number.isFinite(started) ? new Date(started).toISOString() : null
+  };
+}
+
 export async function probeYoutubeLive(channel) {
-  const res = await fetch(channel.url, {
+  const response = await fetch(channel.url, {
     headers: {
-      "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/129.0.0.0 Safari/537.36",
+      "user-agent": "Mozilla/5.0",
       "accept-language": "ko-KR,ko;q=0.9,en-US;q=0.8",
       "cache-control": "no-cache"
     },
     redirect: "follow",
-    signal: AbortSignal.timeout(8000)
+    signal: AbortSignal.timeout(8500)
   });
-  if (!res.ok) throw new Error("YouTube HTTP " + res.status);
-  const html = await res.text();
-  return extractLiveFromHtml(
-    html,
-    res.url,
-    channel.channelId,
-    channel.expectedName
-  );
+  if (!response.ok) throw new Error("youtube HTTP " + response.status);
+  const html = await response.text();
+  return {
+    ...extractLiveFromHtml(html, channel.expectedName),
+    checkedUrl: response.url
+  };
 }
