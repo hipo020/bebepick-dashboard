@@ -104,8 +104,8 @@ function timeKst(iso){
 function statusText(s){
   return ({pending:"접수/대기",paid:"결제완료",completed:"완료",cancelled:"취소"})[s] || s || "";
 }
-function flagHtml(label,on){
-  return '<div class="flag '+(on?'yes':'no')+'"><span>'+label+'</span><b>'+(on?'YES ✓':'NO')+'</b></div>';
+function flagHtml(label,on,text){
+  return '<div class="flag '+(on?'yes':'no')+'"><span>'+label+'</span><b>'+esc(text ?? (on?'YES ✓':'NO'))+'</b></div>';
 }
 
 function safeMemoText(memo){
@@ -140,7 +140,13 @@ async function lookup(){
     const items=Array.isArray(data.items)?data.items:[];
     const memo=String(order.customer_memo || "");
     const keep=/\[보관\]/.test(memo);
-    const open=/\[개봉\]/.test(memo);
+    const openMatch=memo.match(/\[(미개봉|개봉|카드개봉)\]/);
+    const openType=openMatch ? openMatch[1] : "확인 불가";
+    const itemsTotal=items.reduce((sum,x)=>{
+      const unit=Number(x.price || x.doll_price || 0);
+      return sum + unit * Number(x.quantity || 0);
+    },0);
+    const shipping=Math.max(0,Number(order.total_amount || 0)-itemsTotal);
 
     const itemHtml=items.length ? items.map(x=>{
       const qty=Number(x.quantity || 0);
@@ -170,13 +176,18 @@ async function lookup(){
           '<div><div class="order-no">'+esc(order.order_no || orderNo)+'</div>'+
           '<div class="meta">'+esc(timeKst(order.created_at))+(order.status?' · '+esc(statusText(order.status)):'')+'</div></div>'+
         '</div>'+
-        '<div class="flags">'+flagHtml("📦 보관",keep)+flagHtml("✂️ 개봉",open)+'</div>'+
+        '<div class="flags">'+
+          flagHtml("📦 보관",keep,keep?"보관":"발송")+
+          flagHtml("✂️ 개봉 방식",openType!=="확인 불가",openType)+
+        '</div>'+
         '<div class="section-title">주문 상세</div>'+
         '<div class="details">'+
           '<div class="detail"><div class="k">주문 내부 ID</div><div class="v">'+esc(order.id ?? "—")+'</div></div>'+
           '<div class="detail"><div class="k">주문번호</div><div class="v">'+esc(order.order_no || orderNo)+'</div></div>'+
           '<div class="detail"><div class="k">상태</div><div class="v">'+esc(statusText(order.status))+(order.status?' ('+esc(order.status)+')':'')+'</div></div>'+
           '<div class="detail"><div class="k">생성시각</div><div class="v">'+esc(timeKst(order.created_at) || "—")+'</div></div>'+
+          '<div class="detail"><div class="k">상품 합계</div><div class="v">'+fmt(itemsTotal)+'원</div></div>'+
+          '<div class="detail"><div class="k">배송비 계산값</div><div class="v">'+(shipping>0?fmt(shipping)+'원':'무료/0원')+'</div></div>'+
           '<div class="detail"><div class="k">주문 총액</div><div class="v">'+fmt(order.total_amount)+'원</div></div>'+
           '<div class="detail"><div class="k">상품 종류 수</div><div class="v">'+fmt(items.length)+'개</div></div>'+
         '</div>'+
