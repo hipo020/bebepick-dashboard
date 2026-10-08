@@ -51,6 +51,9 @@ button{border:0;border-radius:12px;padding:0 16px;background:#2d2926;color:#fff;
 .loading{padding:26px;text-align:center;color:#8a817b}
 .saved-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .saved-title{font-size:14px;font-weight:800}
+.saved-controls{display:flex;align-items:center;gap:7px;flex-shrink:0}
+.saved-sort{height:36px;max-width:160px;padding:0 8px;border:1px solid #e8ded7;border-radius:10px;background:#faf8f6;color:#655d57;font:600 11px/1.3 inherit}
+@media(max-width:420px){.saved-controls{gap:5px}.saved-sort{max-width:130px;font-size:10px}}
 .saved-sub{font-size:11px;color:#8a817b;margin-top:3px}
 .ghost{width:36px;height:36px;padding:0;border:1px solid #e8ded7;background:#faf8f6;color:#655d57;border-radius:10px}
 .saved-list{display:grid;gap:8px;margin-top:12px}
@@ -101,9 +104,15 @@ button{border:0;border-radius:12px;padding:0 16px;background:#2d2926;color:#fff;
     <div class="saved-head">
       <div>
         <div class="saved-title">🗂️ 내 주문내역</div>
-        <div class="saved-sub">직접 조회한 주문을 저장하고, 연결코드로 다른 기기에서도 볼 수 있어</div>
+        <div class="saved-sub">주문 생성시각 기준 정렬 · 저장한 시간과 무관해</div>
       </div>
-      <button id="savedRefresh" class="ghost" type="button" aria-label="저장 주문 새로고침">↻</button>
+      <div class="saved-controls">
+        <select id="savedSort" class="saved-sort" aria-label="주문번호 생성시각 정렬">
+          <option value="newest">생성 최신순 ↓</option>
+          <option value="oldest">생성 오래된순 ↑</option>
+        </select>
+        <button id="savedRefresh" class="ghost" type="button" aria-label="저장 주문 새로고침">↻</button>
+      </div>
     </div>
     <div class="vault">
       <div class="vault-title">🔐 내 주문 연결코드</div>
@@ -277,9 +286,30 @@ function savedOptionText(o){
   return bits.join(" · ");
 }
 
+let cachedSavedOrders=[];
+
+// Compare the ORIGINAL order_created_at returned by the seller, never the
+// time this order was saved or last checked in the private order vault.
+function orderCreationMs(order){
+  if(!order?.order_created_at) return null;
+  const timestamp=Date.parse(order.order_created_at);
+  return Number.isFinite(timestamp) ? timestamp : null;
+}
+function sortSavedOrders(rows){
+  const oldest=$("savedSort")?.value==="oldest";
+  return [...rows].sort((a,b)=>{
+    const at=orderCreationMs(a);
+    const bt=orderCreationMs(b);
+    // Missing/invalid creation times are always last in both directions.
+    if(at===null && bt!==null) return 1;
+    if(bt===null && at!==null) return -1;
+    if(at!==null && bt!==null && at!==bt) return oldest ? at-bt : bt-at;
+    return String(a.order_no||"").localeCompare(String(b.order_no||""));
+  });
+}
 function renderSavedOrders(rows){
   const box=$("savedOrders");
-  const list=Array.isArray(rows)?rows:[];
+  const list=sortSavedOrders(Array.isArray(rows)?rows:[]);
   if(!list.length){
     box.innerHTML='<div class="saved-empty">아직 저장된 주문이 없어.<br>위에서 주문번호를 조회하면 자동으로 여기에 쌓여.</div>';
     return;
@@ -307,7 +337,8 @@ function renderSavedOrders(rows){
 async function loadSavedOrders(){
   try{
     const data=await orderVaultRequest("GET");
-    renderSavedOrders(data.orders||[]);
+    cachedSavedOrders=Array.isArray(data.orders)?data.orders:[];
+    renderSavedOrders(cachedSavedOrders);
   }catch(e){
     $("savedOrders").innerHTML='<div class="saved-empty">내 주문내역을 불러오지 못했어.</div>';
     console.warn(e);
@@ -439,6 +470,7 @@ async function lookup(){
 $("lookup").addEventListener("click",lookup);
 $("orderNo").addEventListener("keydown",e=>{ if(e.key==="Enter") lookup(); });
 $("savedRefresh").addEventListener("click",loadSavedOrders);
+$("savedSort").addEventListener("change",()=>renderSavedOrders(cachedSavedOrders));
 $("vaultReveal").addEventListener("click",()=>{
   vaultVisible=!vaultVisible;
   renderVaultCode();
