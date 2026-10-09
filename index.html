@@ -349,6 +349,7 @@
     <div class="cart-notice"><span class="cart-notice-icon">✦</span><div><strong>빠르게 주문 준비하기</strong><br>원하는 인형과 옵션을 고른 뒤, 마지막 확인에서 실제 주문번호를 발급해줘.</div></div>
     <div id="cartError" class="cart-error" role="alert" hidden></div>
     <div id="cartItems"></div>
+    <div id="cartHiddenNotice" class="hidden-cart-alert" hidden role="status">🔒 <strong>숨김 상품이 포함되어 있어</strong><br>장바구니에는 담을 수 있지만 현재 베베픽 공식 판매 상태가 아니라서 주문번호 발급은 잠시 제한돼. 판매 가능 상태로 바뀌면 다시 확인해줘.</div>
     <div class="cart-section-title"><span class="cart-step">01</span> 배송 방법 <span class="cart-required">필수</span></div>
     <div class="cart-options two" role="group" aria-label="배송 방법">
       <label><input type="radio" name="cartStorage" value="발송"><span>발송</span></label>
@@ -1029,10 +1030,18 @@ function cartProduct(id) {
 function cartUnitPrice(p, kind) {
   return Number(kind === "fullbox" ? p?.fullbox_price : p?.price) || 0;
 }
+// Hidden products with stock may be collected as a planning list.
+// They are NOT allowed through official checkout until seller marks them visible.
 function cartIsAvailable(p, kind) {
-  return Boolean(p && p.state === "available" &&
+  return Boolean(p && (p.state === "available" || p.state === "hidden") &&
     Number(p.current_stock) >= (kind === "fullbox" ? Math.max(1, Number(p.pack_size) || 1) : 1) &&
     cartUnitPrice(p, kind) > 0);
+}
+function cartHasHiddenProducts() {
+  return cartPreview.lines.some(x => {
+    const p=cartProduct(x.id);
+    return Boolean(p && p.state !== "available");
+  });
 }
 function changeCart(id, kind, delta) {
   if (orderBusy || checkoutAttempt) {
@@ -1208,8 +1217,10 @@ function updateOrderControls() {
   const showingResult=Boolean(a&&(a.order_no||["started","unknown","created","memo_failed","completed","failed"].includes(a.status)));
   $("cartEditing").hidden=showingResult;
   $("cartResult").hidden=!showingResult;
-  sub.disabled=orderBusy||Boolean(a);
-  sub.textContent=orderBusy?"주문 확인 중…":a?"이전 주문 처리 중":"공식 주문번호 발급하기";
+  const blockedByHidden=cartHasHiddenProducts();
+  sub.disabled=orderBusy||Boolean(a)||blockedByHidden;
+  sub.textContent=orderBusy?"주문 확인 중…":a?"이전 주문 처리 중":
+    blockedByHidden?"🔒 숨김 상품 · 주문번호 발급 불가":"공식 주문번호 발급하기 →";
   $("cartStatus").hidden=!a;
   $("cartMemoRetry").hidden=!a?.order_no||a.status!=="memo_failed";
   $("cartNew").hidden=!a;
@@ -1328,6 +1339,10 @@ async function validateCheckoutSnapshot() {
 async function submitOfficialOrder(){
   if(orderBusy||checkoutAttempt)return;
   if(!cartPreview.lines.length){cartError("먼저 인형을 장바구니에 담아줘.");return;}
+  if(cartHasHiddenProducts()){
+    cartError("숨김 상품이 장바구니에 있어. 판매 가능 상태가 확인된 상품만 공식 주문번호를 만들 수 있어.");
+    return;
+  }
   if(!cartPreview.storage||!cartPreview.opening){cartError("발송/보관과 개봉 옵션을 모두 선택해줘.");return;}
   clearCartError();
   orderBusy=true;updateOrderControls();
@@ -1457,17 +1472,20 @@ function renderCartPreview() {
   $("cartBarSuffix").textContent=checkoutAttempt?" · 확인하기":"개 · 확인하기";
   $("cartOpen").setAttribute("aria-label", checkoutAttempt?"기존 주문번호 및 결과 확인":
     "주문 준비 장바구니 " + totalQty + "개 확인");
-  let subtotal = 0, needsCheck = false;
+  let subtotal = 0, needsCheck = false, hasHidden = false;
   const rows = cartPreview.lines.map(x => {
     const p = cartProduct(x.id);
     const price = cartUnitPrice(p, x.kind);
     const totalUnits = cartPreview.lines.filter(y => y.id === x.id)
       .reduce((sum,y) => sum + y.qty * (y.kind === "fullbox" ? Math.max(1, Number(p?.pack_size || 1)) : 1), 0);
+    const hiddenItem=Boolean(p && p.state==="hidden");
+    if(hiddenItem)hasHidden=true;
     if (!cartIsAvailable(p, x.kind) || totalUnits > Number(p?.current_stock || 0)) needsCheck = true;
     subtotal += price * x.qty;
     const name = p?.name || "상품 정보 재확인 필요 (ID " + x.id + ")";
-    const kindText = x.kind === "fullbox" ? "풀박스 · 포장수량 확인 필요" : "낱개";
-    const status = cartIsAvailable(p, x.kind) ? "" : " · 재고/판매 여부 확인 필요";
+    const kindText = x.kind === "fullbox" ? "풀박스" : "낱개";
+    const status = hiddenItem?" · 🔒 숨김 (담기만 가능)":
+      cartIsAvailable(p,x.kind)?"":" · 재고/가격 확인 필요";
     return '<div class="cart-item' + (status ? ' warn' : '') + '">' +
       '<div class="cart-item-main"><div class="cart-item-name">' + esc(name) + '</div>' +
       '<div class="cart-item-meta">' + esc(kindText) + ' · ' +
@@ -1479,6 +1497,7 @@ function renderCartPreview() {
       '</div></div>';
   }).join("");
   $("cartItems").innerHTML = rows || '<div class="empty" style="padding:20px 5px">장바구니가 비어 있어</div>';
+  $("cartHiddenNotice").hidden=!hasHidden;
   $("cartSubtotal").textContent = fmt(subtotal) + "원";
   const shipping = subtotal >= 70000 ? 0 : 4000;
   $("cartShippingText").textContent = subtotal >= 70000 ? "무료배송 기준 충족" : "4,000원 (입금 전 확인)";
@@ -1489,9 +1508,10 @@ function renderCartPreview() {
   document.querySelectorAll('[name="cartOpening"]').forEach(input => {
     input.checked = input.value === cartPreview.opening;
   });
-  $("cartCheck").textContent = (needsCheck ? "⚠️ 일부 상품의 재고·가격·풀박스 수량이 달라졌어. " : "") +
+  $("cartCheck").textContent = (hasHidden?"🔒 숨김 상품은 장바구니 보관만 가능해. ":"") +
+    (needsCheck ? "⚠️ 일부 상품의 재고·가격·풀박스 수량이 달라졌어. " : "") +
     ((!cartPreview.storage || !cartPreview.opening) ? "배송 방법과 개봉 옵션을 골라줘. " : "") +
-    "배송비는 주문 생성 계산값이며, 실제 입금액은 베베픽 카톡 안내를 확인해줘.";
+    "최종 입금액은 베베픽 카톡 안내를 확인해줘.";
   updateOrderControls();
 }
 function setCartOpen(open) {
@@ -1645,9 +1665,9 @@ function render() {
       ((cartIsAvailable(p, "single") || cartIsAvailable(p, "fullbox")) ?
         '<div class="cart-add-row">' +
         (cartIsAvailable(p, "single") ?
-          '<button class="cart-add" type="button" data-add-cart="single" data-cart-id="' + Number(p.doll_id) + '">🛒 낱개 담기</button>' : '') +
+          '<button class="cart-add' + (p.state==="hidden"?" draft-only":"") + '" type="button" data-add-cart="single" data-cart-id="' + Number(p.doll_id) + '">' + (p.state==="hidden"?"🔒 낱개 담기":"🛒 낱개 담기") + '</button>' : '') +
         (cartIsAvailable(p, "fullbox") ?
-          '<button class="cart-add" type="button" data-add-cart="fullbox" data-cart-id="' + Number(p.doll_id) + '">📦 풀박스 담기</button>' : '') +
+          '<button class="cart-add' + (p.state==="hidden"?" draft-only":"") + '" type="button" data-add-cart="fullbox" data-cart-id="' + Number(p.doll_id) + '">' + (p.state==="hidden"?"🔒 풀박스 담기":"📦 풀박스 담기") + '</button>' : '') +
         '</div>' : '') +
       '<div id="history-' + Number(p.doll_id) + '" class="history-panel" hidden></div>' +
     '</article>';
