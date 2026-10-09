@@ -6,6 +6,7 @@
 <meta name="theme-color" content="#fffaf6">
 <title>베베픽 주문 옵션 조회</title>
 <style>
+:root{--brand-primary:#A7475D;--brand-ink:#84374B;--brand-soft:#FBECEF;--brand-border:#E7B8C4}
 *{box-sizing:border-box}
 body{margin:0;background:#fffaf6;color:#2d2926;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif}
 .wrap{max-width:680px;margin:auto;padding:22px 14px 80px}
@@ -15,7 +16,7 @@ h1{margin:0;font-size:24px}
 .back{padding:9px 11px;border:1px solid #eee5df;border-radius:12px;background:#fff;color:#2d2926;text-decoration:none;font-size:13px}
 .main-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:16px 0 4px;padding:4px;background:#f1ebe6;border-radius:14px}
 .main-tab{text-align:center;text-decoration:none;color:#786f69;padding:10px 8px;border-radius:11px;font-size:13px;font-weight:750}
-.main-tab.on{background:#fff;color:#2d2926;box-shadow:0 2px 8px rgba(70,50,35,.08)}
+.main-tab.on{background:#fff;color:var(--brand-ink);box-shadow:0 2px 8px rgba(70,50,35,.08)}
 .details{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
 .detail{padding:10px;border-radius:12px;background:#faf8f6;border:1px solid #f0e8e2}
 .detail .k{font-size:11px;color:#8a817b;margin-bottom:4px}
@@ -29,7 +30,8 @@ h1{margin:0;font-size:24px}
 .search{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
 input{width:100%;min-width:0;border:1px solid #e8ded7;border-radius:12px;padding:13px 14px;font:inherit;outline:none}
 #orderNo{text-transform:uppercase}
-button{border:0;border-radius:12px;padding:0 16px;background:#2d2926;color:#fff;font:inherit;font-weight:750}
+#orderNo:focus{border-color:var(--brand-primary);outline:2px solid var(--brand-border);outline-offset:1px}
+button{border:0;border-radius:12px;padding:0 16px;background:var(--brand-primary);color:#fff;-webkit-text-fill-color:#fff;font:inherit;font-weight:750}
 .note{margin-top:9px;color:#8a817b;font-size:12px;line-height:1.5}
 #result{margin-top:14px}
 .empty{padding:30px 8px;text-align:center;color:#8a817b}
@@ -64,7 +66,7 @@ button{border:0;border-radius:12px;padding:0 16px;background:#2d2926;color:#fff;
 .saved-remove{min-width:58px;max-width:72px;padding:8px 10px!important;border:1px solid #f2d0d0;border-radius:12px;background:#fff6f6;color:#a33039;font-size:12px;font-weight:750;cursor:pointer}
 .saved-remove:disabled{opacity:.5;cursor:wait}
 .saved-row .saved-order{min-width:0}
-.saved-order-no{font-size:13px;font-weight:800}
+.saved-order-no{font-size:13px;font-weight:800;color:var(--brand-ink)}
 .saved-order-meta{margin-top:3px;font-size:11px;color:#8a817b;line-height:1.45}
 .saved-total{font-size:13px;font-weight:800;white-space:nowrap}
 .save-state{font-size:11px;color:#238636;margin-top:8px}
@@ -74,7 +76,7 @@ button{border:0;border-radius:12px;padding:0 16px;background:#2d2926;color:#fff;
 .vault-code{margin-top:9px;padding:10px 11px;border-radius:10px;background:#faf8f6;border:1px solid #f0e8e2;font:600 12px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;word-break:break-all;letter-spacing:.2px}
 .vault-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
 .vault-actions button{min-height:36px;padding:0 11px;border:1px solid #e8ded7;background:#faf8f6;color:#655d57;font-size:11px}
-.vault-actions button.primary{background:#2d2926;color:#fff;border-color:#2d2926}
+.vault-actions button.primary{background:var(--brand-primary);color:#fff;-webkit-text-fill-color:#fff;border-color:var(--brand-primary)}
 .vault-import{display:none;grid-template-columns:minmax(0,1fr) auto;gap:7px;margin-top:8px}
 .vault-import.show{display:grid}
 .vault-import input{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;text-transform:none}
