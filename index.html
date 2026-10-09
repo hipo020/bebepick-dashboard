@@ -3,12 +3,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <meta name="theme-color" content="#fffaf6" />
+  <meta name="theme-color" content="#FFF8F5" />
+  <meta name="color-scheme" content="light" />
   <title>베베픽 재고판</title>
   <style>
-    :root{--brand-primary:#A7475D;--brand-dark:#8B3148;--brand-soft:#FBECEF;--brand-border:#E7B8C4;--brand-ink:#84374B}
+    :root{color-scheme:only light;--brand-primary:#A7475D;--brand-dark:#8B3148;--brand-soft:#FBECEF;--brand-border:#E7B8C4;--brand-ink:#84374B;--paper:#FFF8F5;--surface:#FFFFFF;--ink:#342B2C;--muted:#766D70}
+    html{color-scheme:only light;background:var(--paper)}
     *{box-sizing:border-box}
-    body{margin:0;background:#fffaf6;color:#2d2926;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif}
+    body{margin:0;background:var(--paper);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif}
     .wrap{max-width:760px;margin:auto;padding:16px 14px 90px}
     .top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
     h1{font-size:24px;margin:0 0 5px}
@@ -168,6 +170,67 @@
     .confirm-actions button{min-height:48px;border:1px solid #ded5cf;border-radius:12px;background:#fff;color:#2d2926;font-size:13px;font-weight:800}
     .confirm-actions button[value="approve"]{background:var(--brand-primary);color:#fff;-webkit-text-fill-color:#fff;border-color:transparent}
 
+
+    /* Soft rose / cream mobile layout. "only light" asks browsers not to auto-invert. */
+    :root{accent-color:var(--brand-primary)}
+    .controls{background:rgba(255,248,245,.97)}
+    .main-tabs{background:#F7EDEA;padding:5px;border:1px solid #F0E3DF}
+    .main-tab{border-radius:12px}
+    .main-tab.on{background:#FFF;color:var(--brand-ink);box-shadow:0 3px 12px rgba(126,67,71,.10)}
+    .chip.on,.special-toggle.on,.filter-select.on{background:var(--brand-primary);color:#fff;-webkit-text-fill-color:#fff;border-color:var(--brand-primary)}
+    .card{border-color:#F0E2DF;border-radius:20px;padding:13px;box-shadow:0 6px 22px rgba(88,54,49,.045)}
+    .card:focus-within{border-color:#EBCBD0}
+    .thumb{border-radius:15px}
+    .cart-add-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));justify-content:stretch;gap:8px;border-top:1px solid #F1E5E1;margin-top:3px;padding-top:11px}
+    .cart-add{min-height:43px;width:100%;border:1px solid #E9C8CE;border-radius:13px;background:var(--brand-soft);color:var(--brand-ink);-webkit-text-fill-color:var(--brand-ink);font-size:12px;letter-spacing:-.2px}
+    .cart-add:only-child{grid-column:2}
+    .cart-add.draft-only{background:#F6F1ED;color:#766A63;-webkit-text-fill-color:#766A63;border-color:#E5D8D1}
+    .cart-add.draft-only:only-child{grid-column:2}
+    .cart-bar{border-radius:18px;padding:6px;background:#fff;border:1px solid #E9CDD0;box-shadow:0 10px 30px rgba(75,40,42,.18)}
+    .cart-bar button{border-radius:13px;min-height:52px;letter-spacing:-.3px}
+    .cart-overlay{background:rgba(33,20,22,.57);backdrop-filter:blur(3px)}
+    .cart-sheet{background:var(--paper);border-radius:26px 26px 0 0;padding:20px 17px max(22px,env(safe-area-inset-bottom));max-height:min(91dvh,980px);box-shadow:0 -15px 60px rgba(55,31,33,.13)}
+    .cart-top{padding:0 1px 4px;align-items:center}
+    .cart-overline{font-size:10px;color:#AD7582;font-weight:850;letter-spacing:1.4px;margin-bottom:5px}
+    .cart-top h2{font-size:22px;letter-spacing:-.8px}
+    .cart-title-emoji{font-size:19px;color:#CD8795}
+    .cart-close{border-radius:13px;background:#F2E7E5;color:#5E4446;width:42px;height:42px}
+    .cart-notice{display:flex;gap:11px;align-items:flex-start;border:1px solid #F1D9DF;border-radius:17px;background:#FEF0F2;color:#885468;padding:12px 14px;font-size:11.5px;margin:15px 0 9px}
+    .cart-notice strong{font-size:12.5px;color:#883D55}
+    .cart-notice-icon{display:grid;place-items:center;flex:0 0 28px;width:28px;height:28px;border-radius:10px;background:white;color:var(--brand-primary);font-size:19px}
+    .cart-item{gap:13px;margin:0;padding:14px 2px;border-color:#F0E5E3}
+    .cart-item-name{font-size:14px;color:#372B2D}
+    .cart-item-meta{font-size:11.5px;color:#817378;line-height:1.5}
+    .cart-qty button{background:#fff;border-color:#E9DADB;color:#544147;box-shadow:0 2px 5px rgba(73,42,45,.045)}
+    .cart-qty strong{font-size:15px;min-width:20px;text-align:center}
+    .cart-section-title{display:flex;align-items:center;gap:7px;margin:21px 0 11px;color:#453638;font-size:14px}
+    .cart-step{font-size:10px;font-weight:900;letter-spacing:.5px;color:var(--brand-primary);background:#FCE8ED;padding:5px 7px;border-radius:8px}
+    .cart-required{font-size:10px;color:#997C80;font-weight:600;margin-left:auto}
+    .cart-options{gap:9px}
+    .cart-options span{min-height:50px;background:#fff!important;color:#52464A!important;-webkit-text-fill-color:#52464A!important;border:1px solid #E8DADC!important;border-radius:14px;font-size:14px;display:flex;justify-content:center;align-items:center}
+    .cart-options input:checked+span{background:var(--brand-primary)!important;color:#fff!important;-webkit-text-fill-color:#fff!important;border:2px solid var(--brand-primary)!important;box-shadow:0 3px 10px rgba(167,71,93,.20)}
+    .cart-options input:checked+span::before{content:"✓";margin-right:5px}
+    .cart-options input:focus-visible+span{outline:3px solid #E2ADBA;outline-offset:2px}
+    .cart-grand-total{background:#fff;border:1px solid #F0E2E4;padding:15px 12px;margin-left:-3px;margin-right:-3px;border-radius:14px;color:#4F3039}
+    .cart-grand-total span:last-child{color:var(--brand-primary);font-size:21px}
+    .cart-actions{gap:10px}
+    #cartEditing>.cart-actions{position:sticky;bottom:0;z-index:3;margin:14px -6px 0;padding:8px 6px 6px;background:linear-gradient(180deg,rgba(255,248,245,.80),var(--paper) 25%)}
+    .cart-actions button{min-height:49px;border-radius:13px}
+    .cart-clear{color:#75666B;background:#F3EAE8;border-color:#E6D9D7!important}
+    .cart-visit{font-size:14px!important;font-weight:850!important;border:0!important}
+    .cart-footnote{font-size:11px;color:#8D8181;padding:0 3px;line-height:1.55}
+    .cart-receipt{padding:20px 6px 12px}
+    .cart-result-no{border-radius:18px;background:#FFF;color:#4B303B;box-shadow:0 5px 17px rgba(141,74,92,.08)}
+    .cart-primary-action{box-shadow:0 7px 17px rgba(167,71,93,.20)}
+    .checkout-confirm-dialog{background:var(--paper);border-color:#F1DCDE}
+    .checkout-confirm-dialog h2{color:#4E3339}
+    .confirm-line.final{color:var(--brand-primary)}
+    .hidden-cart-alert{font-size:12px;line-height:1.55;padding:12px 13px;margin:12px 0;border-radius:12px;background:#FFF1E4;border:1px solid #EBCBAA;color:#795027}
+    #cartSubmit:disabled{cursor:not-allowed;opacity:.60;box-shadow:none}
+    @media(min-width:650px){
+      .cart-sheet{border-radius:24px}
+      .cart-overlay{align-items:center}
+    }
     @media(min-width:650px){.cart-overlay{align-items:center}.cart-sheet{border-radius:22px;max-height:90vh}}
     @media(max-width:649px){
       h1{font-size:22px}
@@ -279,19 +342,19 @@
 <div id="cartOverlay" class="cart-overlay" aria-hidden="true">
   <section class="cart-sheet" role="dialog" aria-modal="true" aria-labelledby="cartTitle">
     <div class="cart-top">
-      <h2 id="cartTitle">🛒 주문 준비 장바구니</h2>
+      <div class="cart-title-wrap"><div class="cart-overline">BEBEPICK · MY CART</div><h2 id="cartTitle">🧸 주문 장바구니 <span class="cart-title-emoji">♡</span></h2></div>
       <button id="cartClose" class="cart-close" type="button" aria-label="장바구니 닫기">×</button>
     </div>
     <div id="cartEditing">
-    <div class="cart-notice"><strong>공식 주문번호 발급</strong><br>실제 베베픽 주문이 생성돼. 마지막 확인을 누르기 전까지는 주문이 생성되지 않아. 주문 후 보관·개봉 옵션은 수정할 수 없으니 꼭 확인해줘.</div>
+    <div class="cart-notice"><span class="cart-notice-icon">✦</span><div><strong>빠르게 주문 준비하기</strong><br>원하는 인형과 옵션을 고른 뒤, 마지막 확인에서 실제 주문번호를 발급해줘.</div></div>
     <div id="cartError" class="cart-error" role="alert" hidden></div>
     <div id="cartItems"></div>
-    <div class="cart-section-title">배송 방법 · 꼭 선택해줘</div>
+    <div class="cart-section-title"><span class="cart-step">01</span> 배송 방법 <span class="cart-required">필수</span></div>
     <div class="cart-options two" role="group" aria-label="배송 방법">
       <label><input type="radio" name="cartStorage" value="발송"><span>발송</span></label>
       <label><input type="radio" name="cartStorage" value="보관"><span>보관</span></label>
     </div>
-    <div class="cart-section-title">개봉 옵션 · 꼭 선택해줘</div>
+    <div class="cart-section-title"><span class="cart-step">02</span> 개봉 방식 <span class="cart-required">필수</span></div>
     <div class="cart-options" role="group" aria-label="개봉 옵션">
       <label><input type="radio" name="cartOpening" value="미개봉"><span>미개봉</span></label>
       <label><input type="radio" name="cartOpening" value="개봉"><span>개봉</span></label>
@@ -299,10 +362,10 @@
     </div>
     <div class="cart-total" style="border:0;margin-top:13px;padding:4px 0"><span>상품 합계</span><span id="cartSubtotal">0원</span></div>
     <div style="display:flex;justify-content:space-between;gap:12px;font-size:12px;color:#8a817b"><span>주문 생성 계산상 배송비</span><span id="cartShippingText">계산 중</span></div>
-    <div class="cart-total" style="margin-top:6px"><span>주문 생성 요청 총액</span><span id="cartOrderTotal">0원</span></div>
+    <div class="cart-total cart-grand-total" style="margin-top:6px"><span>주문 생성 요청 총액</span><span id="cartOrderTotal">0원</span></div>
     <div class="cart-actions">
       <button id="cartClear" class="cart-clear" type="button">비우기</button>
-      <button id="cartSubmit" class="cart-visit" type="button">공식 주문번호 발급하기</button>
+      <button id="cartSubmit" class="cart-visit" type="button">공식 주문번호 발급하기 →</button>
     </div>
     <div id="cartCheck" class="cart-footnote" role="status">최종 입금 금액은 베베픽 카톡 안내를 따라줘.</div>
     </div>
