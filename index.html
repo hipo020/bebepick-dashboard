@@ -1108,6 +1108,12 @@ async function orderKey() {
   return key;
 }
 $("orderKeySetup").addEventListener("click",async()=>{
+  if(orderBusy){alert("주문 처리 중에는 연동키 설정을 변경하지 못해.");return;}
+  if(orderAccessKey&&!orderKeyStored()){
+    await rememberOrderKey(orderAccessKey);
+    updateOrderKeyState();
+    return;
+  }
   const key=await orderKey();
   if(key)alert("🔓 주문 연동키를 사용할 준비가 됐어!\n아직 주문은 생성되지 않았어.");
 });
