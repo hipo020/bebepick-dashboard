@@ -502,6 +502,10 @@ function dropIssuedOrderLocally(no){
     const rows=JSON.parse(localStorage.getItem(ISSUED_STORAGE_KEY)||"[]");
     if(!Array.isArray(rows))return;
     localStorage.setItem(ISSUED_STORAGE_KEY,JSON.stringify(rows.filter(x=>x.order_no!==no)));
+    const deleted=JSON.parse(localStorage.getItem(DELETED_ISSUED_KEY)||"[]");
+    const list=Array.isArray(deleted)?deleted:[];
+    if(!list.includes(no))list.unshift(no);
+    localStorage.setItem(DELETED_ISSUED_KEY,JSON.stringify(list.slice(0,100)));
   }catch(e){console.warn("발급 주문번호 목록 수정 실패",e);}
 }
 async function deleteSavedOrder(no,button){
@@ -539,6 +543,7 @@ $("savedOrders").addEventListener("click",e=>{
 
 
 const ISSUED_STORAGE_KEY="bebepick_generated_orders_v1";
+const DELETED_ISSUED_KEY="bebepick_deleted_issued_orders_v1";
 function renderIssuedOrders(){
   const container=$("issuedOrders");
   let rows=[];
