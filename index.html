@@ -1089,7 +1089,10 @@ async function submitOfficialOrder(){
       storage:cartPreview.storage,opening:cartPreview.opening
     });
     const status=data.status||(data.error==="official_rejected"?"failed":"unknown");
-    storeCheckoutAttempt({...attempt,status,order_no:data.order_no||null});
+    const claimedId=data.error==="recent_identical_order"&&data.previous_attempt_id
+      ? data.previous_attempt_id : attemptId;
+    storeCheckoutAttempt({...attempt,attempt_id:claimedId,status,
+      order_no:data.order_no||data.previous_order_no||null});
     if(data.order_no){
       saveGeneratedOrder(data);
       if(status==="memo_failed")alert("주문번호는 생성됐지만 옵션 저장이 확인되지 않았어. 주문번호를 보관하고 '옵션 저장 다시 시도'를 눌러줘.");
