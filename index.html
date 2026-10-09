@@ -86,7 +86,11 @@
     .history-btn{margin-top:7px;border:1px solid #eee5df;border-radius:9px;background:#faf8f6;padding:5px 8px;color:#7a716b;font-size:10.5px}
     .history-panel{grid-column:1/-1;border-top:1px dashed #eee5df;margin-top:2px;padding:9px 4px 2px;font-size:11px;color:#655d57}
     .history-panel[hidden]{display:none}
-    .history-row{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid #f5efeb}
+    .history-row{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:5px 10px;padding:7px 0;border-bottom:1px solid #f5efeb}
+    .history-row .history-values{white-space:normal;overflow-wrap:anywhere;text-align:right;margin-left:auto}
+    .history-row.price-history{background:#fffaf7;border-radius:7px;padding:7px 6px}
+    .price-rise{color:#c62828;font-weight:750}
+    .price-fall{color:#238636;font-weight:750}
     .history-row:last-child{border-bottom:0}.delta-up{color:#238636;font-weight:700}.delta-down{color:#c62828;font-weight:700}
     @media(max-width:649px){
       h1{font-size:22px}
@@ -708,8 +712,36 @@ async function toggleHistory(id) {
     const res = await fetch(EDGE_URL + "?api=history&doll_id=" + encodeURIComponent(id) + "&_=" + Date.now(), { cache: "no-store" });
     if (!res.ok) throw new Error("HTTP " + res.status);
     const data = await res.json();
-    const rows = Array.isArray(data.history) ? data.history : [];
-    const html = rows.length ? rows.map((h) => {
+    const stockRows = Array.isArray(data.history) ? data.history : [];
+    const priceRows = Array.isArray(data.price_history) ? data.price_history : [];
+    const entries = [
+      ...stockRows.map((h) => ({ type: "stock", row: h })),
+      ...priceRows.map((h) => ({ type: "price", row: h }))
+    ];
+    // Different price types may change on the same observation. Keep both.
+    entries.sort((a, b) => (
+      new Date(b.row.observed_at).getTime() - new Date(a.row.observed_at).getTime()
+      || Number(b.row.id || 0) - Number(a.row.id || 0)
+    ));
+    const html = entries.length ? entries.slice(0, 50).map(({ type, row: h }) => {
+      if (type === "price") {
+        const prev = h.previous_price == null ? "—" : fmt(h.previous_price) + "원";
+        const cur = h.current_price == null ? "—" : fmt(h.current_price) + "원";
+        const delta = h.delta == null ? null : Number(h.delta);
+        const label = h.price_kind === "fullbox" ? "풀박스 가격" : "상품 가격";
+        const movement = h.previous_price == null ? " 등록"
+          : h.current_price == null ? " 해제"
+          : delta > 0 ? " 인상"
+          : delta < 0 ? " 인하" : " 변경";
+        const deltaHtml = delta === null || delta === 0
+          ? "" : delta > 0
+            ? ' <span class="price-rise">+' + fmt(delta) + '원</span>'
+            : ' <span class="price-fall">-' + fmt(Math.abs(delta)) + '원</span>';
+        return '<div class="history-row price-history"><span><b>' +
+          esc(label + movement) + '</b> · ' + esc(timeShort(h.observed_at)) +
+          '</span><span class="history-values">' +
+          esc(prev) + ' → ' + esc(cur) + deltaHtml + '</span></div>';
+      }
       const prev = h.previous_stock == null ? "—" : fmt(h.previous_stock);
       const cur = fmt(h.current_stock);
       const delta = Number(h.delta || 0);
@@ -721,8 +753,11 @@ async function toggleHistory(id) {
       const soldTime = h.sellout_duration_seconds == null
         ? ""
         : " · 입고 후 " + durationText(h.sellout_duration_seconds);
-      return '<div class="history-row"><span><b>' + esc(historyLabel(h.change_type)) + '</b> · ' + esc(timeShort(h.observed_at)) + soldTime + '</span><span>' + prev + ' → ' + cur + deltaHtml + '</span></div>';
-    }).join("") : "아직 재고 변화 기록이 없어";
+      return '<div class="history-row"><span><b>' + esc(historyLabel(h.change_type)) +
+        '</b> · ' + esc(timeShort(h.observed_at)) + soldTime +
+        '</span><span class="history-values">' + prev + ' → ' + cur +
+        deltaHtml + '</span></div>';
+    }).join("") : "아직 재고·가격 변화 기록이 없어";
     historyCache.set(id, html);
     panel.innerHTML = html;
   } catch (e) {
@@ -857,7 +892,7 @@ function render() {
         '<div class="name">' + esc(p.name) + '</div>' +
         '<div class="meta">' + esc(price + pack + full) + '</div>' +
         recentIncrease + recentDecrease + eta + selloutSpeed +
-        '<button class="history-btn" type="button" onclick="toggleHistory(' + Number(p.doll_id) + ')">재고 기록</button>' +
+        '<button class="history-btn" type="button" onclick="toggleHistory(' + Number(p.doll_id) + ')">재고·가격 기록</button>' +
       '</div>' +
       '<div class="stock ' + stockClass(p) + '">' +
         stock + '<small>' + label(p) + '</small>' +
@@ -885,6 +920,9 @@ async function load() {
     if (!res.ok) throw new Error("HTTP " + res.status);
 
     const data = await res.json();
+    // Invalidate previously cached history when a new backend snapshot arrives.
+    // This also makes later price changes visible without reloading the tab.
+    historyCache.clear();
     products = Array.isArray(data.products) ? data.products : [];
 
     $("status").className = data.last_error ? "status err" : "status";
