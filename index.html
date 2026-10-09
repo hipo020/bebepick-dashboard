@@ -1044,6 +1044,51 @@ function saveGeneratedOrder(receipt) {
   }catch(e){console.warn("발급 주문번호 브라우저 저장 실패",e);}
 }
 
+// Save newly created official orders to the existing private order vault.
+// Only the user's own Supabase database is written; seller RPC is read-only.
+async function saveIssuedOrderToVault(orderNo){
+  if(!/^BP[0-9A-Z]{6,30}$/.test(String(orderNo)))return false;
+  const {data,error}=await liveSb.rpc("get_order_by_no",{p_order_no:orderNo});
+  if(error||!data?.order)return false;
+  const order=data.order;
+  const memo=String(order.customer_memo||"");
+  const match=memo.match(/\[(미개봉|개봉|카드개봉)\]/);
+  const items=(Array.isArray(data.items)?data.items:[]).map(item=>({
+    id:Number.isFinite(Number(item.id))?Number(item.id):null,
+    doll_id:Number.isFinite(Number(item.doll_id))?Number(item.doll_id):null,
+    name:String(item.doll_name||"상품"),
+    quantity:Number(item.quantity||0),
+    price:Number(item.price||item.doll_price||0),
+    option:String(item.option||"")
+  }));
+  let token="";
+  try{
+    token=localStorage.getItem("bebepick_order_vault_v1")||"";
+    if(!token){
+      const bytes=crypto.getRandomValues(new Uint8Array(32));
+      token=btoa(String.fromCharCode(...bytes)).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+      localStorage.setItem("bebepick_order_vault_v1",token);
+    }
+  }catch(_){return false;}
+  const payload={
+    order_no:orderNo,
+    order_id:Number.isFinite(Number(order.id))?Number(order.id):null,
+    status:String(order.status||""),
+    order_created_at:order.created_at||null,
+    total_amount:Number(order.total_amount||0),
+    storage_option:/\[보관\]/.test(memo)?"보관":"발송",
+    opening_option:match?match[1]:"확인 불가",
+    items
+  };
+  const res=await fetch(EDGE_URL+"?api=orders",{
+    method:"POST",cache:"no-store",
+    headers:{"content-type":"application/json","x-order-vault":token},
+    body:JSON.stringify(payload)
+  });
+  if(!res.ok)throw new Error("자체 주문 저장소 연결 실패: HTTP "+res.status);
+  return true;
+}
+
 let cartToastTimer=null;
 function cartToast(message){
   const el=$("cartToast");
