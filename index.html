@@ -996,7 +996,9 @@ function updateOrderControls() {
   sub.textContent=orderBusy?"주문 처리 중 · 잠시 기다려줘":checkoutAttempt?"기존 주문 확인 후 새 주문 가능":"공식 주문번호 발급하기";
   $("cartStatus").hidden=!checkoutAttempt;
   $("cartMemoRetry").hidden=!checkoutAttempt?.order_no||checkoutAttempt?.status!=="memo_failed";
-  $("cartNew").hidden=!checkoutAttempt||checkoutAttempt.status==="started"||checkoutAttempt.status==="unknown";
+  $("cartNew").hidden=!checkoutAttempt;
+  $("cartNew").textContent=["started","unknown"].includes(checkoutAttempt?.status)
+    ? "공식 주문 확인 후 잠금 해제" : "새 주문 준비";
   if(!checkoutAttempt){receipt.style.display="none";receipt.replaceChildren();return;}
   const a=checkoutAttempt;
   const isGood=Boolean(a.order_no);
@@ -1117,8 +1119,12 @@ $("cartStatus").addEventListener("click",refreshOrderStatus);
 $("cartMemoRetry").addEventListener("click",retryOrderMemo);
 $("cartNew").addEventListener("click",()=>{
   if(orderBusy||!checkoutAttempt)return;
-  if(!["failed","completed","memo_failed","created"].includes(checkoutAttempt.status))return;
-  if(!confirm("현재 주문번호와 상태를 확인했어?\n새 주문 준비를 시작하면 기존 주문을 자동 재전송하지 않아."))return;
+  if(["started","unknown"].includes(checkoutAttempt.status)){
+    const ack=window.prompt(
+      "이 요청은 이미 공식 주문을 생성했을 수 있어.\n베베픽 측에 주문 존재 여부를 확인한 다음에만 잠금을 풀어야 해.\n확인했다면 '확인완료'를 입력해줘."
+    );
+    if(ack!=="확인완료")return;
+  }else if(!confirm("기존 주문번호/옵션을 확인했어?\n새 주문 준비를 시작할까?"))return;
   storeCheckoutAttempt(null);
   cartPreview.lines=[];
   saveCartPreview();
@@ -1128,7 +1134,7 @@ $("cartNew").addEventListener("click",()=>{
 
 function renderCartPreview() {
   const totalQty = cartPreview.lines.reduce((sum, x) => sum + x.qty, 0);
-  $("cartBar").hidden = totalQty === 0;
+  $("cartBar").hidden = totalQty === 0 && !checkoutAttempt;
   $("cartCount").textContent = fmt(totalQty);
   $("cartOpen").setAttribute("aria-label", "주문 준비 장바구니 " + totalQty + "개 확인");
   let subtotal = 0, needsCheck = false;
@@ -1311,8 +1317,10 @@ function render() {
       '<div class="stock ' + stockClass(p) + '">' +
         stock + '<small>' + label(p) + '</small>' +
       '</div>' +
-      (cartIsAvailable(p, "single") ?
-        '<div class="cart-add-row"><button class="cart-add" type="button" data-add-cart="single" data-cart-id="' + Number(p.doll_id) + '">🛒 낱개 담기</button>' +
+      ((cartIsAvailable(p, "single") || cartIsAvailable(p, "fullbox")) ?
+        '<div class="cart-add-row">' +
+        (cartIsAvailable(p, "single") ?
+          '<button class="cart-add" type="button" data-add-cart="single" data-cart-id="' + Number(p.doll_id) + '">🛒 낱개 담기</button>' : '') +
         (cartIsAvailable(p, "fullbox") ?
           '<button class="cart-add" type="button" data-add-cart="fullbox" data-cart-id="' + Number(p.doll_id) + '">📦 풀박스 담기</button>' : '') +
         '</div>' : '') +
