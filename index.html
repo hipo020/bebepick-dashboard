@@ -700,18 +700,18 @@ function historyLabel(type) {
 
 function priceHistoryRow(h) {
   const fullbox = h.price_kind === "fullbox";
-  const kind = fullbox ? "풀박스 가격" : "상품 가격";
+  const kind = fullbox ? "풀박스 가격" : "일반 가격";
   const previous = Number(h.previous_price);
   const current = Number(h.current_price);
   if (!Number.isFinite(previous) || !Number.isFinite(current)) return "";
   const difference = current - previous;
   const change = difference > 0
-    ? '<span class="price-difference delta-up">+' + fmt(difference) + '원</span>'
+    ? '<span class="price-difference delta-up">인상 +' + fmt(difference) + '원</span>'
     : difference < 0
-      ? '<span class="price-difference delta-down">-' + fmt(Math.abs(difference)) + '원</span>'
+      ? '<span class="price-difference delta-down">인하 -' + fmt(Math.abs(difference)) + '원</span>'
       : "";
   return '<div class="history-row price-row"><span><b class="price-kind">' +
-    esc(kind + " 변경") + '</b> · ' + esc(timeShort(h.observed_at)) +
+    esc(kind + " 변경") + '</b> · 감지 ' + esc(timeShort(h.observed_at)) +
     '</span><span class="price-values">' + fmt(previous) + '원 → ' +
     fmt(current) + '원' + change + '</span></div>';
 }
@@ -1031,6 +1031,7 @@ $("grid").addEventListener("click", (e) => {
     return;
   }
   if (e.target.closest("button")) return;
+  if (e.target.closest(".history-panel")) return;
   const card = e.target.closest(".card");
   if (!card) return;
   window.open(SHOP_URL, "_blank", "noopener");
