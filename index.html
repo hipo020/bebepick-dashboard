@@ -119,9 +119,11 @@
     .cart-options.two{grid-template-columns:repeat(2,minmax(0,1fr))}
     .cart-options label{display:block;position:relative;cursor:pointer}
     .cart-options input{position:absolute;opacity:0;width:1px;height:1px}
-    .cart-options span{display:block;border:1px solid #e7ddd6;border-radius:11px;text-align:center;padding:12px 4px;font-size:13px;background:#fff;font-weight:700}
-    .cart-options input:checked+span{border-color:#704477;color:#6c2f64;background:#f7edf8}
-    .cart-options input:focus-visible+span{outline:2px solid #6c2f64;outline-offset:2px}
+    .cart-options span{display:block;border:2px solid #d6cbd3;border-radius:11px;text-align:center;padding:11px 4px;font-size:13px;background:#fff;color:#39303a;font-weight:750;min-height:49px}
+    /* Samsung Internet forced dark mode: readable white text and visible checkmark */
+    .cart-options input:checked+span{border:2px solid #a76cb7!important;color:#fff!important;-webkit-text-fill-color:#fff!important;background:#5c266c!important;font-weight:850;box-shadow:0 0 0 1px rgba(255,255,255,.14) inset}
+    .cart-options input:checked+span::before{content:"✓ ";color:#fff!important;-webkit-text-fill-color:#fff!important;font-size:15px;font-weight:900}
+    .cart-options input:focus-visible+span{outline:3px solid #b481c6;outline-offset:2px}
     .cart-total{display:flex;justify-content:space-between;padding:15px 0;font-weight:850;border-top:1px solid #eee5df;margin-top:17px}
     .cart-actions{display:flex;gap:8px;align-items:center}
     .cart-actions button{font:inherit;font-size:13px;font-weight:750;border:1px solid #e7ddd6;border-radius:12px;padding:13px 10px;cursor:pointer}
@@ -138,7 +140,13 @@
     .secret-dialog form{padding:20px}
     .secret-dialog h3{font-size:17px;margin:0 0 10px}
     .secret-dialog p{font-size:12px;color:#685d69;line-height:1.55;white-space:pre-line;margin:0 0 12px}
-    .secret-dialog input{width:100%;padding:13px 12px;border:1px solid #dac7dc;border-radius:10px;font:inherit}
+    .secret-dialog input{width:100%;padding:13px 12px;border:1px solid #dac7dc;border-radius:10px;background:#fff;color:#252026;font:inherit;font-size:16px;user-select:text;-webkit-user-select:text}
+    .secret-input-row{display:flex;gap:8px;align-items:stretch}
+    .secret-input-row input{min-width:0;flex:1}
+    .secret-dialog .secret-paste{display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;padding:0 14px;background:#5c266c;color:#fff;font-size:12px;border-radius:10px}
+    .secret-dialog .secret-paste[hidden]{display:none}
+    .secret-dialog .secret-hint{margin:8px 0 0;color:#635765;font-size:11px;line-height:1.5}
+    .secret-dialog .secret-hint[hidden]{display:none}
     .secret-dialog .secret-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
     .secret-dialog button{padding:10px 16px;border:0;border-radius:10px;background:#eee5ed;color:#41323f;font-weight:800;cursor:pointer}
     .secret-dialog button[value="ok"]{background:#503058;color:#fff}
@@ -307,7 +315,11 @@
   <form method="dialog" autocomplete="off">
     <h3 id="orderSecretTitle">연동키 입력</h3>
     <p id="orderSecretGuide"></p>
-    <input id="orderSecretInput" type="password" autocapitalize="off" autocomplete="off" spellcheck="false" required>
+    <div class="secret-input-row">
+      <input id="orderSecretInput" type="password" autocapitalize="off" autocomplete="off" spellcheck="false" inputmode="text" enterkeyhint="done" required>
+      <button id="orderSecretPaste" class="secret-paste" type="button" hidden>📋 붙여넣기</button>
+    </div>
+    <p id="orderSecretPasteHint" class="secret-hint" hidden>버튼이 안 되면 입력칸을 길게 눌러 붙여넣기를 선택해줘.</p>
     <div class="secret-actions">
       <button type="submit" value="cancel" formnovalidate>취소</button>
       <button type="submit" value="ok">확인</button>
@@ -1006,16 +1018,29 @@ function updateOrderKeyState() {
     "🔒 연동키 미저장 · 첫 주문 전 연동키 설정";
   $("orderKeyForget").hidden=!orderKeyStored()&&!orderAccessKey;
 }
-async function askOrderSecret(title,guide) {
+async function askOrderSecret(title,guide,kind="password") {
   const dlg=$("orderSecretDialog"),input=$("orderSecretInput");
   if(!dlg||typeof dlg.showModal!=="function")return window.prompt(title+"\n"+guide);
   $("orderSecretTitle").textContent=title;
   $("orderSecretGuide").textContent=guide;
+  const isKey=kind==="key";
+  // Some Samsung Internet versions suppress the Paste menu on password inputs.
+  // A plain editable text field is used only while entering the private checkout key.
+  input.type=isKey?"text":"password";
+  input.placeholder=isKey?"여기에 연동키를 붙여넣어줘":"잠금 비밀번호 입력";
   input.value="";
+  input.setAttribute("autocapitalize","off");
+  input.setAttribute("autocorrect","off");
+  input.spellcheck=false;
+  $("orderSecretPaste").hidden=!isKey;
+  $("orderSecretPasteHint").hidden=!isKey;
   const value=await new Promise(resolve=>{
     dlg.addEventListener("close",function done(){
       const answer=dlg.returnValue==="ok"?input.value:null;
       input.value="";
+      input.type="password";
+      $("orderSecretPaste").hidden=true;
+      $("orderSecretPasteHint").hidden=true;
       resolve(answer);
     },{once:true});
     dlg.returnValue="cancel";
@@ -1024,6 +1049,25 @@ async function askOrderSecret(title,guide) {
   });
   return value;
 }
+$("orderSecretPaste").addEventListener("click",async()=>{
+  const input=$("orderSecretInput");
+  try{
+    if(!navigator.clipboard?.readText)throw new Error("clipboard_api_unavailable");
+    const value=await navigator.clipboard.readText();
+    if(!value.trim()){
+      alert("클립보드가 비어 있어. 먼저 연동키를 복사해줘.");
+      return;
+    }
+    input.value=value.trim();
+    input.focus();
+    input.setSelectionRange(input.value.length,input.value.length);
+    $("orderSecretPasteHint").textContent="✅ 연동키를 붙여넣었어. 이제 확인을 눌러줘.";
+  }catch(e){
+    $("orderSecretPasteHint").textContent=
+      "브라우저가 자동 붙여넣기를 제한했어. 입력칸을 길게 누른 다음 '붙여넣기'를 선택해줘.";
+    input.focus();
+  }
+});
 function encodeBytes(bytes) {
   return btoa(String.fromCharCode(...bytes));
 }
@@ -1096,7 +1140,7 @@ async function orderKey() {
     }
   }
   const typed=await askOrderSecret("🔐 개인 주문 연동키 입력",
-    "처음 한 번만 기존 주문 연동키를 입력해줘.\n주문 생성은 하지 않고 유효한 키인지 확인할게.");
+    "처음 한 번만 기존 주문 연동키를 입력해줘.\n주문 생성은 하지 않고 유효한 키인지 확인할게.","key");
   if(!typed||!typed.trim())return "";
   const key=typed.trim();
   try{await verifyOrderKey(key);}
