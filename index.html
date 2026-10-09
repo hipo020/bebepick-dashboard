@@ -1034,6 +1034,7 @@ async function askOrderSecret(title,guide,kind="password") {
   input.spellcheck=false;
   $("orderSecretPaste").hidden=!isKey;
   $("orderSecretPasteHint").hidden=!isKey;
+  $("orderSecretPasteHint").textContent="붙여넣기 버튼이 안 되면 입력칸을 길게 눌러 '붙여넣기'를 선택해줘.";
   const value=await new Promise(resolve=>{
     dlg.addEventListener("close",function done(){
       const answer=dlg.returnValue==="ok"?input.value:null;
