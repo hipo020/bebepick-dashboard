@@ -130,6 +130,11 @@ button{border:0;border-radius:12px;padding:0 16px;background:#2d2926;color:#fff;
       <div id="vaultMsg" class="vault-msg"></div>
     </div>
     <div id="savedOrders" class="saved-list"><div class="saved-empty">저장된 주문 불러오는 중…</div></div>
+    <div class="vault" style="margin-top:14px">
+      <div class="vault-title">🧾 이 기기에서 직접 발급한 공식 주문번호</div>
+      <div class="vault-note">재고판에서 발급된 번호를 브라우저에 저장해 보여줘. 기존 내 주문 연결코드와는 별개이며, 조회를 누르면 공식 주문 상세를 확인할 수 있어.</div>
+      <div id="issuedOrders" class="saved-list"><div class="saved-empty">발급 내역 없음</div></div>
+    </div>
   </section>
 
   <section id="result"></section>
@@ -490,8 +495,34 @@ $("savedOrders").addEventListener("click",e=>{
   lookup();
 });
 
+
+const ISSUED_STORAGE_KEY="bebepick_generated_orders_v1";
+function renderIssuedOrders(){
+  const container=$("issuedOrders");
+  let rows=[];
+  try{const parsed=JSON.parse(localStorage.getItem(ISSUED_STORAGE_KEY)||"[]");if(Array.isArray(parsed))rows=parsed;}
+  catch(_){}
+  if(!rows.length){
+    container.innerHTML='<div class="saved-empty">아직 이 기기에서 발급한 주문번호가 없어</div>';
+    return;
+  }
+  container.innerHTML=rows.map(x=>'<button class="saved-order" type="button" data-issued-no="'+esc(x.order_no||"")+'">'+
+    '<div><div class="saved-order-no">'+esc(x.order_no||"")+'</div>'+
+    '<div class="saved-order-meta">'+esc(timeKst(x.created_at))+' · '+
+    esc(x.storage||"")+ ' · '+esc(x.opening||"")+
+    '<br>상품 예상 합계 '+fmt(x.product_total||0)+'원 · 공식 상세 조회 ↗</div></div>'+
+    '</button>').join("");
+}
+$("issuedOrders").addEventListener("click",e=>{
+  const button=e.target.closest("[data-issued-no]");
+  if(!button)return;
+  $("orderNo").value=button.dataset.issuedNo||"";
+  lookup();
+});
+
 renderVaultCode();
 loadSavedOrders();
+renderIssuedOrders();
 
 const qs=new URLSearchParams(location.search).get("order_no");
 if(qs){
