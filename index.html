@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#fffaf6" />
   <title>베베픽 재고판</title>
   <style>
+    :root{--brand-primary:#A7475D;--brand-dark:#8B3148;--brand-soft:#FBECEF;--brand-border:#E7B8C4;--brand-ink:#84374B}
     *{box-sizing:border-box}
     body{margin:0;background:#fffaf6;color:#2d2926;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif}
     .wrap{max-width:760px;margin:auto;padding:16px 14px 90px}
@@ -95,25 +96,25 @@
 
     /* 장바구니: 공식 주문 RPC는 최종 명시적 승인 이후에만 호출. */
     .cart-add-row{grid-column:1/-1;display:flex;justify-content:flex-end;gap:7px;flex-wrap:wrap;padding-top:6px;border-top:1px dashed #f0e8e1}
-    .cart-add{border:1px solid #e9c8d5;background:#fff7fa;color:#8b2d60;border-radius:10px;font:inherit;font-weight:750;font-size:12px;padding:8px 12px;cursor:pointer}
+    .cart-add{border:1px solid var(--brand-border);background:var(--brand-soft);color:var(--brand-ink);border-radius:10px;font:inherit;font-weight:750;font-size:12px;padding:8px 12px;cursor:pointer}
     .cart-add:active{transform:scale(.98)}
     .cart-bar{position:fixed;z-index:8;bottom:max(12px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);width:min(calc(100% - 28px),732px);padding:8px;background:#fff;box-shadow:0 6px 30px rgba(47,32,25,.2);border:1px solid #eee5df;border-radius:16px}
     .cart-bar[hidden]{display:none}
-    .cart-bar button{width:100%;border:0;border-radius:12px;background:#6c2f64;color:white;font:inherit;font-weight:800;font-size:15px;padding:14px;cursor:pointer}
+    .cart-bar button{width:100%;border:0;border-radius:12px;background:var(--brand-primary);color:#fff;-webkit-text-fill-color:#fff;font:inherit;font-weight:800;font-size:15px;padding:14px;cursor:pointer}
     .cart-overlay{position:fixed;z-index:1000;inset:0;background:rgba(32,23,29,.62);display:none;align-items:flex-end;justify-content:center}
     .cart-overlay.open{display:flex}
     .cart-sheet{width:100%;max-width:760px;max-height:min(90dvh,920px);overflow:auto;background:#fffaf6;border-radius:22px 22px 0 0;padding:18px 17px max(20px,env(safe-area-inset-bottom));box-shadow:0 -7px 30px rgba(0,0,0,.12)}
     .cart-top{display:flex;justify-content:space-between;gap:12px;align-items:center}
     .cart-top h2{margin:0;font-size:19px}
     .cart-close{border:0;border-radius:12px;background:#f0e9e4;color:#483d37;font-size:23px;width:39px;height:39px;cursor:pointer}
-    .cart-notice{padding:11px 12px;border-radius:12px;background:#f5effd;color:#684287;font-size:12px;line-height:1.6;margin:13px 0}
+    .cart-notice{padding:11px 12px;border-radius:12px;background:var(--brand-soft);color:var(--brand-ink);font-size:12px;line-height:1.6;margin:13px 0}
     .cart-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 0;border-bottom:1px solid #eee5df}
     .cart-item-main{flex:1;min-width:0}
     .cart-item-name{font-size:13px;font-weight:750;overflow-wrap:anywhere}
     .cart-item-meta{font-size:11px;color:#8a817b;margin-top:4px}
     .cart-item.warn .cart-item-meta{color:#a15c00}
     .cart-qty{display:flex;gap:7px;align-items:center;flex-shrink:0}
-    .cart-qty button{width:31px;height:31px;border:1px solid #e7ddd6;border-radius:50%;background:#fff;font-weight:800;font-size:18px;color:#2d2926;cursor:pointer}
+    .cart-qty button{width:42px;height:42px;border:1px solid #e7ddd6;border-radius:50%;background:#fff;font-weight:800;font-size:18px;color:#2d2926;cursor:pointer}
     .cart-section-title{font-weight:800;margin:17px 0 9px;font-size:13px}
     .cart-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
     .cart-options.two{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -121,19 +122,51 @@
     .cart-options input{position:absolute;opacity:0;width:1px;height:1px}
     .cart-options span{display:block;border:2px solid #d6cbd3;border-radius:11px;text-align:center;padding:11px 4px;font-size:13px;background:#fff;color:#39303a;font-weight:750;min-height:49px}
     /* Samsung Internet forced dark mode: readable white text and visible checkmark */
-    .cart-options input:checked+span{border:2px solid #a76cb7!important;color:#fff!important;-webkit-text-fill-color:#fff!important;background:#5c266c!important;font-weight:850;box-shadow:0 0 0 1px rgba(255,255,255,.14) inset}
+    .cart-options input:checked+span{border:2px solid var(--brand-dark)!important;color:#fff!important;-webkit-text-fill-color:#fff!important;background:var(--brand-primary)!important;font-weight:850;box-shadow:0 0 0 1px rgba(255,255,255,.14) inset}
     .cart-options input:checked+span::before{content:"✓ ";color:#fff!important;-webkit-text-fill-color:#fff!important;font-size:15px;font-weight:900}
-    .cart-options input:focus-visible+span{outline:3px solid #b481c6;outline-offset:2px}
+    .cart-options input:focus-visible+span{outline:3px solid var(--brand-primary);outline-offset:2px}
     .cart-total{display:flex;justify-content:space-between;padding:15px 0;font-weight:850;border-top:1px solid #eee5df;margin-top:17px}
     .cart-actions{display:flex;gap:8px;align-items:center}
     .cart-actions button{font:inherit;font-size:13px;font-weight:750;border:1px solid #e7ddd6;border-radius:12px;padding:13px 10px;cursor:pointer}
     .cart-clear{background:#fff;color:#7f716d;flex:0 0 auto}
-    .cart-visit{background:#402a3e!important;color:#fff!important;flex:1}
+    .cart-visit{background:var(--brand-primary)!important;color:#fff!important;-webkit-text-fill-color:#fff!important;flex:1}
     .cart-footnote{font-size:11px;color:#8a817b;margin-top:10px;line-height:1.55}
     #cartStatus[hidden],#cartMemoRetry[hidden],#cartNew[hidden]{display:none}
     #cartSubmit:disabled{opacity:.55;cursor:wait}
-    #cartReceipt{background:#f6f2f9;color:#392f43}
-    #cartReceipt button{margin-top:8px;border:1px solid #cbb8d2;border-radius:10px;background:#fff;padding:8px 11px;font-weight:800;color:#503058;cursor:pointer}
+    #cartReceipt{background:var(--brand-soft);color:var(--brand-ink)}
+    #cartReceipt button{margin-top:8px;border:1px solid var(--brand-border);border-radius:10px;background:#fff;padding:8px 11px;font-weight:800;color:var(--brand-ink);cursor:pointer}
+
+
+    #cartEditing[hidden],#cartResult[hidden],#cartError[hidden],#cartToast[hidden]{display:none!important}
+    .cart-error{margin:10px 0;padding:12px 14px;border:1px solid #ecd0bf;border-radius:12px;background:#fff4ed;color:#773c20;font-size:13px;line-height:1.5;font-weight:700}
+    .cart-result{padding:11px 0 2px}
+    .cart-receipt{padding:20px 12px 12px;text-align:center;overflow-wrap:anywhere}
+    .cart-result-mark{font-size:38px;line-height:1.2}
+    .cart-result-title{margin:10px 0 6px;font-size:23px;line-height:1.35;color:inherit}
+    .cart-result-subtitle{margin:0 0 16px;font-size:12px;line-height:1.6;color:#766d6d}
+    .cart-result-no{display:block;border:2px solid var(--brand-border);border-radius:14px;background:#fff;padding:17px 7px;margin:10px 0 12px;font:850 clamp(20px,5.5vw,31px)/1.35 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.1px;word-break:break-all;user-select:text;-webkit-user-select:text;color:#29242a}
+    .cart-result-status{padding:10px 12px;margin:8px 0 12px;background:#f3f7ee;border-radius:10px;color:#376348;font-size:12px;font-weight:700;line-height:1.5}
+    .cart-result-status.warning{background:#fff4ea;color:#9b4a25}
+    .cart-result-details{display:grid;gap:9px;margin:14px 0;padding:13px 8px;border-top:1px solid #e8e0dd;border-bottom:1px solid #e8e0dd;text-align:left}
+    .cart-result-details div{display:flex;justify-content:space-between;gap:12px;font-size:12px;line-height:1.5}
+    .cart-result-details strong{font-weight:800;text-align:right}
+    .cart-primary-action{display:block;width:100%;border:none;border-radius:13px;padding:15px;background:var(--brand-primary);color:#fff;-webkit-text-fill-color:#fff;font-size:16px;font-weight:850;cursor:pointer}
+    .cart-secondary-action{display:inline-flex;justify-content:center;align-items:center;min-height:44px;margin-top:10px;padding:10px 14px;border:1px solid #dcd3d5;border-radius:11px;background:#fff;color:#333;text-decoration:none;font-weight:750;font-size:13px}
+    .cart-result-warning{font-size:12px;color:#875031;background:#fff3ec;border-radius:12px;padding:13px;line-height:1.6;margin:12px 0}
+    .cart-toast{position:fixed;z-index:2003;left:50%;bottom:max(72px,env(safe-area-inset-bottom) + 50px);transform:translateX(-50%);background:#292529;color:#fff;padding:12px 18px;border-radius:12px;white-space:nowrap;font-size:13px;font-weight:750;box-shadow:0 5px 22px rgba(0,0,0,.25)}
+    .checkout-confirm-dialog{box-sizing:border-box;border:1px solid #ece2de;border-radius:20px;padding:0;width:min(calc(100% - 32px),440px);max-height:88dvh;overflow:auto;background:#fffaf6;color:#2d2926;box-shadow:0 14px 50px rgba(0,0,0,.24)}
+    .checkout-confirm-dialog::backdrop{background:rgba(30,25,25,.6)}
+    .checkout-confirm-dialog form{padding:20px}
+    .checkout-confirm-dialog h2{font-size:19px;margin:0 0 12px}
+    .checkout-confirm-dialog p{font-size:12px;color:#675e5b;line-height:1.5}
+    .checkout-confirm-dialog .confirm-items{padding:9px 11px;border:1px solid #eee4df;border-radius:10px;background:#fff;max-height:190px;overflow:auto}
+    .checkout-confirm-dialog .confirm-items div{font-size:12px;line-height:1.5;padding:4px 0;overflow-wrap:anywhere}
+    .confirm-line{display:flex;justify-content:space-between;gap:10px;margin:10px 0;font-size:12px}
+    .confirm-line.final{border-top:1px solid #e8e0dd;padding-top:13px;font-size:15px}
+    .checkout-confirm-dialog .confirm-help{margin-top:14px}
+    .confirm-actions{display:grid;grid-template-columns:1fr 1.6fr;gap:8px;margin-top:17px}
+    .confirm-actions button{min-height:48px;border:1px solid #ded5cf;border-radius:12px;background:#fff;color:#2d2926;font-size:13px;font-weight:800}
+    .confirm-actions button[value="approve"]{background:var(--brand-primary);color:#fff;-webkit-text-fill-color:#fff;border-color:transparent}
 
     @media(min-width:650px){.cart-overlay{align-items:center}.cart-sheet{border-radius:22px;max-height:90vh}}
     @media(max-width:649px){
@@ -239,7 +272,7 @@
   <div id="grid" class="grid"><div class="empty">재고 불러오는 중…</div></div>
 
   <div id="cartBar" class="cart-bar" hidden>
-    <button id="cartOpen" type="button" aria-haspopup="dialog">🛒 주문 준비 장바구니 <span id="cartCount">0</span>개 · 확인하기</button>
+    <button id="cartOpen" type="button" aria-haspopup="dialog"><span id="cartBarLabel">🛒 장바구니</span> <span id="cartCount">0</span><span id="cartBarSuffix">개 · 확인하기</span></button>
   </div>
 </main>
 
@@ -249,7 +282,9 @@
       <h2 id="cartTitle">🛒 주문 준비 장바구니</h2>
       <button id="cartClose" class="cart-close" type="button" aria-label="장바구니 닫기">×</button>
     </div>
+    <div id="cartEditing">
     <div class="cart-notice"><strong>공식 주문번호 발급</strong><br>실제 베베픽 주문이 생성돼. 마지막 확인을 누르기 전까지는 주문이 생성되지 않아. 주문 후 보관·개봉 옵션은 수정할 수 없으니 꼭 확인해줘.</div>
+    <div id="cartError" class="cart-error" role="alert" hidden></div>
     <div id="cartItems"></div>
     <div class="cart-section-title">배송 방법 · 꼭 선택해줘</div>
     <div class="cart-options two" role="group" aria-label="배송 방법">
@@ -270,20 +305,39 @@
       <button id="cartSubmit" class="cart-visit" type="button">공식 주문번호 발급하기</button>
     </div>
     <div id="cartCheck" class="cart-footnote" role="status">최종 입금 금액은 베베픽 카톡 안내를 따라줘.</div>
-    <div id="cartReceipt" class="cart-notice" style="display:none;overflow-wrap:anywhere" role="status"></div>
+    </div>
+    <section id="cartResult" class="cart-result" aria-label="주문 결과" hidden>
+      <div id="cartReceipt" class="cart-receipt" role="status" aria-live="polite"></div>
     <div class="cart-actions" style="margin-top:9px">
-      <button id="cartStatus" type="button" style="background:#fff;color:#4e3453;flex:1">이전 주문 상태 확인</button>
-      <button id="cartMemoRetry" type="button" style="background:#fff;color:#4e3453;flex:1" hidden>옵션 저장 다시 시도</button>
-      <button id="cartNew" type="button" style="background:#fff;color:#4e3453;flex:1" hidden>새 주문 준비</button>
+      <button id="cartStatus" type="button" style="background:#fff;color:var(--brand-ink);flex:1">이전 주문 상태 확인</button>
+      <button id="cartMemoRetry" type="button" style="background:#fff;color:var(--brand-ink);flex:1" hidden>옵션 저장 다시 시도</button>
+      <button id="cartNew" type="button" style="background:#fff;color:var(--brand-ink);flex:1" hidden>새 주문 준비</button>
     </div>
     <div class="cart-footnote">주문번호가 이미 생성됐거나 응답이 불분명하면 <strong>다시 발급하지 말고</strong> 기존 주문 상태를 확인해줘. 
       <a href="https://bebepick-web.pages.dev/" target="_blank" rel="noopener">공식 홈페이지 ↗</a>
     </div>
+    </section>
   </section>
 </div>
 
 
-
+<dialog id="orderConfirmDialog" class="checkout-confirm-dialog" aria-labelledby="confirmHeading">
+  <form method="dialog">
+    <h2 id="confirmHeading">🧸 주문 최종 확인</h2>
+    <p>아래 내용으로 <strong>실제 베베픽 주문번호</strong>를 발급할까?</p>
+    <div id="confirmItems" class="confirm-items"></div>
+    <div class="confirm-line"><span>배송 · 개봉 옵션</span><strong id="confirmOptions"></strong></div>
+    <div class="confirm-line"><span>상품 합계</span><span id="confirmSubtotal"></span></div>
+    <div class="confirm-line"><span>계산상 배송비</span><span id="confirmShipping"></span></div>
+    <div class="confirm-line final"><span>주문 생성 요청 총액</span><strong id="confirmTotal"></strong></div>
+    <p class="confirm-help">확인을 누르면 실제 주문이 생성돼. 최종 입금액은 베베픽 카톡 안내를 확인해줘.</p>
+    <div class="confirm-actions">
+      <button type="submit" value="cancel">돌아가기</button>
+      <button type="submit" value="approve">주문번호 발급하기</button>
+    </div>
+  </form>
+</dialog>
+<div id="cartToast" class="cart-toast" role="status" aria-live="polite" hidden></div>
 <div id="lightbox" class="lightbox" aria-hidden="true">
   <div class="lightbox-inner">
     <button id="lightboxClose" class="lightbox-close" type="button" aria-label="이미지 닫기">×</button>
@@ -990,37 +1044,181 @@ function saveGeneratedOrder(receipt) {
     localStorage.setItem(GENERATED_ORDER_KEY,JSON.stringify(list.slice(0,50)));
   }catch(e){console.warn("발급 주문번호 브라우저 저장 실패",e);}
 }
-function updateOrderControls() {
-  const receipt=$("cartReceipt"),sub=$("cartSubmit");
-  if(!receipt||!sub)return;
-  sub.disabled=orderBusy||Boolean(checkoutAttempt);
-  sub.textContent=orderBusy?"주문 처리 중 · 잠시 기다려줘":checkoutAttempt?"기존 주문 확인 후 새 주문 가능":"공식 주문번호 발급하기";
-  $("cartStatus").hidden=!checkoutAttempt;
-  $("cartMemoRetry").hidden=!checkoutAttempt?.order_no||checkoutAttempt?.status!=="memo_failed";
-  $("cartNew").hidden=!checkoutAttempt;
-  $("cartNew").textContent=["started","unknown"].includes(checkoutAttempt?.status)
-    ? "공식 주문 확인 후 잠금 해제" : "새 주문 준비";
-  if(!checkoutAttempt){receipt.style.display="none";receipt.replaceChildren();return;}
-  const a=checkoutAttempt;
-  const isGood=Boolean(a.order_no);
-  receipt.style.display="";
-  receipt.replaceChildren();
-  const heading=document.createElement("strong");
-  heading.textContent=isGood?"🎉 공식 주문번호 발급됨":"⚠️ 이전 주문 확인 필요";
-  const detail=document.createElement("div");
-  detail.style.marginTop="7px";
-  if(isGood)detail.textContent="주문번호: "+a.order_no+" · 옵션 저장 "+(a.status==="completed"?"완료":"상태 확인 필요");
-  else detail.textContent=a.status==="failed"?"주문 서버가 거절한 요청이야. 상황을 확인해줘.":"요청 결과가 불분명해. 주문이 이미 생성됐을 수도 있으니 다시 누르지 마.";
-  receipt.append(heading,detail);
-  if(isGood){
-    const copy=document.createElement("button");copy.type="button";copy.textContent="주문번호 복사";
-    copy.addEventListener("click",()=>navigator.clipboard.writeText(a.order_no)
-      .then(()=>alert("주문번호 복사 완료!")).catch(()=>window.prompt("주문번호",a.order_no)));
-    const link=document.createElement("a");
-    link.href="./order.html?order_no="+encodeURIComponent(a.order_no);
-    link.textContent="　주문 옵션 조회 ↗";
-    receipt.append(copy,link);
+
+// Save newly created official orders to the existing private order vault.
+// Only the user's own Supabase database is written; seller RPC is read-only.
+async function saveIssuedOrderToVault(orderNo){
+  if(!/^BP[0-9A-Z]{6,30}$/.test(String(orderNo)))return false;
+  const {data,error}=await liveSb.rpc("get_order_by_no",{p_order_no:orderNo});
+  if(error||!data?.order)return false;
+  const order=data.order;
+  const memo=String(order.customer_memo||"");
+  const match=memo.match(/\[(미개봉|개봉|카드개봉)\]/);
+  const items=(Array.isArray(data.items)?data.items:[]).map(item=>({
+    id:Number.isFinite(Number(item.id))?Number(item.id):null,
+    doll_id:Number.isFinite(Number(item.doll_id))?Number(item.doll_id):null,
+    name:String(item.doll_name||"상품"),
+    quantity:Number(item.quantity||0),
+    price:Number(item.price||item.doll_price||0),
+    option:String(item.option||"")
+  }));
+  let token="";
+  try{
+    token=localStorage.getItem("bebepick_order_vault_v1")||"";
+    if(!token){
+      const bytes=crypto.getRandomValues(new Uint8Array(32));
+      token=btoa(String.fromCharCode(...bytes)).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+      localStorage.setItem("bebepick_order_vault_v1",token);
+    }
+  }catch(_){return false;}
+  const payload={
+    order_no:orderNo,
+    order_id:Number.isFinite(Number(order.id))?Number(order.id):null,
+    status:String(order.status||""),
+    order_created_at:order.created_at||null,
+    total_amount:Number(order.total_amount||0),
+    storage_option:/\[보관\]/.test(memo)?"보관":"발송",
+    opening_option:match?match[1]:"확인 불가",
+    items
+  };
+  const res=await fetch(EDGE_URL+"?api=orders",{
+    method:"POST",cache:"no-store",
+    headers:{"content-type":"application/json","x-order-vault":token},
+    body:JSON.stringify(payload)
+  });
+  if(!res.ok)throw new Error("자체 주문 저장소 연결 실패: HTTP "+res.status);
+  return true;
+}
+
+let cartToastTimer=null;
+function cartToast(message){
+  const el=$("cartToast");
+  el.textContent=message;
+  el.hidden=false;
+  if(cartToastTimer)clearTimeout(cartToastTimer);
+  cartToastTimer=setTimeout(()=>{el.hidden=true;},2500);
+}
+function cartError(message){
+  const el=$("cartError");
+  el.hidden=false;
+  el.textContent=message;
+}
+function clearCartError(){
+  $("cartError").hidden=true;
+  $("cartError").textContent="";
+}
+function receiptElement(tag,css,text){
+  const el=document.createElement(tag);
+  if(css)el.className=css;
+  if(text!=null)el.textContent=text;
+  return el;
+}
+function addReceiptDetail(host,label,value){
+  const line=receiptElement("div");
+  line.append(receiptElement("span","",label),receiptElement("strong","",value));
+  host.append(line);
+}
+async function copyOfficialOrderNo(no){
+  try{
+    if(!navigator.clipboard?.writeText)throw new Error("clipboard unsupported");
+    await navigator.clipboard.writeText(no);
+    cartToast("✓ 주문번호 복사 완료!");
+  }catch(_){
+    // Fallback for Samsung Internet versions without modern clipboard support.
+    const field=document.createElement("textarea");
+    field.value=no;
+    field.readOnly=true;
+    field.style.cssText="position:fixed;top:0;left:0;z-index:-1;opacity:0";
+    document.body.append(field);
+    field.select();
+    field.setSelectionRange(0,no.length);
+    let copied=false;
+    try{copied=document.execCommand("copy");}catch(_){}
+    field.remove();
+    if(copied)cartToast("✓ 주문번호 복사 완료!");
+    else cartToast("복사가 제한됐어 · 주문번호를 길게 눌러 선택해줘");
   }
+}
+function updateOrderControls() {
+  const receipt=$("cartReceipt"),sub=$("cartSubmit"),a=checkoutAttempt;
+  if(!receipt||!sub)return;
+  const showingResult=Boolean(a&&(a.order_no||["started","unknown","created","memo_failed","completed","failed"].includes(a.status)));
+  $("cartEditing").hidden=showingResult;
+  $("cartResult").hidden=!showingResult;
+  sub.disabled=orderBusy||Boolean(a);
+  sub.textContent=orderBusy?"주문 확인 중…":a?"이전 주문 처리 중":"공식 주문번호 발급하기";
+  $("cartStatus").hidden=!a;
+  $("cartMemoRetry").hidden=!a?.order_no||a.status!=="memo_failed";
+  $("cartNew").hidden=!a;
+  $("cartNew").textContent=["started","unknown"].includes(a?.status)
+    ? "판매자 확인 후 잠금 해제" : "새 주문 준비";
+  if(!showingResult){receipt.replaceChildren();return;}
+
+  receipt.replaceChildren();
+  const hasNo=Boolean(a.order_no);
+  receipt.append(receiptElement("div","cart-result-mark",hasNo?"🎉":"⚠️"));
+  receipt.append(receiptElement("h2","cart-result-title",
+    hasNo?"공식 주문번호 발급 완료!":"주문 결과 확인 필요"));
+  receipt.append(receiptElement("p","cart-result-subtitle",
+    hasNo?"아래 주문번호를 복사해서 사용해줘.":
+    a.status==="failed"?"공식 서버에서 주문을 거절했어. 장바구니를 확인해줘.":
+    "이미 주문이 생성됐을 수 있어. 확인 전에는 다시 발급하지 마."));
+  if(hasNo){
+    receipt.append(receiptElement("div","cart-result-no",a.order_no));
+    const status=receiptElement("div","cart-result-status"+(a.status==="completed"?"":" warning"),
+      a.status==="completed"?"✓ 보관·개봉 옵션 저장 완료":
+      a.status==="memo_failed"?"⚠️ 주문번호 발급됨 · 옵션 저장만 실패했어":
+      "주문번호는 발급됐어 · 옵션 저장 상태를 확인해줘");
+    receipt.append(status);
+    const details=receiptElement("div","cart-result-details");
+    const names=(Array.isArray(a.lines)?a.lines:[])
+      .map(x=>(cartProduct(Number(x.id))?.name||"상품 ID "+x.id)+
+        " × "+x.qty+(x.kind==="fullbox"?" (풀박스)":"")).join(", ");
+    if(names)addReceiptDetail(details,"주문 상품",names);
+    addReceiptDetail(details,"배송 / 개봉",(a.storage||"미확인")+" · "+(a.opening||"미확인"));
+    if(Number.isSafeInteger(Number(a.product_total))&&a.product_total!=null)
+      addReceiptDetail(details,"상품 합계",fmt(a.product_total)+"원");
+    if(Number.isSafeInteger(Number(a.order_total))&&a.order_total!=null)
+      addReceiptDetail(details,"주문 생성 요청 총액",fmt(a.order_total)+"원");
+    receipt.append(details);
+    const copy=receiptElement("button","cart-primary-action","📋 주문번호 복사하기");
+    copy.type="button";
+    copy.addEventListener("click",()=>copyOfficialOrderNo(a.order_no));
+    receipt.append(copy);
+    const link=receiptElement("a","cart-secondary-action","📦 내 주문내역 확인하기 ↗");
+    link.href="./order.html?order_no="+encodeURIComponent(a.order_no);
+    receipt.append(link);
+    if(a.status==="memo_failed")receipt.append(
+      receiptElement("p","cart-result-warning",
+        "이미 주문은 만들어졌어. 새 주문을 만들지 말고 아래 '옵션 저장 다시 시도'만 눌러줘."));
+  }else{
+    const warning=receiptElement("p","cart-result-warning",
+      a.status==="failed"?"공식 서버에서 요청을 거절해 주문번호가 발급되지 않았어.":
+      "서버의 최종 응답을 확인하지 못했어. 이미 주문번호가 만들어졌을 수 있으니 기존 주문 상태부터 확인해줘.");
+    receipt.append(warning);
+  }
+}
+async function confirmOrderReview(lines,subtotal,shipping) {
+  const dlg=$("orderConfirmDialog");
+  const plain=lines.map(x=>x.name+" × "+x.qty+(x.kind==="fullbox"?" (풀박스)":"")).join("\n");
+  if(typeof dlg?.showModal!=="function"){
+    return window.confirm("실제 주문번호를 생성할까?\n\n"+plain+"\n\n"+
+      cartPreview.storage+" · "+cartPreview.opening+"\n총 "+fmt(subtotal+shipping)+"원");
+  }
+  const list=$("confirmItems");
+  list.replaceChildren();
+  for(const x of lines){
+    list.append(receiptElement("div","",x.name+" × "+x.qty+(x.kind==="fullbox"?" (풀박스)":"")));
+  }
+  $("confirmOptions").textContent=cartPreview.storage+" · "+cartPreview.opening;
+  $("confirmSubtotal").textContent=fmt(subtotal)+"원";
+  $("confirmShipping").textContent=fmt(shipping)+"원";
+  $("confirmTotal").textContent=fmt(subtotal+shipping)+"원";
+  return await new Promise(resolve=>{
+    dlg.addEventListener("close",()=>resolve(dlg.returnValue==="approve"),{once:true});
+    dlg.returnValue="cancel";
+    dlg.showModal();
+  });
 }
 async function refreshOrderStatus() {
   if(orderBusy||!checkoutAttempt)return;
@@ -1030,7 +1228,10 @@ async function refreshOrderStatus() {
     if(!res.ok && data.error)throw new Error("조회 실패: "+data.error);
     if(data.error==="not_found")throw new Error("기록이 없어. 베베픽 공식 홈페이지에서 주문 여부를 확인해줘.");
     storeCheckoutAttempt({...checkoutAttempt,status:data.status||checkoutAttempt.status,order_no:data.order_no||checkoutAttempt.order_no});
-    if(data.order_no)saveGeneratedOrder(data);
+    if(data.order_no){
+      saveGeneratedOrder(data);
+      void saveIssuedOrderToVault(data.order_no).catch(e=>console.warn("주문내역 자동 저장 지연",e));
+    }
   }catch(e){alert("주문 상태를 확인하지 못했어.\n"+(e?.message||e)+"\n실제 주문 여부를 확인하기 전엔 다시 발급하지 마.");}
   finally{orderBusy=false;updateOrderControls();}
 }
@@ -1063,61 +1264,92 @@ async function validateCheckoutSnapshot() {
 }
 async function submitOfficialOrder(){
   if(orderBusy||checkoutAttempt)return;
-  if(!cartPreview.lines.length){alert("먼저 인형을 담아줘!");return;}
-  if(!cartPreview.storage||!cartPreview.opening){alert("발송/보관과 개봉 옵션을 모두 선택해줘.");return;}
+  if(!cartPreview.lines.length){cartError("먼저 인형을 장바구니에 담아줘.");return;}
+  if(!cartPreview.storage||!cartPreview.opening){cartError("발송/보관과 개봉 옵션을 모두 선택해줘.");return;}
+  clearCartError();
   orderBusy=true;updateOrderControls();
+  let requestSent=false;
   try{
     const lines=await validateCheckoutSnapshot();
     const subtotal=lines.reduce((sum,x)=>sum+x.price*x.qty,0);
     const shipping=subtotal>=70000?0:4000;
-    const listing=lines.map(x=>"• "+x.name+(x.kind==="fullbox"?" (풀박스)":"")+" × "+x.qty).join("\n");
-    const accepted=confirm(
-      "실제 베베픽 공식 주문을 생성할까?\n\n"+listing+
-      "\n\n상품 합계 "+fmt(subtotal)+"원"+
-      "\n계산상 배송비 "+fmt(shipping)+"원"+
-      "\n주문 생성 요청 총액 "+fmt(subtotal+shipping)+"원"+
-      "\n배송 "+cartPreview.storage+" / 개봉 "+cartPreview.opening+
-      "\n\n[확인]을 누르면 진짜 주문번호가 발급돼.\n중복 주문을 피하기 위해 자동 재시도는 하지 않아."
-    );
+    const accepted=await confirmOrderReview(lines,subtotal,shipping);
     if(!accepted)return;
     const attemptId=crypto.randomUUID();
-    const attempt={attempt_id:attemptId,status:"started",order_no:null,
+    const attempt={
+      attempt_id:attemptId,status:"started",order_no:null,
       lines:lines.map(x=>({id:x.id,kind:x.kind,qty:x.qty})),
-      storage:cartPreview.storage,opening:cartPreview.opening};
+      storage:cartPreview.storage,opening:cartPreview.opening,
+      product_total:subtotal,order_total:subtotal+shipping
+    };
+    // From here a network error may mean the seller created the order.
     storeCheckoutAttempt(attempt);
+    requestSent=true;
     const {res,data}=await checkoutRequest("create",{
       attempt_id:attemptId,
       lines:lines.map(x=>({id:x.id,kind:x.kind,qty:x.qty,price:x.price})),
       storage:cartPreview.storage,opening:cartPreview.opening
     });
-    // Request rejected during validation/auth: official order RPC was never invoked.
-    if([400,403,422].includes(res.status) && data.error!=="recent_identical_order"){
+    // Validation errors do not reach the external order RPC.
+    if([400,403,422].includes(res.status)&&data.error!=="recent_identical_order"){
       storeCheckoutAttempt(null);
       const reason=({
-        price_changed_reopen_cart:"가격이 바뀌었어. 재고판을 새로고침하고 다시 확인해줘.",
-        insufficient_stock:"상품 재고가 부족해.",
-        product_not_on_sale:"현재 판매할 수 없는 상품이 들어 있어.",
+        price_changed_reopen_cart:"가격이 바뀌었어. 재고판을 새로고침하고 확인해줘.",
+        insufficient_stock:"상품 재고가 부족해. 수량을 줄여줘.",
+        product_not_on_sale:"현재 판매할 수 없는 상품이 있어.",
         invalid_cart_item:"장바구니 상품 정보를 확인해줘."
-      })[data.error]||("주문 준비 실패: "+(data.error||res.status));
-      alert(reason+"\n아직 공식 주문번호가 생성되지 않았어.");
+      })[data.error]||("주문 전 확인 실패: "+(data.error||res.status));
+      cartError(reason+"\n공식 주문번호는 생성되지 않았어. 장바구니는 그대로야.");
+      return;
+    }
+    if(data.error==="official_rejected"&&data.status===undefined){
+      // The official server rejected before a receipt was issued.
+      storeCheckoutAttempt(null);
+      cartError((data.message||"현재 주문번호 발급을 진행할 수 없어.")+
+        "\n주문번호는 발급되지 않았고 장바구니는 유지했어.");
+      return;
+    }
+    if(data.error==="recent_identical_order"&&data.status==="failed"){
+      storeCheckoutAttempt(null);
+      cartError("방금 동일한 주문이 공식 서버에서 거절됐어.\n잠시 기다린 뒤 다시 확인해줘. 장바구니는 그대로야.");
       return;
     }
     const status=data.status||(data.error==="official_rejected"?"failed":"unknown");
     const claimedId=data.error==="recent_identical_order"&&data.previous_attempt_id
       ? data.previous_attempt_id : attemptId;
     storeCheckoutAttempt({...attempt,attempt_id:claimedId,status,
-      order_no:data.order_no||data.previous_order_no||null});
+      order_no:data.order_no||data.previous_order_no||null,
+      product_total:data.product_total??subtotal,
+      order_total:data.order_total??subtotal+shipping});
     if(data.order_no){
       saveGeneratedOrder(data);
-      if(status==="memo_failed")alert("주문번호는 생성됐지만 옵션 저장이 확인되지 않았어. 주문번호를 보관하고 '옵션 저장 다시 시도'를 눌러줘.");
-    }else if(data.error==="official_rejected" && status==="failed"){
-      alert(data.message||"공식 주문 서버에서 요청을 거절했어.");
-    }else{
-      alert("주문 결과를 확정하지 못했어.\n이미 생성됐을 수 있으니 상태 확인 전에는 다시 주문하지 마.");
+      // Separate read-only lookup of the official order, then save in OWN vault.
+      // Failure here does not affect the already created order number.
+      void saveIssuedOrderToVault(data.order_no).catch(e=>console.warn("주문내역 자동 저장 지연",e));
+    }else if(data.error==="official_rejected"&&status==="failed"){
+      storeCheckoutAttempt(null);
+      cartError((data.message||"공식 주문 서버가 요청을 거절했어.")+
+        "\n주문번호는 생성되지 않았어. 장바구니는 그대로야.");
     }
   }catch(e){
-    alert("주문 확인 중 오류가 발생했어.\n"+(e?.message||e)+"\n실제로 주문이 생성됐을 수 있으니 기존 주문 상태를 확인해줘.");
-  }finally{orderBusy=false;renderCartPreview();}
+    const message=String(e?.message||e);
+    if(!requestSent){
+      cartError("주문 요청 전에 문제가 생겼어.\n"+message+
+        "\n장바구니는 유지했어. 내용을 확인하고 다시 시도해줘.");
+    }else{
+      // Once the request was sent, never claim there was no order.
+      storeCheckoutAttempt({...checkoutAttempt,status:checkoutAttempt?.status||"unknown"});
+      console.warn("주문 요청 결과 불명확",e);
+    }
+  }finally{
+    orderBusy=false;
+    renderCartPreview();
+    if(checkoutAttempt&&$("cartResult")&&!$("cartResult").hidden)
+      requestAnimationFrame(()=>{
+        const sheet=document.querySelector(".cart-sheet");
+        if(sheet)sheet.scrollTop=0;
+      });
+  }
 }
 async function retryOrderMemo(){
   if(!checkoutAttempt?.order_no||checkoutAttempt.status!=="memo_failed"||orderBusy)return;
@@ -1127,7 +1359,7 @@ async function retryOrderMemo(){
     const {res,data}=await checkoutRequest("retry_memo",{attempt_id:checkoutAttempt.attempt_id});
     if(!data.order_no)throw new Error(data.error||"옵션 저장 실패");
     storeCheckoutAttempt({...checkoutAttempt,status:data.status,order_no:data.order_no});
-    alert(data.status==="completed"?"기존 주문의 옵션이 저장됐어!":"옵션 저장이 아직 확인되지 않았어. 주문번호는 그대로 보관해줘.");
+    cartToast(data.status==="completed"?"✓ 옵션 저장 완료!":"옵션 저장 상태를 아직 확인하지 못했어.");
   }catch(e){alert("옵션 저장 확인 실패: "+(e?.message||e));}
   finally{orderBusy=false;updateOrderControls();}
 }
@@ -1143,9 +1375,12 @@ $("cartNew").addEventListener("click",()=>{
     if(ack!=="확인완료")return;
   }else if(!confirm("기존 주문번호/옵션을 확인했어?\n새 주문 준비를 시작할까?"))return;
   storeCheckoutAttempt(null);
-  cartPreview.lines=[];
-  cartPreview.storage="";
-  cartPreview.opening="";
+  if(checkoutAttempt?.status!=="failed"){
+    cartPreview.lines=[];
+    cartPreview.storage="";
+    cartPreview.opening="";
+  }
+  clearCartError();
   saveCartPreview();
   setCartOpen(false);
   renderCartPreview();
@@ -1154,8 +1389,11 @@ $("cartNew").addEventListener("click",()=>{
 function renderCartPreview() {
   const totalQty = cartPreview.lines.reduce((sum, x) => sum + x.qty, 0);
   $("cartBar").hidden = totalQty === 0 && !checkoutAttempt;
-  $("cartCount").textContent = fmt(totalQty);
-  $("cartOpen").setAttribute("aria-label", "주문 준비 장바구니 " + totalQty + "개 확인");
+  $("cartBarLabel").textContent=checkoutAttempt?"🧾 주문 결과":"🛒 장바구니";
+  $("cartCount").textContent=checkoutAttempt?"":fmt(totalQty);
+  $("cartBarSuffix").textContent=checkoutAttempt?" · 확인하기":"개 · 확인하기";
+  $("cartOpen").setAttribute("aria-label", checkoutAttempt?"기존 주문번호 및 결과 확인":
+    "주문 준비 장바구니 " + totalQty + "개 확인");
   let subtotal = 0, needsCheck = false;
   const rows = cartPreview.lines.map(x => {
     const p = cartProduct(x.id);
