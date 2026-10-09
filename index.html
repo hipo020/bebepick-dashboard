@@ -979,6 +979,7 @@ function changeCart(id, kind, delta) {
 const ORDER_API_URL = "https://fergbabqmwnbkkxjvgkj.supabase.co/functions/v1/bebepick-personal-checkout";
 const ORDER_ATTEMPT_KEY = "bebepick_checkout_attempt_v1";
 const GENERATED_ORDER_KEY = "bebepick_generated_orders_v1";
+const DELETED_ISSUED_KEY = "bebepick_deleted_issued_orders_v1";
 let orderAccessKey = "";
 let orderBusy = false;
 let checkoutAttempt = null;
@@ -1017,6 +1018,7 @@ async function askOrderSecret(title,guide) {
       input.value="";
       resolve(answer);
     },{once:true});
+    dlg.returnValue="cancel";
     dlg.showModal();
     input.focus();
   });
@@ -1134,6 +1136,8 @@ function saveGeneratedOrder(receipt) {
   const no=receipt?.order_no;
   if(!no||typeof no!=="string")return;
   try {
+    const deleted=JSON.parse(localStorage.getItem(DELETED_ISSUED_KEY)||"[]");
+    if(Array.isArray(deleted)&&deleted.includes(no))return;
     const old=JSON.parse(localStorage.getItem(GENERATED_ORDER_KEY)||"[]");
     const list=Array.isArray(old)?old:[];
     const same=list.some(x=>x.order_no===no);
