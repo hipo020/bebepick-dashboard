@@ -1043,37 +1043,129 @@ function saveGeneratedOrder(receipt) {
     localStorage.setItem(GENERATED_ORDER_KEY,JSON.stringify(list.slice(0,50)));
   }catch(e){console.warn("발급 주문번호 브라우저 저장 실패",e);}
 }
-function updateOrderControls() {
-  const receipt=$("cartReceipt"),sub=$("cartSubmit");
-  if(!receipt||!sub)return;
-  sub.disabled=orderBusy||Boolean(checkoutAttempt);
-  sub.textContent=orderBusy?"주문 처리 중 · 잠시 기다려줘":checkoutAttempt?"기존 주문 확인 후 새 주문 가능":"공식 주문번호 발급하기";
-  $("cartStatus").hidden=!checkoutAttempt;
-  $("cartMemoRetry").hidden=!checkoutAttempt?.order_no||checkoutAttempt?.status!=="memo_failed";
-  $("cartNew").hidden=!checkoutAttempt;
-  $("cartNew").textContent=["started","unknown"].includes(checkoutAttempt?.status)
-    ? "공식 주문 확인 후 잠금 해제" : "새 주문 준비";
-  if(!checkoutAttempt){receipt.style.display="none";receipt.replaceChildren();return;}
-  const a=checkoutAttempt;
-  const isGood=Boolean(a.order_no);
-  receipt.style.display="";
-  receipt.replaceChildren();
-  const heading=document.createElement("strong");
-  heading.textContent=isGood?"🎉 공식 주문번호 발급됨":"⚠️ 이전 주문 확인 필요";
-  const detail=document.createElement("div");
-  detail.style.marginTop="7px";
-  if(isGood)detail.textContent="주문번호: "+a.order_no+" · 옵션 저장 "+(a.status==="completed"?"완료":"상태 확인 필요");
-  else detail.textContent=a.status==="failed"?"주문 서버가 거절한 요청이야. 상황을 확인해줘.":"요청 결과가 불분명해. 주문이 이미 생성됐을 수도 있으니 다시 누르지 마.";
-  receipt.append(heading,detail);
-  if(isGood){
-    const copy=document.createElement("button");copy.type="button";copy.textContent="주문번호 복사";
-    copy.addEventListener("click",()=>navigator.clipboard.writeText(a.order_no)
-      .then(()=>alert("주문번호 복사 완료!")).catch(()=>window.prompt("주문번호",a.order_no)));
-    const link=document.createElement("a");
-    link.href="./order.html?order_no="+encodeURIComponent(a.order_no);
-    link.textContent="　주문 옵션 조회 ↗";
-    receipt.append(copy,link);
+
+let cartToastTimer=null;
+function cartToast(message){
+  const el=$("cartToast");
+  el.textContent=message;
+  el.hidden=false;
+  if(cartToastTimer)clearTimeout(cartToastTimer);
+  cartToastTimer=setTimeout(()=>{el.hidden=true;},2500);
+}
+function cartError(message){
+  const el=$("cartError");
+  el.hidden=false;
+  el.textContent=message;
+}
+function clearCartError(){
+  $("cartError").hidden=true;
+  $("cartError").textContent="";
+}
+function receiptElement(tag,css,text){
+  const el=document.createElement(tag);
+  if(css)el.className=css;
+  if(text!=null)el.textContent=text;
+  return el;
+}
+function addReceiptDetail(host,label,value){
+  const line=receiptElement("div");
+  line.append(receiptElement("span","",label),receiptElement("strong","",value));
+  host.append(line);
+}
+async function copyOfficialOrderNo(no){
+  try{
+    if(!navigator.clipboard?.writeText)throw new Error("clipboard unsupported");
+    await navigator.clipboard.writeText(no);
+    cartToast("✓ 주문번호 복사 완료!");
+  }catch(_){
+    // Fallback for Samsung Internet versions without modern clipboard support.
+    const field=document.createElement("textarea");
+    field.value=no;
+    field.readOnly=true;
+    field.style.cssText="position:fixed;top:0;left:0;z-index:-1;opacity:0";
+    document.body.append(field);
+    field.select();
+    field.setSelectionRange(0,no.length);
+    let copied=false;
+    try{copied=document.execCommand("copy");}catch(_){}
+    field.remove();
+    if(copied)cartToast("✓ 주문번호 복사 완료!");
+    else cartToast("복사가 제한됐어 · 주문번호를 길게 눌러 선택해줘");
   }
+}
+function updateOrderControls() {
+  const receipt=$("cartReceipt"),sub=$("cartSubmit"),a=checkoutAttempt;
+  if(!receipt||!sub)return;
+  const showingResult=Boolean(a&&(a.order_no||["started","unknown","created","memo_failed","completed"].includes(a.status)));
+  $("cartEditing").hidden=showingResult;
+  $("cartResult").hidden=!showingResult;
+  sub.disabled=orderBusy||Boolean(a);
+  sub.textContent=orderBusy?"주문 확인 중…":a?"이전 주문 처리 중":"공식 주문번호 발급하기";
+  $("cartStatus").hidden=!a;
+  $("cartMemoRetry").hidden=!a?.order_no||a.status!=="memo_failed";
+  $("cartNew").hidden=!a;
+  $("cartNew").textContent=["started","unknown"].includes(a?.status)
+    ? "판매자 확인 후 잠금 해제" : "새 주문 준비";
+  if(!showingResult){receipt.replaceChildren();return;}
+
+  receipt.replaceChildren();
+  const hasNo=Boolean(a.order_no);
+  receipt.append(receiptElement("div","cart-result-mark",hasNo?"🎉":"⚠️"));
+  receipt.append(receiptElement("h2","cart-result-title",
+    hasNo?"공식 주문번호 발급 완료!":"주문 결과 확인 필요"));
+  receipt.append(receiptElement("p","cart-result-subtitle",
+    hasNo?"아래 주문번호를 복사해서 사용해줘.":"이미 주문이 생성됐을 수 있어. 확인 전에는 다시 발급하지 마."));
+  if(hasNo){
+    receipt.append(receiptElement("div","cart-result-no",a.order_no));
+    const status=receiptElement("div","cart-result-status"+(a.status==="completed"?"":" warning"),
+      a.status==="completed"?"✓ 보관·개봉 옵션 저장 완료":
+      a.status==="memo_failed"?"⚠️ 주문번호 발급됨 · 옵션 저장만 실패했어":
+      "주문번호는 발급됐어 · 옵션 저장 상태를 확인해줘");
+    receipt.append(status);
+    const details=receiptElement("div","cart-result-details");
+    addReceiptDetail(details,"배송 / 개봉",(a.storage||"미확인")+" · "+(a.opening||"미확인"));
+    if(Number.isSafeInteger(Number(a.product_total))&&a.product_total!=null)
+      addReceiptDetail(details,"상품 합계",fmt(a.product_total)+"원");
+    if(Number.isSafeInteger(Number(a.order_total))&&a.order_total!=null)
+      addReceiptDetail(details,"주문 생성 요청 총액",fmt(a.order_total)+"원");
+    receipt.append(details);
+    const copy=receiptElement("button","cart-primary-action","📋 주문번호 복사하기");
+    copy.type="button";
+    copy.addEventListener("click",()=>copyOfficialOrderNo(a.order_no));
+    receipt.append(copy);
+    const link=receiptElement("a","cart-secondary-action","📦 내 주문내역 확인하기 ↗");
+    link.href="./order.html?order_no="+encodeURIComponent(a.order_no);
+    receipt.append(link);
+    if(a.status==="memo_failed")receipt.append(
+      receiptElement("p","cart-result-warning",
+        "이미 주문은 만들어졌어. 새 주문을 만들지 말고 아래 '옵션 저장 다시 시도'만 눌러줘."));
+  }else{
+    const warning=receiptElement("p","cart-result-warning",
+      "서버의 최종 응답을 확인하지 못했어. 이미 주문번호가 만들어졌을 수 있으니 기존 주문 상태부터 확인해줘.");
+    receipt.append(warning);
+  }
+}
+async function confirmOrderReview(lines,subtotal,shipping) {
+  const dlg=$("orderConfirmDialog");
+  const plain=lines.map(x=>x.name+" × "+x.qty+(x.kind==="fullbox"?" (풀박스)":"")).join("\n");
+  if(typeof dlg?.showModal!=="function"){
+    return window.confirm("실제 주문번호를 생성할까?\n\n"+plain+"\n\n"+
+      cartPreview.storage+" · "+cartPreview.opening+"\n총 "+fmt(subtotal+shipping)+"원");
+  }
+  const list=$("confirmItems");
+  list.replaceChildren();
+  for(const x of lines){
+    list.append(receiptElement("div","",x.name+" × "+x.qty+(x.kind==="fullbox"?" (풀박스)":"")));
+  }
+  $("confirmOptions").textContent=cartPreview.storage+" · "+cartPreview.opening;
+  $("confirmSubtotal").textContent=fmt(subtotal)+"원";
+  $("confirmShipping").textContent=fmt(shipping)+"원";
+  $("confirmTotal").textContent=fmt(subtotal+shipping)+"원";
+  return await new Promise(resolve=>{
+    dlg.addEventListener("close",()=>resolve(dlg.returnValue==="approve"),{once:true});
+    dlg.returnValue="cancel";
+    dlg.showModal();
+  });
 }
 async function refreshOrderStatus() {
   if(orderBusy||!checkoutAttempt)return;
