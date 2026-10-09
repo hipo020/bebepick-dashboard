@@ -60,6 +60,10 @@ button{border:0;border-radius:12px;padding:0 16px;background:#2d2926;color:#fff;
 .saved-empty{padding:18px 6px;text-align:center;color:#8a817b;font-size:12px}
 .saved-order{width:100%;padding:11px 12px;border:1px solid #eee5df;background:#faf8f6;color:#2d2926;border-radius:12px;text-align:left;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center}
 .saved-order:active{transform:scale(.995)}
+.saved-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:stretch}
+.saved-remove{min-width:58px;max-width:72px;padding:8px 10px!important;border:1px solid #f2d0d0;border-radius:12px;background:#fff6f6;color:#a33039;font-size:12px;font-weight:750;cursor:pointer}
+.saved-remove:disabled{opacity:.5;cursor:wait}
+.saved-row .saved-order{min-width:0}
 .saved-order-no{font-size:13px;font-weight:800}
 .saved-order-meta{margin-top:3px;font-size:11px;color:#8a817b;line-height:1.45}
 .saved-total{font-size:13px;font-weight:800;white-space:nowrap}
@@ -325,17 +329,20 @@ function renderSavedOrders(rows){
     const names=items.map(x=>String(x.name||"")).filter(Boolean);
     const productText=names.slice(0,2).join(", ")+(names.length>2?" 외 "+(names.length-2)+"개":"");
     const opt=savedOptionText(o);
-    return '<button class="saved-order" type="button" data-order-no="'+esc(o.order_no||"")+'">'+
-      '<div>'+
-        '<div class="saved-order-no">'+esc(o.order_no||"")+'</div>'+
-        '<div class="saved-order-meta">'+
-          esc(timeKst(o.order_created_at)||"시각 없음")+
-          (opt?' · '+esc(opt):'')+
-          (productText?'<br>'+esc(productText):'')+
+    return '<div class="saved-row">'+
+      '<button class="saved-order" type="button" data-order-no="'+esc(o.order_no||"")+'">'+
+        '<div>'+
+          '<div class="saved-order-no">'+esc(o.order_no||"")+'</div>'+
+          '<div class="saved-order-meta">'+
+            esc(timeKst(o.order_created_at)||"시각 없음")+
+            (opt?' · '+esc(opt):'')+
+            (productText?'<br>'+esc(productText):'')+
+          '</div>'+
         '</div>'+
-      '</div>'+
-      '<div class="saved-total">'+fmt(o.total_amount)+'원</div>'+
-    '</button>';
+        '<div class="saved-total">'+fmt(o.total_amount)+'원</div>'+
+      '</button>'+
+      '<button class="saved-remove" type="button" data-delete-no="'+esc(o.order_no||"")+'" aria-label="'+esc(o.order_no||"")+' 저장 목록에서 삭제">삭제</button>'+
+    '</div>';
   }).join("");
 }
 
@@ -488,7 +495,46 @@ $("vaultImportToggle").addEventListener("click",()=>{
 });
 $("vaultApply").addEventListener("click",applyVaultCode);
 $("vaultInput").addEventListener("keydown",e=>{ if(e.key==="Enter") applyVaultCode(); });
+
+let deleteInProgress=false;
+function dropIssuedOrderLocally(no){
+  try{
+    const rows=JSON.parse(localStorage.getItem(ISSUED_STORAGE_KEY)||"[]");
+    if(!Array.isArray(rows))return;
+    localStorage.setItem(ISSUED_STORAGE_KEY,JSON.stringify(rows.filter(x=>x.order_no!==no)));
+    const deleted=JSON.parse(localStorage.getItem(DELETED_ISSUED_KEY)||"[]");
+    const list=Array.isArray(deleted)?deleted:[];
+    if(!list.includes(no))list.unshift(no);
+    localStorage.setItem(DELETED_ISSUED_KEY,JSON.stringify(list.slice(0,100)));
+  }catch(e){console.warn("발급 주문번호 목록 수정 실패",e);}
+}
+async function deleteSavedOrder(no,button){
+  if(deleteInProgress || !/^BP[0-9A-Z]{6,30}$/.test(no))return;
+  const approved=confirm(
+    no+" 주문을 재고판의 내 주문내역에서 삭제할까?\n\n"+
+    "연결된 다른 기기의 내 주문 목록에서도 사라져.\n"+
+    "베베픽 공식 주문은 취소되지 않고 그대로 유지돼.\n"+
+    "나중에 이 번호를 다시 조회하면 재저장될 수 있어."
+  );
+  if(!approved)return;
+  deleteInProgress=true;
+  if(button)button.disabled=true;
+  try{
+    await orderVaultRequest("DELETE",{order_no:no});
+    cachedSavedOrders=cachedSavedOrders.filter(o=>o.order_no!==no);
+    dropIssuedOrderLocally(no);
+    renderSavedOrders(cachedSavedOrders);
+    renderIssuedOrders();
+    setVaultMessage("주문 "+no+" 저장 목록에서 삭제했어 ✓",true);
+  }catch(e){
+    alert("주문내역에서 삭제하지 못했어. 다시 시도해줘.\n"+(e?.message||e));
+    if(button)button.disabled=false;
+  }finally{deleteInProgress=false;}
+}
+
 $("savedOrders").addEventListener("click",e=>{
+  const del=e.target.closest("[data-delete-no]");
+  if(del){deleteSavedOrder(del.dataset.deleteNo||"",del);return;}
   const row=e.target.closest("[data-order-no]");
   if(!row) return;
   $("orderNo").value=row.dataset.orderNo||"";
@@ -497,6 +543,7 @@ $("savedOrders").addEventListener("click",e=>{
 
 
 const ISSUED_STORAGE_KEY="bebepick_generated_orders_v1";
+const DELETED_ISSUED_KEY="bebepick_deleted_issued_orders_v1";
 function renderIssuedOrders(){
   const container=$("issuedOrders");
   let rows=[];
@@ -506,14 +553,19 @@ function renderIssuedOrders(){
     container.innerHTML='<div class="saved-empty">아직 이 기기에서 발급한 주문번호가 없어</div>';
     return;
   }
-  container.innerHTML=rows.map(x=>'<button class="saved-order" type="button" data-issued-no="'+esc(x.order_no||"")+'">'+
-    '<div><div class="saved-order-no">'+esc(x.order_no||"")+'</div>'+
-    '<div class="saved-order-meta">'+esc(timeKst(x.created_at))+' · '+
-    esc(x.storage||"")+ ' · '+esc(x.opening||"")+
-    '<br>상품 예상 합계 '+fmt(x.product_total||0)+'원 · 공식 상세 조회 ↗</div></div>'+
-    '</button>').join("");
+  container.innerHTML=rows.map(x=>'<div class="saved-row">'+
+    '<button class="saved-order" type="button" data-issued-no="'+esc(x.order_no||"")+'">'+
+      '<div><div class="saved-order-no">'+esc(x.order_no||"")+'</div>'+
+      '<div class="saved-order-meta">'+esc(timeKst(x.created_at))+' · '+
+      esc(x.storage||"")+ ' · '+esc(x.opening||"")+
+      '<br>상품 예상 합계 '+fmt(x.product_total||0)+'원 · 공식 상세 조회 ↗</div></div>'+
+    '</button>'+
+    '<button class="saved-remove" type="button" data-issued-delete="'+esc(x.order_no||"")+'" aria-label="'+esc(x.order_no||"")+' 발급 내역 삭제">삭제</button>'+
+    '</div>').join("");
 }
 $("issuedOrders").addEventListener("click",e=>{
+  const del=e.target.closest("[data-issued-delete]");
+  if(del){deleteSavedOrder(del.dataset.issuedDelete||"",del);return;}
   const button=e.target.closest("[data-issued-no]");
   if(!button)return;
   $("orderNo").value=button.dataset.issuedNo||"";
