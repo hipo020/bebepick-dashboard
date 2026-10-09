@@ -725,15 +725,18 @@ async function toggleHistory(id) {
     ));
     const html = entries.length ? entries.slice(0, 50).map(({ type, row: h }) => {
       if (type === "price") {
-        const prev = h.previous_price == null ? "—" : fmt(h.previous_price) + "원";
-        const cur = h.current_price == null ? "—" : fmt(h.current_price) + "원";
-        const delta = h.delta == null ? null : Number(h.delta);
-        const label = h.price_kind === "fullbox" ? "풀박스 가격" : "상품 가격";
-        const movement = h.previous_price == null ? " 등록"
-          : h.current_price == null ? " 해제"
+        const prevValue = Number(h.previous_price);
+        const curValue = Number(h.current_price);
+        const isFullbox = h.price_kind === "fullbox";
+        const prev = isFullbox && prevValue === 0 ? "—" : fmt(prevValue) + "원";
+        const cur = isFullbox && curValue === 0 ? "—" : fmt(curValue) + "원";
+        const delta = curValue - prevValue;
+        const label = isFullbox ? "풀박스 가격" : "상품 가격";
+        const movement = isFullbox && prevValue === 0 ? " 등록"
+          : isFullbox && curValue === 0 ? " 해제"
           : delta > 0 ? " 인상"
           : delta < 0 ? " 인하" : " 변경";
-        const deltaHtml = delta === null || delta === 0
+        const deltaHtml = delta === 0
           ? "" : delta > 0
             ? ' <span class="price-rise">+' + fmt(delta) + '원</span>'
             : ' <span class="price-fall">-' + fmt(Math.abs(delta)) + '원</span>';
