@@ -113,7 +113,7 @@
     .cart-item-meta{font-size:11px;color:#8a817b;margin-top:4px}
     .cart-item.warn .cart-item-meta{color:#a15c00}
     .cart-qty{display:flex;gap:7px;align-items:center;flex-shrink:0}
-    .cart-qty button{width:31px;height:31px;border:1px solid #e7ddd6;border-radius:50%;background:#fff;font-weight:800;font-size:18px;color:#2d2926;cursor:pointer}
+    .cart-qty button{width:42px;height:42px;border:1px solid #e7ddd6;border-radius:50%;background:#fff;font-weight:800;font-size:18px;color:#2d2926;cursor:pointer}
     .cart-section-title{font-weight:800;margin:17px 0 9px;font-size:13px}
     .cart-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
     .cart-options.two{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -134,6 +134,38 @@
     #cartSubmit:disabled{opacity:.55;cursor:wait}
     #cartReceipt{background:#f6f2f9;color:#392f43}
     #cartReceipt button{margin-top:8px;border:1px solid #cbb8d2;border-radius:10px;background:#fff;padding:8px 11px;font-weight:800;color:#503058;cursor:pointer}
+
+
+    #cartEditing[hidden],#cartResult[hidden],#cartError[hidden],#cartToast[hidden]{display:none!important}
+    .cart-error{margin:10px 0;padding:12px 14px;border:1px solid #ecd0bf;border-radius:12px;background:#fff4ed;color:#773c20;font-size:13px;line-height:1.5;font-weight:700}
+    .cart-result{padding:11px 0 2px}
+    .cart-receipt{padding:20px 12px 12px;text-align:center;overflow-wrap:anywhere}
+    .cart-result-mark{font-size:38px;line-height:1.2}
+    .cart-result-title{margin:10px 0 6px;font-size:23px;line-height:1.35;color:inherit}
+    .cart-result-subtitle{margin:0 0 16px;font-size:12px;line-height:1.6;color:#766d6d}
+    .cart-result-no{display:block;border:2px solid #d9cbcc;border-radius:14px;background:#fff;padding:17px 7px;margin:10px 0 12px;font:850 clamp(20px,5.5vw,31px)/1.35 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.1px;word-break:break-all;user-select:text;-webkit-user-select:text;color:#29242a}
+    .cart-result-status{padding:10px 12px;margin:8px 0 12px;background:#f3f7ee;border-radius:10px;color:#376348;font-size:12px;font-weight:700;line-height:1.5}
+    .cart-result-status.warning{background:#fff4ea;color:#9b4a25}
+    .cart-result-details{display:grid;gap:9px;margin:14px 0;padding:13px 8px;border-top:1px solid #e8e0dd;border-bottom:1px solid #e8e0dd;text-align:left}
+    .cart-result-details div{display:flex;justify-content:space-between;gap:12px;font-size:12px;line-height:1.5}
+    .cart-result-details strong{font-weight:800;text-align:right}
+    .cart-primary-action{display:block;width:100%;border:none;border-radius:13px;padding:15px;background:var(--brand-primary,#402a3e);color:#fff;-webkit-text-fill-color:#fff;font-size:16px;font-weight:850;cursor:pointer}
+    .cart-secondary-action{display:inline-flex;justify-content:center;align-items:center;min-height:44px;margin-top:10px;padding:10px 14px;border:1px solid #dcd3d5;border-radius:11px;background:#fff;color:#333;text-decoration:none;font-weight:750;font-size:13px}
+    .cart-result-warning{font-size:12px;color:#875031;background:#fff3ec;border-radius:12px;padding:13px;line-height:1.6;margin:12px 0}
+    .cart-toast{position:fixed;z-index:2003;left:50%;bottom:max(72px,env(safe-area-inset-bottom) + 50px);transform:translateX(-50%);background:#292529;color:#fff;padding:12px 18px;border-radius:12px;white-space:nowrap;font-size:13px;font-weight:750;box-shadow:0 5px 22px rgba(0,0,0,.25)}
+    .checkout-confirm-dialog{box-sizing:border-box;border:1px solid #ece2de;border-radius:20px;padding:0;width:min(calc(100% - 32px),440px);max-height:88dvh;overflow:auto;background:#fffaf6;color:#2d2926;box-shadow:0 14px 50px rgba(0,0,0,.24)}
+    .checkout-confirm-dialog::backdrop{background:rgba(30,25,25,.6)}
+    .checkout-confirm-dialog form{padding:20px}
+    .checkout-confirm-dialog h2{font-size:19px;margin:0 0 12px}
+    .checkout-confirm-dialog p{font-size:12px;color:#675e5b;line-height:1.5}
+    .checkout-confirm-dialog .confirm-items{padding:9px 11px;border:1px solid #eee4df;border-radius:10px;background:#fff;max-height:190px;overflow:auto}
+    .checkout-confirm-dialog .confirm-items div{font-size:12px;line-height:1.5;padding:4px 0;overflow-wrap:anywhere}
+    .confirm-line{display:flex;justify-content:space-between;gap:10px;margin:10px 0;font-size:12px}
+    .confirm-line.final{border-top:1px solid #e8e0dd;padding-top:13px;font-size:15px}
+    .checkout-confirm-dialog .confirm-help{margin-top:14px}
+    .confirm-actions{display:grid;grid-template-columns:1fr 1.6fr;gap:8px;margin-top:17px}
+    .confirm-actions button{min-height:48px;border:1px solid #ded5cf;border-radius:12px;background:#fff;color:#2d2926;font-size:13px;font-weight:800}
+    .confirm-actions button[value="approve"]{background:var(--brand-primary,#402a3e);color:#fff;-webkit-text-fill-color:#fff;border-color:transparent}
 
     @media(min-width:650px){.cart-overlay{align-items:center}.cart-sheet{border-radius:22px;max-height:90vh}}
     @media(max-width:649px){
@@ -249,7 +281,9 @@
       <h2 id="cartTitle">🛒 주문 준비 장바구니</h2>
       <button id="cartClose" class="cart-close" type="button" aria-label="장바구니 닫기">×</button>
     </div>
+    <div id="cartEditing">
     <div class="cart-notice"><strong>공식 주문번호 발급</strong><br>실제 베베픽 주문이 생성돼. 마지막 확인을 누르기 전까지는 주문이 생성되지 않아. 주문 후 보관·개봉 옵션은 수정할 수 없으니 꼭 확인해줘.</div>
+    <div id="cartError" class="cart-error" role="alert" hidden></div>
     <div id="cartItems"></div>
     <div class="cart-section-title">배송 방법 · 꼭 선택해줘</div>
     <div class="cart-options two" role="group" aria-label="배송 방법">
@@ -270,7 +304,9 @@
       <button id="cartSubmit" class="cart-visit" type="button">공식 주문번호 발급하기</button>
     </div>
     <div id="cartCheck" class="cart-footnote" role="status">최종 입금 금액은 베베픽 카톡 안내를 따라줘.</div>
-    <div id="cartReceipt" class="cart-notice" style="display:none;overflow-wrap:anywhere" role="status"></div>
+    </div>
+    <section id="cartResult" class="cart-result" aria-label="주문 결과" hidden>
+      <div id="cartReceipt" class="cart-receipt" role="status" aria-live="polite"></div>
     <div class="cart-actions" style="margin-top:9px">
       <button id="cartStatus" type="button" style="background:#fff;color:#4e3453;flex:1">이전 주문 상태 확인</button>
       <button id="cartMemoRetry" type="button" style="background:#fff;color:#4e3453;flex:1" hidden>옵션 저장 다시 시도</button>
@@ -279,11 +315,28 @@
     <div class="cart-footnote">주문번호가 이미 생성됐거나 응답이 불분명하면 <strong>다시 발급하지 말고</strong> 기존 주문 상태를 확인해줘. 
       <a href="https://bebepick-web.pages.dev/" target="_blank" rel="noopener">공식 홈페이지 ↗</a>
     </div>
+    </section>
   </section>
 </div>
 
 
-
+<dialog id="orderConfirmDialog" class="checkout-confirm-dialog" aria-labelledby="confirmHeading">
+  <form method="dialog">
+    <h2 id="confirmHeading">🧸 주문 최종 확인</h2>
+    <p>아래 내용으로 <strong>실제 베베픽 주문번호</strong>를 발급할까?</p>
+    <div id="confirmItems" class="confirm-items"></div>
+    <div class="confirm-line"><span>배송 · 개봉 옵션</span><strong id="confirmOptions"></strong></div>
+    <div class="confirm-line"><span>상품 합계</span><span id="confirmSubtotal"></span></div>
+    <div class="confirm-line"><span>계산상 배송비</span><span id="confirmShipping"></span></div>
+    <div class="confirm-line final"><span>주문 생성 요청 총액</span><strong id="confirmTotal"></strong></div>
+    <p class="confirm-help">확인을 누르면 실제 주문이 생성돼. 최종 입금액은 베베픽 카톡 안내를 확인해줘.</p>
+    <div class="confirm-actions">
+      <button type="submit" value="cancel">돌아가기</button>
+      <button type="submit" value="approve">주문번호 발급하기</button>
+    </div>
+  </form>
+</dialog>
+<div id="cartToast" class="cart-toast" role="status" aria-live="polite" hidden></div>
 <div id="lightbox" class="lightbox" aria-hidden="true">
   <div class="lightbox-inner">
     <button id="lightboxClose" class="lightbox-close" type="button" aria-label="이미지 닫기">×</button>
