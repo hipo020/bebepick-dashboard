@@ -128,6 +128,20 @@
     .cart-clear{background:#fff;color:#7f716d;flex:0 0 auto}
     .cart-visit{background:#402a3e!important;color:#fff!important;flex:1}
     .cart-footnote{font-size:11px;color:#8a817b;margin-top:10px;line-height:1.55}
+    .cart-key-panel{padding:12px;margin:10px 0;border:1px solid #e9dfea;border-radius:12px;background:#fff}
+    .cart-key-panel #orderKeyState{font-weight:800;color:#503058;font-size:12px}
+    .cart-key-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+    .cart-key-actions button{border:1px solid #eadcea;border-radius:9px;background:#f9f5fb;color:#503058;font-size:12px;font-weight:750;padding:9px 10px;cursor:pointer}
+    .cart-key-panel p{font-size:11px;color:#796f79;line-height:1.5;margin:9px 0 0}
+    .secret-dialog{padding:0;border:1px solid #e9dfea;border-radius:18px;box-shadow:0 18px 80px rgba(0,0,0,.25);width:min(92vw,380px);max-width:380px;color:#2d2926}
+    .secret-dialog::backdrop{background:rgba(31,20,38,.64)}
+    .secret-dialog form{padding:20px}
+    .secret-dialog h3{font-size:17px;margin:0 0 10px}
+    .secret-dialog p{font-size:12px;color:#685d69;line-height:1.55;white-space:pre-line;margin:0 0 12px}
+    .secret-dialog input{width:100%;padding:13px 12px;border:1px solid #dac7dc;border-radius:10px;font:inherit}
+    .secret-dialog .secret-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+    .secret-dialog button{padding:10px 16px;border:0;border-radius:10px;background:#eee5ed;color:#41323f;font-weight:800;cursor:pointer}
+    .secret-dialog button[value="ok"]{background:#503058;color:#fff}
     #cartStatus[hidden],#cartMemoRetry[hidden],#cartNew[hidden]{display:none}
     #cartSubmit:disabled{opacity:.55;cursor:wait}
     #cartReceipt{background:#f6f2f9;color:#392f43}
@@ -248,6 +262,14 @@
       <button id="cartClose" class="cart-close" type="button" aria-label="장바구니 닫기">×</button>
     </div>
     <div class="cart-notice"><strong>공식 주문번호 발급</strong><br>실제 베베픽 주문이 생성돼. 마지막 확인을 누르기 전까지는 주문이 생성되지 않아. 주문 후 보관·개봉 옵션은 수정할 수 없으니 꼭 확인해줘.</div>
+    <section class="cart-key-panel" aria-label="개인 주문 연동키 설정">
+      <div id="orderKeyState">🔒 주문 연동키 확인 중…</div>
+      <div class="cart-key-actions">
+        <button id="orderKeySetup" type="button">🔐 연동키 설정 · 잠금 해제</button>
+        <button id="orderKeyForget" type="button">이 기기 저장 해제</button>
+      </div>
+      <p>처음에는 기존 연동키가 필요해. 원하는 경우 휴대폰에 암호화해 저장하고 이후에는 설정한 잠금 비밀번호(8자리 이상)로 열 수 있어.</p>
+    </section>
     <div id="cartItems"></div>
     <div class="cart-section-title">배송 방법 · 꼭 선택해줘</div>
     <div class="cart-options two" role="group" aria-label="배송 방법">
@@ -280,6 +302,18 @@
   </section>
 </div>
 
+
+<dialog id="orderSecretDialog" class="secret-dialog">
+  <form method="dialog" autocomplete="off">
+    <h3 id="orderSecretTitle">연동키 입력</h3>
+    <p id="orderSecretGuide"></p>
+    <input id="orderSecretInput" type="password" autocapitalize="off" autocomplete="off" spellcheck="false" required>
+    <div class="secret-actions">
+      <button type="submit" value="cancel" formnovalidate>취소</button>
+      <button type="submit" value="ok">확인</button>
+    </div>
+  </form>
+</dialog>
 
 <div id="lightbox" class="lightbox" aria-hidden="true">
   <div class="lightbox-inner">
@@ -958,15 +992,134 @@ function storeCheckoutAttempt(value) {
     else localStorage.removeItem(ORDER_ATTEMPT_KEY);
   } catch (_) {}
 }
-function orderKey() {
-  if (orderAccessKey) return orderAccessKey;
-  const typed=window.prompt("베베픽 개인 주문 연동키를 입력해줘.\n이 키는 브라우저에 영구 저장되지 않아.");
-  if(!typed||!typed.trim())return "";
-  orderAccessKey=typed.trim();
-  return orderAccessKey;
+const SECURE_ORDER_KEY_STORE = "bebepick_checkout_key_v1";
+const KEY_PBKDF2_ROUNDS = 420000;
+function orderKeyStored() {
+  try{return Boolean(localStorage.getItem(SECURE_ORDER_KEY_STORE));}catch(_){return false;}
 }
+function updateOrderKeyState() {
+  const text=$("orderKeyState");
+  if(!text)return;
+  text.textContent=orderAccessKey?"🔓 연동키 잠금 해제됨 · 이번 화면에서 사용 가능":
+    orderKeyStored()?"🔐 연동키 암호화 저장됨 · 잠금 비밀번호로 열기":
+    "🔒 연동키 미저장 · 첫 주문 전 연동키 설정";
+  $("orderKeyForget").hidden=!orderKeyStored()&&!orderAccessKey;
+}
+async function askOrderSecret(title,guide) {
+  const dlg=$("orderSecretDialog"),input=$("orderSecretInput");
+  if(!dlg||typeof dlg.showModal!=="function")return window.prompt(title+"\n"+guide);
+  $("orderSecretTitle").textContent=title;
+  $("orderSecretGuide").textContent=guide;
+  input.value="";
+  const value=await new Promise(resolve=>{
+    dlg.addEventListener("close",function done(){
+      const answer=dlg.returnValue==="ok"?input.value:null;
+      input.value="";
+      resolve(answer);
+    },{once:true});
+    dlg.showModal();
+    input.focus();
+  });
+  return value;
+}
+function encodeBytes(bytes) {
+  return btoa(String.fromCharCode(...bytes));
+}
+function decodeBytes(text) {
+  return Uint8Array.from(atob(text),x=>x.charCodeAt(0));
+}
+async function pinCipherKey(pin,salt,rounds=KEY_PBKDF2_ROUNDS){
+  const material=await crypto.subtle.importKey("raw",new TextEncoder().encode(pin),"PBKDF2",false,["deriveKey"]);
+  return crypto.subtle.deriveKey({
+    name:"PBKDF2",salt,iterations:rounds,hash:"SHA-256"
+  },material,{name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
+}
+async function encryptOrderKey(raw,pin) {
+  const salt=crypto.getRandomValues(new Uint8Array(16));
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const cipher=await pinCipherKey(pin,salt);
+  const encrypted=await crypto.subtle.encrypt({name:"AES-GCM",iv},cipher,new TextEncoder().encode(raw));
+  return JSON.stringify({v:1,rounds:KEY_PBKDF2_ROUNDS,
+    salt:encodeBytes(salt),iv:encodeBytes(iv),
+    ciphertext:encodeBytes(new Uint8Array(encrypted))});
+}
+async function decryptRememberedKey(serialized,pin) {
+  const data=JSON.parse(serialized);
+  if(data.v!==1||data.rounds!==KEY_PBKDF2_ROUNDS||
+     typeof data.ciphertext!=="string")throw new Error("저장된 연동키 형식이 맞지 않아.");
+  const salt=decodeBytes(data.salt),iv=decodeBytes(data.iv);
+  if(salt.length!==16||iv.length!==12)throw new Error("저장된 연동키 정보를 확인할 수 없어.");
+  const cipher=await pinCipherKey(pin,salt,data.rounds);
+  const plain=await crypto.subtle.decrypt({name:"AES-GCM",iv},cipher,decodeBytes(data.ciphertext));
+  return new TextDecoder().decode(plain);
+}
+async function verifyOrderKey(key) {
+  const result=await fetch(ORDER_API_URL,{
+    method:"POST",cache:"no-store",
+    headers:{"content-type":"application/json","x-bebepick-order-access":key},
+    body:JSON.stringify({op:"auth_check"})
+  });
+  const data=await result.json().catch(()=>({}));
+  if(!result.ok||!data.authorized)throw new Error("연동키가 올바르지 않거나 인증 서버에 연결할 수 없어.");
+  return true;
+}
+async function rememberOrderKey(key) {
+  if(!confirm("이 휴대폰에 연동키를 암호화해서 기억할까?\n\n앞으로 긴 연동키 대신 직접 설정한 잠금 비밀번호만 입력하면 돼.\n이 비밀번호는 서버에 전송되지 않아.\n\n공용 휴대폰에서는 저장하지 않는 게 좋아."))return;
+  const pin=await askOrderSecret("잠금 비밀번호 설정","숫자 8자리 이상 또는 영문·숫자를 섞은 8자 이상 비밀번호를 입력해줘.\n베베픽 비밀번호와 다른 값을 추천해.");
+  if(pin===null)return;
+  if(pin.length<8||pin.length>128){alert("잠금 비밀번호는 8자 이상으로 설정해줘.");return;}
+  const check=await askOrderSecret("잠금 비밀번호 다시 입력","설정한 잠금 비밀번호를 한 번 더 입력해줘.");
+  if(check!==pin){alert("비밀번호가 일치하지 않아. 연동키를 다시 설정해줘.");return;}
+  try{
+    const sealed=await encryptOrderKey(key,pin);
+    localStorage.setItem(SECURE_ORDER_KEY_STORE,sealed);
+    alert("🔐 연동키 암호화 저장 완료!\n다음부터는 잠금 비밀번호로 열 수 있어.");
+  }catch(e){alert("이 휴대폰에 암호화해서 저장하지 못했어. 필요하면 다시 시도해줘.");}
+}
+async function orderKey() {
+  if(orderAccessKey)return orderAccessKey;
+  let encrypted=null;
+  try{encrypted=localStorage.getItem(SECURE_ORDER_KEY_STORE);}catch(_){}
+  if(encrypted){
+    const pin=await askOrderSecret("🔐 주문 연동키 잠금 해제","이 휴대폰에 저장해둔 잠금 비밀번호를 입력해줘.\n긴 연동키를 다시 입력할 필요는 없어.");
+    if(pin===null)return "";
+    try{
+      const key=await decryptRememberedKey(encrypted,pin);
+      await verifyOrderKey(key);
+      orderAccessKey=key;updateOrderKeyState();
+      return key;
+    }catch(e){
+      alert("잠금 해제에 실패했어. 비밀번호를 확인해줘.\n잊었다면 '이 기기 저장 해제' 후 기존 연동키로 다시 설정할 수 있어.");
+      return "";
+    }
+  }
+  const typed=await askOrderSecret("🔐 개인 주문 연동키 입력",
+    "처음 한 번만 기존 주문 연동키를 입력해줘.\n주문 생성은 하지 않고 유효한 키인지 확인할게.");
+  if(!typed||!typed.trim())return "";
+  const key=typed.trim();
+  try{await verifyOrderKey(key);}
+  catch(e){alert(e?.message||"연동키 확인 실패");return "";}
+  orderAccessKey=key;
+  updateOrderKeyState();
+  await rememberOrderKey(key);
+  updateOrderKeyState();
+  return key;
+}
+$("orderKeySetup").addEventListener("click",async()=>{
+  const key=await orderKey();
+  if(key)alert("🔓 주문 연동키를 사용할 준비가 됐어!\n아직 주문은 생성되지 않았어.");
+});
+$("orderKeyForget").addEventListener("click",()=>{
+  if(orderBusy){alert("주문 처리 중에는 변경할 수 없어.");return;}
+  if(!confirm("이 기기에 저장한 주문 연동키를 지울까?\n기존 주문번호·주문내역은 삭제되지 않아.\n다음에는 기존 긴 연동키가 다시 필요해."))return;
+  try{localStorage.removeItem(SECURE_ORDER_KEY_STORE);}catch(_){}
+  orderAccessKey="";
+  updateOrderKeyState();
+  alert("이 기기의 연동키 저장을 해제했어.");
+});
+updateOrderKeyState();
 async function checkoutRequest(op, body) {
-  const key=orderKey();
+  const key=await orderKey();
   if(!key)throw new Error("개인 주문 연동키를 입력해야 해.");
   const res=await fetch(ORDER_API_URL,{
     method:"POST",cache:"no-store",
@@ -1084,7 +1237,7 @@ async function submitOfficialOrder(){
       "\n\n[확인]을 누르면 진짜 주문번호가 발급돼.\n중복 주문을 피하기 위해 자동 재시도는 하지 않아."
     );
     if(!accepted)return;
-    if(!orderKey())return;
+    if(!(await orderKey()))return;
     const attemptId=crypto.randomUUID();
     const attempt={attempt_id:attemptId,status:"started",order_no:null,
       lines:lines.map(x=>({id:x.id,kind:x.kind,qty:x.qty})),
