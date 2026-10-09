@@ -156,8 +156,10 @@
       <button id="refresh" class="refresh" type="button" aria-label="새로고침" title="새로고침">↻</button>
     </div>
 
-    <div class="filter-row" aria-label="빠른 필터">
+    <div class="filter-row" aria-label="상품 상태 빠른 필터">
       <button class="chip on" data-f="available" aria-pressed="true"><span>판매중</span><b id="countAvailable">0</b></button>
+      <button class="chip" data-f="all" aria-pressed="false"><span>전체</span><b id="countAll">0</b></button>
+      <button class="chip" data-f="hidden" aria-pressed="false"><span>숨김 전체</span><b id="countHidden">0</b></button>
       <button class="chip" data-f="hidden_stock" aria-pressed="false"><span>숨김·재고</span><b id="countHiddenStock">0</b></button>
       <button class="chip" data-f="upcoming" aria-pressed="false"><span>👀 신상추정</span><b id="countUpcoming">0</b></button>
     </div>
@@ -172,10 +174,8 @@
     <div id="optionRow" class="option-row" hidden>
       <select id="filterSelect" class="filter-select" aria-label="기타 필터">
         <option value="">기타 필터</option>
-        <option value="all">전체</option>
         <option value="recent_restock">최근 재입고</option>
         <option value="unavailable">품절·판매종료</option>
-        <option value="hidden">숨김 전체</option>
       </select>
 
       <button id="specialToggle" class="special-toggle" type="button" aria-pressed="false">특수상품</button>
@@ -731,7 +731,7 @@ async function toggleHistory(id) {
 }
 
 function syncFilterUI() {
-  const quickFilters = new Set(["available", "hidden_stock", "upcoming"]);
+  const quickFilters = new Set(["available", "all", "hidden", "hidden_stock", "upcoming"]);
   document.querySelectorAll(".chip").forEach((button) => {
     const on = button.dataset.f === filter;
     button.classList.toggle("on", on);
@@ -750,8 +750,17 @@ function syncSearchClear() {
   if (btn) btn.classList.toggle("show", Boolean(query.trim()));
 }
 
+// Spaces (including non-breaking and zero-width spaces) do not affect name search.
+// Apply the SAME normalization to the input and the product name.
+function normalizeSearch(value) {
+  return String(value ?? "")
+    .normalize("NFKC")
+    .replace(/[\s\u200B-\u200D\uFEFF]/g, "")
+    .toLocaleLowerCase("ko-KR");
+}
+
 function render() {
-  const q = query.trim().toLowerCase();
+  const q = normalizeSearch(query);
 
   const baseProducts = includeSpecial
     ? products
@@ -764,7 +773,7 @@ function render() {
     if (filter === "hidden_stock" && !(p.state === "hidden" && Number(p.current_stock) > 0)) return false;
     if (filter === "upcoming" && !isUpcomingCandidate(p)) return false;
     if (filter === "recent_restock" && !(p.recent_restock_24h ?? isRecentRestock(p))) return false;
-    if (q && !String(p.name || "").toLowerCase().includes(q)) return false;
+    if (q && !normalizeSearch(p.name).includes(q)) return false;
     return true;
   });
 
@@ -788,6 +797,8 @@ function render() {
   const upcoming = baseProducts.filter((p) => isUpcomingCandidate(p)).length;
 
   if ($("countAvailable")) $("countAvailable").textContent = fmt(available);
+  if ($("countAll")) $("countAll").textContent = fmt(baseProducts.length);
+  if ($("countHidden")) $("countHidden").textContent = fmt(hidden);
   if ($("countHiddenStock")) $("countHiddenStock").textContent = fmt(hiddenStock);
   if ($("countUpcoming")) $("countUpcoming").textContent = fmt(upcoming);
   syncFilterUI();
