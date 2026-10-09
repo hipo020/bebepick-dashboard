@@ -1,0 +1,27 @@
+name: Test Bebepick inventory UI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "index.html"
+      - "tests/**"
+      - ".github/workflows/test-inventory-ui.yml"
+  pull_request:
+    paths:
+      - "index.html"
+      - "tests/**"
+      - ".github/workflows/test-inventory-ui.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Search and filter UI regression tests
+        run: node --test tests/inventory-ui.test.cjs
