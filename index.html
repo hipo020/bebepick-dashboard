@@ -88,6 +88,10 @@
     .history-panel[hidden]{display:none}
     .history-row{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid #f5efeb}
     .history-row:last-child{border-bottom:0}.delta-up{color:#238636;font-weight:700}.delta-down{color:#c62828;font-weight:700}
+    .history-row.price-row{align-items:flex-start;flex-wrap:wrap;row-gap:3px}
+    .price-values{color:#2d2926;font-weight:700}
+    .price-difference{display:inline-block;margin-left:4px;font-size:10px}
+    .price-kind{color:#a15c00}
     @media(max-width:649px){
       h1{font-size:22px}
       .sub{font-size:12px}
@@ -317,6 +321,11 @@ async function refreshLiveProducts() {
       const existing = productMap.get(Number(d.id));
 
       if (existing) {
+        if (Number(existing.price ?? 0) !== Number(d.price ?? 0) ||
+            Number(existing.fullbox_price ?? 0) !== Number(d.fullbox_price ?? 0)) {
+          // Any open history cache must be reloaded after a live price edit.
+          historyCache.delete(Number(d.id));
+        }
         Object.assign(existing, {
           name,
           price: Number(d.price || 0),
@@ -689,6 +698,24 @@ function historyLabel(type) {
   })[type] || type;
 }
 
+function priceHistoryRow(h) {
+  const fullbox = h.price_kind === "fullbox";
+  const kind = fullbox ? "풀박스 가격" : "상품 가격";
+  const previous = Number(h.previous_price);
+  const current = Number(h.current_price);
+  if (!Number.isFinite(previous) || !Number.isFinite(current)) return "";
+  const difference = current - previous;
+  const change = difference > 0
+    ? '<span class="price-difference delta-up">+' + fmt(difference) + '원</span>'
+    : difference < 0
+      ? '<span class="price-difference delta-down">-' + fmt(Math.abs(difference)) + '원</span>'
+      : "";
+  return '<div class="history-row price-row"><span><b class="price-kind">' +
+    esc(kind + " 변경") + '</b> · ' + esc(timeShort(h.observed_at)) +
+    '</span><span class="price-values">' + fmt(previous) + '원 → ' +
+    fmt(current) + '원' + change + '</span></div>';
+}
+
 async function toggleHistory(id) {
   const panel = $("history-" + id);
   if (!panel) return;
@@ -709,7 +736,17 @@ async function toggleHistory(id) {
     if (!res.ok) throw new Error("HTTP " + res.status);
     const data = await res.json();
     const rows = Array.isArray(data.history) ? data.history : [];
-    const html = rows.length ? rows.map((h) => {
+    const prices = Array.isArray(data.price_history) ? data.price_history : [];
+    // Merge independently stored stock and price changes in detected-time order.
+    const combined = [
+      ...rows.map((h) => ({kind: "stock", data: h})),
+      ...prices.map((h) => ({kind: "price", data: h}))
+    ].sort((a, b) =>
+      new Date(b.data.observed_at).getTime() -
+      new Date(a.data.observed_at).getTime()
+    ).slice(0, 50);
+    const html = combined.length ? combined.map(({kind, data: h}) => {
+      if (kind === "price") return priceHistoryRow(h);
       const prev = h.previous_stock == null ? "—" : fmt(h.previous_stock);
       const cur = fmt(h.current_stock);
       const delta = Number(h.delta || 0);
@@ -722,7 +759,7 @@ async function toggleHistory(id) {
         ? ""
         : " · 입고 후 " + durationText(h.sellout_duration_seconds);
       return '<div class="history-row"><span><b>' + esc(historyLabel(h.change_type)) + '</b> · ' + esc(timeShort(h.observed_at)) + soldTime + '</span><span>' + prev + ' → ' + cur + deltaHtml + '</span></div>';
-    }).join("") : "아직 재고 변화 기록이 없어";
+    }).join("") : "아직 재고·가격 변경 기록이 없어";
     historyCache.set(id, html);
     panel.innerHTML = html;
   } catch (e) {
@@ -857,7 +894,7 @@ function render() {
         '<div class="name">' + esc(p.name) + '</div>' +
         '<div class="meta">' + esc(price + pack + full) + '</div>' +
         recentIncrease + recentDecrease + eta + selloutSpeed +
-        '<button class="history-btn" type="button" onclick="toggleHistory(' + Number(p.doll_id) + ')">재고 기록</button>' +
+        '<button class="history-btn" type="button" onclick="toggleHistory(' + Number(p.doll_id) + ')">📋 변경 기록 (재고·가격)</button>' +
       '</div>' +
       '<div class="stock ' + stockClass(p) + '">' +
         stock + '<small>' + label(p) + '</small>' +
@@ -886,6 +923,8 @@ async function load() {
 
     const data = await res.json();
     products = Array.isArray(data.products) ? data.products : [];
+    // Periodic server refresh invalidates old cached price/stock histories.
+    historyCache.clear();
 
     $("status").className = data.last_error ? "status err" : "status";
     $("statusMain").textContent = data.last_error
