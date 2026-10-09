@@ -915,6 +915,10 @@ function cartIsAvailable(p, kind) {
     cartUnitPrice(p, kind) > 0);
 }
 function changeCart(id, kind, delta) {
+  if (orderBusy || checkoutAttempt) {
+    alert("먼저 기존 주문 상태를 확인하거나 새 주문 준비를 눌러줘.");
+    return;
+  }
   const p = cartProduct(id);
   const item = cartPreview.lines.find(x => x.id === id && x.kind === kind);
   if (delta > 0 && !cartIsAvailable(p, kind)) return;
@@ -983,8 +987,9 @@ function saveGeneratedOrder(receipt) {
     if(!same) list.unshift({
       order_no:no,created_at:new Date().toISOString(),
       product_total:receipt.product_total,order_total:receipt.order_total,
-      storage:cartPreview.storage,opening:cartPreview.opening,
-      items:cartPreview.lines.map(x=>({id:x.id,kind:x.kind,qty:x.qty}))
+      storage:checkoutAttempt?.storage||cartPreview.storage,
+      opening:checkoutAttempt?.opening||cartPreview.opening,
+      items:(checkoutAttempt?.lines||cartPreview.lines).map(x=>({id:x.id,kind:x.kind,qty:x.qty}))
     });
     localStorage.setItem(GENERATED_ORDER_KEY,JSON.stringify(list.slice(0,50)));
   }catch(e){console.warn("발급 주문번호 브라우저 저장 실패",e);}
@@ -1081,7 +1086,9 @@ async function submitOfficialOrder(){
     if(!accepted)return;
     if(!orderKey())return;
     const attemptId=crypto.randomUUID();
-    const attempt={attempt_id:attemptId,status:"started",order_no:null};
+    const attempt={attempt_id:attemptId,status:"started",order_no:null,
+      lines:lines.map(x=>({id:x.id,kind:x.kind,qty:x.qty})),
+      storage:cartPreview.storage,opening:cartPreview.opening};
     storeCheckoutAttempt(attempt);
     const {res,data}=await checkoutRequest("create",{
       attempt_id:attemptId,
@@ -1130,6 +1137,8 @@ $("cartNew").addEventListener("click",()=>{
   }else if(!confirm("기존 주문번호/옵션을 확인했어?\n새 주문 준비를 시작할까?"))return;
   storeCheckoutAttempt(null);
   cartPreview.lines=[];
+  cartPreview.storage="";
+  cartPreview.opening="";
   saveCartPreview();
   setCartOpen(false);
   renderCartPreview();
@@ -1201,6 +1210,7 @@ $("cartItems").addEventListener("click", e => {
 });
 document.querySelectorAll('input[name="cartStorage"],input[name="cartOpening"]').forEach(input => {
   input.addEventListener("change", () => {
+    if(orderBusy || checkoutAttempt){renderCartPreview();return;}
     if (input.name === "cartStorage") cartPreview.storage = input.value;
     else cartPreview.opening = input.value;
     saveCartPreview();
@@ -1208,6 +1218,10 @@ document.querySelectorAll('input[name="cartStorage"],input[name="cartOpening"]')
   });
 });
 $("cartClear").addEventListener("click", () => {
+  if(orderBusy || checkoutAttempt) {
+    alert("기존 주문번호를 확인하고 '새 주문 준비'를 먼저 눌러줘.");
+    return;
+  }
   if (!confirm("장바구니 상품을 모두 비울까?")) return;
   cartPreview.lines = [];
   saveCartPreview();
