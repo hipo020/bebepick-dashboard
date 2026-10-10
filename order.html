@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#F6FAF7">
-<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#101512">
+<meta name="color-scheme" content="dark">
 <title>베베픽 주문 옵션 조회</title>
 <style>
 :root{color-scheme:only light;--brand-primary:#386E5F;--brand-ink:#2D6252;--brand-soft:#EAF4EE;--brand-border:#BED8C9;--paper:#F6FAF7;--ink:#263C32}
@@ -96,6 +96,47 @@ input{background:#fff;color:var(--ink)}
 .vault{border-color:#E0EBE3}
 .flag{border-radius:15px}
 @media(max-width:420px){.saved-row{gap:6px}.saved-remove{min-width:52px}}
+
+/* Matching charcoal + emerald personal order history */
+:root{
+  color-scheme:dark;--brand-primary:#287953;--brand-ink:#8DE0AE;
+  --brand-soft:#22352A;--brand-border:#456A50;
+  --paper:#111614;--ink:#F3F7F4}
+html{background:#111614;color-scheme:dark}
+body{background:#111614;color:#F3F7F4}
+.sub,.meta,.note,.saved-sub,.saved-order-meta,.vault-note,.vault-msg,
+.item-meta,.detail .k,.memo .k,.empty,.saved-empty{color:#AEC0B2}
+.back{background:#232C26;color:#E8F5E9;border-color:#394C3E}
+.main-tabs{background:#1E2922;border-color:#3C4D41}
+.main-tab{color:#B6C9B8}
+.main-tab.on{background:#2C3B30;color:#A1EABC;box-shadow:0 3px 12px rgba(0,0,0,.24)}
+.box,.flag,.memo,.detail{background:#1D2620;border:1px solid #3B4A3E;color:#E9F4EB;box-shadow:0 5px 18px rgba(0,0,0,.15)}
+.item{border-color:#37483D}
+.items{border-color:#485B4C}
+.badge{background:#2F3C33;color:#C3DBCA}
+.flag.yes{background:#243B2B;border-color:#3F6C4C}
+.flag.no{background:#2C342E;color:#B2C1B5}
+input{background:#252E28;color:#F2F7F3;border:1px solid #465749}
+input::placeholder{color:#A0B4A3}
+#orderNo:focus{border-color:#6CD695;outline-color:#477B58}
+button{background:#287953;color:#FFF;-webkit-text-fill-color:#FFF}
+.ghost,.vault-actions button,.saved-sort{background:#29342C;color:#D3E6D6;-webkit-text-fill-color:#D3E6D6;border-color:#475848}
+.saved-sort{color-scheme:dark}
+.saved-order{background:#222B25;color:#E7F4E9;border-color:#3D4E40}
+.saved-order:active{background:#2D4534}
+.saved-order-no{color:#95E3AD}
+.saved-total,.item-name,.detail .v,.memo .v{color:#EFF9F0}
+.saved-remove{background:#382B2B;color:#F5C1C1;-webkit-text-fill-color:#F5C1C1;border-color:#805353}
+.saved-remove:disabled{opacity:.52}
+.saved-row .saved-order{min-width:0}
+.vault{border-color:#34433A}
+.vault-code{background:#202C23;color:#DCEFE1;border-color:#45604A}
+.vault-actions button.primary{background:#287953;color:#FFF;-webkit-text-fill-color:#FFF;border-color:#3B9E69}
+.vault-import input{background:#232D26;color:#F3FAF4}
+.err{background:#3A2626;color:#F2C0C0;border-color:#805454}
+.loading{color:#BBD0BF}
+.save-state{color:#87E8A9}
+
 </style>
 </head>
 <body>
