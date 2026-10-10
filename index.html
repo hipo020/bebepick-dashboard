@@ -697,11 +697,20 @@ body{background:var(--sb-bg);color:var(--sb-ink)}
   .filter-tools .sort-toolbar-label{font-size:10px}
 }
 
-/* Cart controls must never inherit whole-card navigation or stack under a neighbor. */
+/* Touch-safe cart choices: expand INSIDE the current card and push next cards
+   down. No absolute popup can overlap another item's hit target. */
 .card{cursor:default}
 .card:active{transform:none}
-.card.cart-menu-open{position:relative;z-index:20}
-.cart-picker[open]{z-index:21}
+.item-actions{align-items:flex-start}
+.cart-picker{max-width:100%;box-sizing:border-box}
+.cart-picker[open]{flex:1 0 100%;width:100%;z-index:auto}
+.cart-picker[open] summary{margin-bottom:7px}
+.cart-pick-options{
+  position:static;top:auto;left:auto;z-index:auto;
+  box-sizing:border-box;width:100%;min-width:0;
+  padding:7px;margin:0;box-shadow:none
+}
+.cart-pick-options button{width:100%;min-height:44px;touch-action:manipulation}
 .cart-picker:not([open]) .cart-pick-options{display:none}
 
 </style>
@@ -2305,14 +2314,6 @@ $("refresh").addEventListener("click", async () => {
   await load();
   await hydrateClientStats(true);
 });
-
-// Native <details> menus may overlap the next product card on small screens.
-// Capture non-bubbling "toggle" events so the open menu stays on top.
-$("grid").addEventListener("toggle", (e) => {
-  const picker = e.target.closest?.("details.cart-picker");
-  if (!picker) return;
-  picker.closest(".card")?.classList.toggle("cart-menu-open", picker.open);
-}, true);
 
 $("grid").addEventListener("click", (e) => {
   const cartButton = e.target.closest("[data-add-cart]");
