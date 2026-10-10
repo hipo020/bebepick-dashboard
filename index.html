@@ -661,6 +661,42 @@ body{background:var(--sb-bg);color:var(--sb-ink)}
  .queue-links{grid-template-columns:1fr}
 }
 
+
+/* Mobile refinement: five important filters + small '기타' in spare sixth slot. */
+#statusCompact{display:block;min-width:0;flex:1;font-size:12.5px;line-height:1.5;overflow-wrap:anywhere}
+.filter-row .option-toggle{
+  border:1px solid var(--sb-line);border-radius:999px;
+  background:var(--sb-card);color:var(--sb-muted);min-height:40px;
+  padding:9px 12px;text-align:center;white-space:nowrap;
+  font-size:12px;font-weight:750;cursor:pointer;
+}
+.filter-row .option-toggle.on,.filter-row .option-toggle.active-extra{
+  background:var(--sb-soft);border-color:var(--sb-accent);color:var(--sb-accent)
+}
+.filter-tools{gap:7px;min-height:37px;margin-top:6px}
+.filter-tools .sort-controls{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex:0 0 auto;min-width:0}
+.filter-tools .sort-toolbar-label{font-size:11px;font-weight:750;color:var(--sb-muted)}
+.filter-tools .sort{width:auto;min-width:150px;max-width:170px;min-height:36px;
+  padding:7px 25px 7px 10px;border-radius:11px;text-align:left;
+  background-color:var(--sb-card);border-color:var(--sb-line);
+  color:var(--sb-ink);font-size:12px}
+.saved-order-shortcut[hidden]{display:none!important}
+.saved-order-shortcut{text-align:right;margin:3px 2px 0}
+.saved-order-shortcut button{border:0;background:transparent;color:var(--sb-muted);
+  -webkit-text-fill-color:var(--sb-muted);font:inherit;font-size:11px;
+  text-decoration:underline;text-underline-offset:3px;padding:7px 5px;cursor:pointer}
+.saved-order-shortcut button:focus-visible,.filter-row .option-toggle:focus-visible{outline:2px solid var(--sb-accent);outline-offset:2px}
+@media(max-width:649px){
+  .filter-row .option-toggle{width:100%;min-width:0;padding:9px 6px}
+  .filter-tools .sort{min-width:142px;max-width:158px;font-size:11.5px}
+  .filter-tools .summary{font-size:11px}
+}
+@media(max-width:365px){
+  .filter-tools .sort{min-width:128px;max-width:145px}
+  .filter-tools .sort-controls{gap:3px}
+  .filter-tools .sort-toolbar-label{font-size:10px}
+}
+
 </style>
 </head>
 <body>
@@ -677,6 +713,9 @@ body{background:var(--sb-bg);color:var(--sb-ink)}
     <a class="main-tab on" href="./">🧸 재고표</a>
     <a class="main-tab" href="./order.html">📦 주문옵션 조회</a>
   </nav>
+  <div id="savedOrderShortcut" class="saved-order-shortcut" hidden>
+    <button id="savedOrderOpen" type="button" aria-haspopup="dialog">🧾 이전 주문 결과 보기 ↗</button>
+  </div>
 
   <div id="status" class="status">
     <button id="statusToggle" class="status-summary" type="button" aria-expanded="false">
@@ -709,18 +748,14 @@ body{background:var(--sb-bg);color:var(--sb-ink)}
       <button class="chip" data-f="hidden" aria-pressed="false"><span>숨김 전체</span><b id="countHidden">0</b></button>
       <button class="chip" data-f="hidden_stock" aria-pressed="false"><span>숨김·재고</span><b id="countHiddenStock">0</b></button>
       <button class="chip" data-f="upcoming" aria-pressed="false"><span>👀 신상추정</span><b id="countUpcoming">0</b></button>
+      <button id="optionToggle" class="option-toggle" type="button" aria-expanded="false" aria-controls="optionRow">기타 <span class="arrow">⌄</span></button>
     </div>
 
     <div class="filter-tools">
       <div id="summary" class="summary"></div>
-      <button id="optionToggle" class="option-toggle" type="button" aria-expanded="false">
-        필터·정렬 <span class="arrow">⌄</span>
-      </button>
-    </div>
-
-    <div class="sort-toolbar">
-      <label class="sort-toolbar-label" for="sort">정렬</label>
-      <select id="sort" class="sort" aria-label="상품 정렬">
+      <div class="sort-controls">
+        <label class="sort-toolbar-label" for="sort">정렬</label>
+        <select id="sort" class="sort" aria-label="상품 정렬">
         <option value="desc">재고 많은 순</option>
         <option value="asc">재고 적은 순</option>
         <option value="popular">최근 재고 감소순</option>
@@ -730,6 +765,7 @@ body{background:var(--sb-bg);color:var(--sb-ink)}
         <option value="hidden_first">숨김 우선순</option>
         <option value="name">이름순</option>
       </select>
+      </div>
     </div>
     <div id="optionRow" class="option-row" hidden>
       <select id="filterSelect" class="filter-select" aria-label="기타 필터">
@@ -832,6 +868,8 @@ const liveSb = window.supabase.createClient(BEBEPICK_URL, BEBEPICK_KEY, {
   auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
 });
 let realtimeChannel = null;
+let activeBroadcastChannels = [];
+let broadcastCheckFailed = false;
 let liveRefreshTimer = null;
 let statsHydratedAt = 0;
 let products = [];
@@ -1035,8 +1073,17 @@ function updateStatusCompact() {
     parts.push("💚 감시중");
   }
 
-  if (broadcast?.classList.contains("live")) parts.push("🎥 방송중");
-  else if (broadcast?.classList.contains("off")) parts.push("🌙 방송없음");
+  if (broadcast?.classList.contains("live")) {
+    // Show only channels backed by the active broadcast_queue records, not the homepage ON signal.
+    const channels = activeBroadcastChannels.map((slug) => ({
+      bebepick: "1호점", bebepick_plus: "플러스"
+    })[slug] || broadcastLabel(slug));
+    parts.push("🎥 " + (channels.length ? channels.join(" · ") + " 방송중" : "방송중"));
+  } else if (broadcastCheckFailed) {
+    parts.push("⚠️ 방송 확인 실패");
+  } else if (broadcast?.classList.contains("off")) {
+    parts.push("🌙 방송없음");
+  }
 
   const mineText = String(mine?.textContent || "").replace(/\s+/g, " ").trim();
   if (mineText.includes("지금 내 차례")) {
@@ -1074,6 +1121,8 @@ async function refreshBroadcastState() {
     const rows = (Array.isArray(queueRes.data) ? [...queueRes.data] : [])
       .sort((a, b) => (channelPriority[a.channel_slug] ?? 9) - (channelPriority[b.channel_slug] ?? 9)
         || Number(a.broadcast_id || 0) - Number(b.broadcast_id || 0));
+    activeBroadcastChannels = [...new Set(rows.map((r) => String(r.channel_slug || "")).filter(Boolean))];
+    broadcastCheckFailed = false;
     const etaMap = new Map(
       (Array.isArray(etaRes?.broadcasts) ? etaRes.broadcasts : []).map((x) => [
         Number(x.broadcast_id) + ":" + String(x.channel_slug || ""),
@@ -1169,6 +1218,8 @@ async function refreshBroadcastState() {
     }
     updateStatusCompact();
   } catch (e) {
+    activeBroadcastChannels = [];
+    broadcastCheckFailed = true;
     el.className = "broadcast-state warn";
     el.textContent = "⚠️ 방송 상태 확인 실패";
     if (mine) {
@@ -1402,6 +1453,12 @@ function syncFilterUI() {
   if (fs) {
     fs.value = quickFilters.has(filter) ? "" : filter;
     fs.classList.toggle("on", !quickFilters.has(filter) && Boolean(filter));
+  }
+  const extra = $("optionToggle");
+  if (extra) {
+    extra.classList.toggle("active-extra", !quickFilters.has(filter) || includeSpecial);
+    extra.setAttribute("aria-label", !quickFilters.has(filter) || includeSpecial
+      ? "기타 필터가 적용됨, 펼치거나 접기" : "기타 필터 펼치거나 접기");
   }
 }
 
@@ -1886,7 +1943,8 @@ $("cartNew").addEventListener("click",()=>{
 
 function renderCartPreview() {
   const totalQty = cartPreview.lines.reduce((sum, x) => sum + x.qty, 0);
-  $("cartBar").hidden = totalQty === 0 && !checkoutAttempt;
+  $("cartBar").hidden = totalQty === 0;
+  $("savedOrderShortcut").hidden = totalQty > 0 || !checkoutAttempt;
   $("cartBarLabel").textContent=checkoutAttempt?"🧾 주문 결과":"🛒 장바구니";
   $("cartCount").textContent=checkoutAttempt?"":fmt(totalQty);
   $("cartBarSuffix").textContent=checkoutAttempt?" · 확인하기":"개 · 확인하기";
@@ -1942,10 +2000,12 @@ function setCartOpen(open) {
     renderCartPreview();
     $("cartClose").focus();
   } else {
-    $("cartOpen").focus();
+    const focusTarget = $("cartBar").hidden ? ($("savedOrderShortcut").hidden ? $("statusToggle") : $("savedOrderOpen")) : $("cartOpen");
+    focusTarget?.focus();
   }
 }
 $("cartOpen").addEventListener("click", () => setCartOpen(true));
+$("savedOrderOpen").addEventListener("click", () => setCartOpen(true));
 $("cartClose").addEventListener("click", () => setCartOpen(false));
 $("cartOverlay").addEventListener("click", e => {
   if (e.target === $("cartOverlay")) setCartOpen(false);
