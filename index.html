@@ -697,6 +697,13 @@ body{background:var(--sb-bg);color:var(--sb-ink)}
   .filter-tools .sort-toolbar-label{font-size:10px}
 }
 
+/* Cart controls must never inherit whole-card navigation or stack under a neighbor. */
+.card{cursor:default}
+.card:active{transform:none}
+.card.cart-menu-open{position:relative;z-index:20}
+.cart-picker[open]{z-index:21}
+.cart-picker:not([open]) .cart-pick-options{display:none}
+
 </style>
 </head>
 <body>
@@ -2299,6 +2306,14 @@ $("refresh").addEventListener("click", async () => {
   await hydrateClientStats(true);
 });
 
+// Native <details> menus may overlap the next product card on small screens.
+// Capture non-bubbling "toggle" events so the open menu stays on top.
+$("grid").addEventListener("toggle", (e) => {
+  const picker = e.target.closest?.("details.cart-picker");
+  if (!picker) return;
+  picker.closest(".card")?.classList.toggle("cart-menu-open", picker.open);
+}, true);
+
 $("grid").addEventListener("click", (e) => {
   const cartButton = e.target.closest("[data-add-cart]");
   if (cartButton) {
@@ -2320,9 +2335,8 @@ $("grid").addEventListener("click", (e) => {
   if (e.target.closest("button")) return;
   if (e.target.closest(".cart-picker")) return;
   if (e.target.closest(".history-panel")) return;
-  const card = e.target.closest(".card");
-  if (!card) return;
-  window.open(SHOP_URL, "_blank", "noopener");
+  // Product cards are informational. Only an explicit link may open the
+  // seller's website; touches beside cart controls must never navigate away.
 });
 
 $("lightboxClose").addEventListener("click", closeLightbox);
