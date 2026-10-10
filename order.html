@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#101512">
-<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#fffaf6" />
+<meta name="color-scheme" content="light" />
 <title>베베픽 주문 옵션 조회</title>
 <style>
 :root{color-scheme:only light;--brand-primary:#386E5F;--brand-ink:#2D6252;--brand-soft:#EAF4EE;--brand-border:#BED8C9;--paper:#F6FAF7;--ink:#263C32}
@@ -137,7 +137,79 @@ button{background:#287953;color:#FFF;-webkit-text-fill-color:#FFF}
 .loading{color:#BBD0BF}
 .save-state{color:#87E8A9}
 
-</style>
+
+/* COLOR-ONLY RESTORE: exact original 2026-10-09 purple-era paint (commit 4fb6bc29) */
+body{background:#fffaf6!important;color:#2d2926!important}
+.sub{color:#8a817b!important}
+.back{border-color:#eee5df!important;background:#fff!important;color:#2d2926!important}
+.main-tabs{background:#f1ebe6!important}
+.main-tab{color:#786f69!important}
+.main-tab.on{background:#fff!important;color:#2d2926!important;box-shadow:0 2px 8px rgba(70,50,35,.08)!important}
+.detail{background:#faf8f6!important;border-color:#f0e8e2!important}
+.detail .k{color:#8a817b!important}
+.memo{background:#faf8f6!important;border-color:#f0e8e2!important}
+.memo .k{color:#8a817b!important}
+.item-meta{color:#8a817b!important}
+.box{background:#fff!important;border-color:#eee5df!important;box-shadow:0 5px 18px rgba(70,50,35,.06)!important}
+input{border-color:#e8ded7!important}
+button{background:#2d2926!important;color:#fff!important}
+.note{color:#8a817b!important}
+.empty{color:#8a817b!important}
+.meta{color:#8a817b!important}
+.flag{border-color:#eee5df!important;background:#faf8f6!important}
+.flag.yes{background:#effaf3!important;border-color:#c9ead3!important}
+.flag.no{background:#f7f4f2!important;color:#8a817b!important}
+.items{border-top-color:#eee5df!important}
+.item{border-bottom-color:#f5efeb!important}
+.badge{background:#f3eee9!important;color:#665e58!important}
+.err{background:#fff2f2!important;color:#a12929!important;border-color:#efcaca!important}
+.loading{color:#8a817b!important}
+.saved-sort{border-color:#e8ded7!important;background:#faf8f6!important;color:#655d57!important}
+.saved-sub{color:#8a817b!important}
+.ghost{border-color:#e8ded7!important;background:#faf8f6!important;color:#655d57!important}
+.saved-empty{color:#8a817b!important}
+.saved-order{border-color:#eee5df!important;background:#faf8f6!important;color:#2d2926!important}
+.saved-remove{border-color:#f2d0d0!important;background:#fff6f6!important;color:#a33039!important}
+.saved-order-meta{color:#8a817b!important}
+.save-state{color:#238636!important}
+.vault{border-top-color:#eee5df!important}
+.vault-note{color:#8a817b!important}
+.vault-code{background:#faf8f6!important;border-color:#f0e8e2!important}
+.vault-actions button{border-color:#e8ded7!important;background:#faf8f6!important;color:#655d57!important}
+.vault-actions button.primary{background:#2d2926!important;color:#fff!important;border-color:#2d2926!important}
+.vault-msg{color:#8a817b!important}
+
+/* Previous cream/light palette restored, including the original purple highlights. */
+:root{color-scheme:only light!important;--brand-primary:#6C2F64!important;--brand-ink:#684287!important;--brand-soft:#F5EFFD!important;--brand-border:#DAC5DD!important;--paper:#FFFAF6!important;--ink:#2D2926!important}
+html,body{color-scheme:only light!important;background:#FFFAF6!important;color:#2D2926!important}
+input,button,select{color-scheme:only light!important}
+input{background:#FFF!important;color:#2D2926!important;border-color:#E8DED7!important}
+input::placeholder{color:#8A817B!important}
+#orderNo:focus{border-color:#B481C6!important;outline-color:#DCC7DF!important}
+.main-tab.on{background:#FFF!important;color:#2D2926!important}
+.box,.flag,.memo,.detail{background:#FFF!important;border-color:#EEE5DF!important;color:#2D2926!important;box-shadow:0 5px 18px rgba(70,50,35,.06)!important}
+.detail,.memo{background:#FAF8F6!important}
+.flag.yes{background:#EFFAF3!important;border-color:#C9EAD3!important}
+.flag.no{background:#F7F4F2!important;color:#8A817B!important}
+.badge{background:#F3EEE9!important;color:#665E58!important}
+.item,.items{border-color:#F5EFEB!important}
+.saved-order{background:#FAF8F6!important;color:#2D2926!important;border-color:#EEE5DF!important}
+.saved-order:active{background:#F5EFFD!important}
+.saved-order-no{color:#684287!important}
+.saved-total,.item-name,.detail .v,.memo .v{color:#2D2926!important}
+.saved-remove{background:#FFF6F6!important;color:#A33039!important;-webkit-text-fill-color:#A33039!important;border-color:#F2D0D0!important}
+.vault{border-color:#EEE5DF!important}
+.vault-code{background:#FAF8F6!important;color:#655D57!important;border-color:#F0E8E2!important}
+.vault-actions button,.ghost,.saved-sort{background:#FAF8F6!important;color:#655D57!important;-webkit-text-fill-color:#655D57!important;border-color:#E8DED7!important}
+.vault-actions button.primary{background:#6C2F64!important;color:#FFF!important;-webkit-text-fill-color:#FFF!important;border-color:#6C2F64!important}
+button:not(.saved-order):not(.saved-remove):not(.ghost):not(.saved-sort):not(.primary){background:#6C2F64!important;color:#FFF!important;-webkit-text-fill-color:#FFF!important}
+.back{background:#FFF!important;color:#2D2926!important;border-color:#EEE5DF!important}
+.vault-import input{background:#FFF!important;color:#2D2926!important}
+.err{background:#FFF2F2!important;color:#A12929!important;border-color:#EFCACA!important}
+.loading{color:#8A817B!important}
+.save-state{color:#238636!important}
+
+  </style>
 </head>
 <body>
 <main class="wrap">
