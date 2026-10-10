@@ -184,8 +184,6 @@
     .cart-add-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));justify-content:stretch;gap:8px;border-top:1px solid #F1E5E1;margin-top:3px;padding-top:11px}
     .cart-add{min-height:43px;width:100%;border:1px solid #E9C8CE;border-radius:13px;background:var(--brand-soft);color:var(--brand-ink);-webkit-text-fill-color:var(--brand-ink);font-size:12px;letter-spacing:-.2px}
     .cart-add:only-child{grid-column:2}
-    .cart-add.draft-only{background:#F6F1ED;color:#766A63;-webkit-text-fill-color:#766A63;border-color:#E5D8D1}
-    .cart-add.draft-only:only-child{grid-column:2}
     .cart-bar{border-radius:18px;padding:6px;background:#fff;border:1px solid #E9CDD0;box-shadow:0 10px 30px rgba(75,40,42,.18)}
     .cart-bar button{border-radius:13px;min-height:52px;letter-spacing:-.3px}
     .cart-overlay{background:rgba(33,20,22,.57);backdrop-filter:blur(3px)}
@@ -1031,8 +1029,8 @@ function cartProduct(id) {
 function cartUnitPrice(p, kind) {
   return Number(kind === "fullbox" ? p?.fullbox_price : p?.price) || 0;
 }
-// Hidden products with stock may be collected as a planning list.
-// They are NOT allowed through official checkout until seller marks them visible.
+// Both visible and hidden products with stock are selectable.
+// The seller's official create_web_order RPC decides whether the order is accepted.
 function cartIsAvailable(p, kind) {
   return Boolean(p && (p.state === "available" || p.state === "hidden") &&
     Number(p.current_stock) >= (kind === "fullbox" ? Math.max(1, Number(p.pack_size) || 1) : 1) &&
@@ -1367,7 +1365,8 @@ async function submitOfficialOrder(){
       const reason=({
         price_changed_reopen_cart:"가격이 바뀌었어. 재고판을 새로고침하고 확인해줘.",
         insufficient_stock:"상품 재고가 부족해. 수량을 줄여줘.",
-        product_not_on_sale:"현재 판매할 수 없는 상품이 있어.",
+        product_not_on_sale:"공식 주문이 제한된 상품이 있어.",
+        product_not_found:"등록된 상품 정보를 찾지 못했어.",
         invalid_cart_item:"장바구니 상품 정보를 확인해줘."
       })[data.error]||("주문 전 확인 실패: "+(data.error||res.status));
       cartError(reason+"\n공식 주문번호는 생성되지 않았어. 장바구니는 그대로야.");
@@ -1658,9 +1657,9 @@ function render() {
       ((cartIsAvailable(p, "single") || cartIsAvailable(p, "fullbox")) ?
         '<div class="cart-add-row">' +
         (cartIsAvailable(p, "single") ?
-          '<button class="cart-add' + (p.state==="hidden"?" draft-only":"") + '" type="button" data-add-cart="single" data-cart-id="' + Number(p.doll_id) + '">' + (p.state==="hidden"?"🛒 낱개 담기":"🛒 낱개 담기") + '</button>' : '') +
+          '<button class="cart-add" type="button" data-add-cart="single" data-cart-id="' + Number(p.doll_id) + '">🛒 낱개 담기</button>' : '') +
         (cartIsAvailable(p, "fullbox") ?
-          '<button class="cart-add' + (p.state==="hidden"?" draft-only":"") + '" type="button" data-add-cart="fullbox" data-cart-id="' + Number(p.doll_id) + '">' + (p.state==="hidden"?"📦 풀박스 담기":"📦 풀박스 담기") + '</button>' : '') +
+          '<button class="cart-add" type="button" data-add-cart="fullbox" data-cart-id="' + Number(p.doll_id) + '">📦 풀박스 담기</button>' : '') +
         '</div>' : '') +
       '<div id="history-' + Number(p.doll_id) + '" class="history-panel" hidden></div>' +
     '</article>';
