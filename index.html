@@ -697,21 +697,48 @@ body{background:var(--sb-bg);color:var(--sb-ink)}
   .filter-tools .sort-toolbar-label{font-size:10px}
 }
 
-/* Touch-safe cart choices: expand INSIDE the current card and push next cards
-   down. No absolute popup can overlap another item's hit target. */
+/* Compact cards + a separate modal choice sheet: nothing overlaps a neighbor. */
 .card{cursor:default}
 .card:active{transform:none}
-.item-actions{align-items:flex-start}
-.cart-picker{max-width:100%;box-sizing:border-box}
-.cart-picker[open]{flex:1 0 100%;width:100%;z-index:auto}
-.cart-picker[open] summary{margin-bottom:7px}
-.cart-pick-options{
-  position:static;top:auto;left:auto;z-index:auto;
-  box-sizing:border-box;width:100%;min-width:0;
-  padding:7px;margin:0;box-shadow:none
+.item-actions{align-items:center}
+.cart-open-trigger{
+  min-height:34px;padding:7px 10px;border:0;border-radius:9px;
+  background:var(--sb-accent);color:var(--sb-accent-text);
+  -webkit-text-fill-color:var(--sb-accent-text);
+  font:inherit;font-size:11px;font-weight:800;cursor:pointer;
+  touch-action:manipulation
 }
-.cart-pick-options button{width:100%;min-height:44px;touch-action:manipulation}
-.cart-picker:not([open]) .cart-pick-options{display:none}
+.cart-choice-dialog{
+  position:fixed;inset:auto 0 0;margin:0 auto;
+  box-sizing:border-box;width:min(100%,520px);max-width:100%;
+  max-height:min(75dvh,420px);overflow-y:auto;
+  border:1px solid var(--sb-line);border-bottom:0;
+  border-radius:20px 20px 0 0;
+  padding:17px 18px max(22px, env(safe-area-inset-bottom));
+  background:var(--sb-card);color:var(--sb-ink);
+  box-shadow:0 -14px 50px rgba(0,0,0,.28)
+}
+.cart-choice-dialog:not([open]){display:none}
+.cart-choice-dialog::backdrop{background:rgba(0,0,0,.55)}
+.cart-choice-top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.cart-choice-title{margin:0;font-size:17px;font-weight:850}
+.cart-choice-close{
+  border:0;border-radius:11px;background:var(--sb-soft);
+  color:var(--sb-ink);font-size:24px;width:38px;height:38px;cursor:pointer
+}
+.cart-choice-name{margin:8px 0 14px;font-size:13px;line-height:1.4;color:var(--sb-muted);overflow-wrap:anywhere}
+.cart-choice-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.cart-choice-options button{
+  min-width:0;min-height:65px;padding:11px 9px;
+  border:1px solid var(--sb-line);border-radius:12px;
+  background:var(--sb-soft);color:var(--sb-ink);
+  font:inherit;font-size:13px;font-weight:800;cursor:pointer;touch-action:manipulation
+}
+.cart-choice-options button small{display:block;margin-top:4px;font-size:11px;font-weight:600;color:var(--sb-muted)}
+.cart-choice-options button[hidden]{display:none!important}
+.cart-choice-options button:only-child{grid-column:1/-1}
+.cart-choice-options button:active{background:var(--sb-accent);color:var(--sb-accent-text)}
+@media(max-width:360px){.cart-choice-dialog{padding-left:13px;padding-right:13px}}
 
 </style>
 </head>
@@ -800,6 +827,18 @@ body{background:var(--sb-bg);color:var(--sb-ink)}
     <button id="cartOpen" type="button" aria-haspopup="dialog"><span id="cartBarLabel">🛒 장바구니</span> <span id="cartCount">0</span><span id="cartBarSuffix">개 · 확인하기</span></button>
   </div>
 </main>
+
+<dialog id="cartChoiceDialog" class="cart-choice-dialog" aria-modal="true" aria-labelledby="cartChoiceTitle">
+  <div class="cart-choice-top">
+    <h2 id="cartChoiceTitle" class="cart-choice-title">🛒 장바구니 담기</h2>
+    <button id="cartChoiceClose" class="cart-choice-close" type="button" aria-label="닫기">×</button>
+  </div>
+  <div id="cartChoiceName" class="cart-choice-name"></div>
+  <div class="cart-choice-options" role="group" aria-label="상품 담기 종류">
+    <button id="cartChoiceSingle" type="button">낱개 담기 <small id="cartChoiceSinglePrice"></small></button>
+    <button id="cartChoiceFullbox" type="button">풀박스 담기 <small id="cartChoiceFullboxPrice"></small></button>
+  </div>
+</dialog>
 
 <div id="cartOverlay" class="cart-overlay" aria-hidden="true">
   <section class="cart-sheet" role="dialog" aria-modal="true" aria-labelledby="cartTitle">
@@ -2179,13 +2218,8 @@ function render() {
         '<div class="item-actions">' +
           '<button class="history-btn" type="button" onclick="toggleHistory(' + Number(p.doll_id) + ')">📋 변경기록</button>' +
           ((cartIsAvailable(p, "single") || cartIsAvailable(p, "fullbox")) ?
-            '<details class="cart-picker"><summary aria-label="장바구니 담기 종류 선택">🛒 담기</summary>' +
-            '<div class="cart-pick-options">' +
-            (cartIsAvailable(p, "single") ?
-              '<button type="button" data-add-cart="single" data-cart-id="' + Number(p.doll_id) + '">낱개 담기</button>' : '') +
-            (cartIsAvailable(p, "fullbox") ?
-              '<button type="button" data-add-cart="fullbox" data-cart-id="' + Number(p.doll_id) + '">풀박스 담기</button>' : '') +
-            '</div></details>' : '') +
+            '<button class="cart-open-trigger" type="button" data-open-cart="' +
+              Number(p.doll_id) + '" aria-haspopup="dialog">🛒 담기 ⌄</button>' : '') +
         '</div>' +
       '</div>' +
       '<div class="stock ' + stockClass(p) + '">' +
@@ -2315,16 +2349,57 @@ $("refresh").addEventListener("click", async () => {
   await hydrateClientStats(true);
 });
 
+let cartChoiceProductId = null;
+let cartChoiceTrigger = null;
+function openCartChoice(productId, trigger) {
+  const product = cartProduct(productId);
+  if (!product) return;
+  const single = cartIsAvailable(product, "single");
+  const fullbox = cartIsAvailable(product, "fullbox");
+  if (!single && !fullbox) return;
+
+  const dialog = $("cartChoiceDialog");
+  if (dialog.open) dialog.close();
+  cartChoiceProductId = productId;
+  cartChoiceTrigger = trigger;
+  $("cartChoiceName").textContent = product.name;
+  $("cartChoiceSingle").hidden = !single;
+  $("cartChoiceFullbox").hidden = !fullbox;
+  $("cartChoiceSinglePrice").textContent = fmt(cartUnitPrice(product, "single")) + "원";
+  $("cartChoiceFullboxPrice").textContent = fmt(cartUnitPrice(product, "fullbox")) +
+    "원 · " + fmt(Math.max(1, Number(product.pack_size) || 1)) + "입";
+  dialog.showModal();
+  (single ? $("cartChoiceSingle") : $("cartChoiceFullbox")).focus();
+}
+
+function chooseCartKind(kind) {
+  const productId = cartChoiceProductId;
+  if (productId === null) return;
+  if (changeCart(productId, kind, 1)) {
+    $("cartChoiceDialog").close();
+    cartToast(kind === "fullbox" ? "📦 풀박스를 장바구니에 담았어" : "🛒 낱개를 장바구니에 담았어");
+  }
+}
+
+$("cartChoiceSingle").addEventListener("click", () => chooseCartKind("single"));
+$("cartChoiceFullbox").addEventListener("click", () => chooseCartKind("fullbox"));
+$("cartChoiceClose").addEventListener("click", () => $("cartChoiceDialog").close());
+$("cartChoiceDialog").addEventListener("click", (event) => {
+  if (event.target === $("cartChoiceDialog")) $("cartChoiceDialog").close();
+});
+$("cartChoiceDialog").addEventListener("close", () => {
+  cartChoiceProductId = null;
+  const trigger = cartChoiceTrigger;
+  cartChoiceTrigger = null;
+  if (trigger?.isConnected) trigger.focus({ preventScroll: true });
+});
+
 $("grid").addEventListener("click", (e) => {
-  const cartButton = e.target.closest("[data-add-cart]");
+  const cartButton = e.target.closest("[data-open-cart]");
   if (cartButton) {
     e.preventDefault();
     e.stopPropagation();
-    const kind = cartButton.dataset.addCart;
-    if (changeCart(Number(cartButton.dataset.cartId), kind, 1)) {
-      cartButton.closest(".cart-picker")?.removeAttribute("open");
-      cartToast(kind === "fullbox" ? "📦 풀박스를 장바구니에 담았어" : "🛒 낱개를 장바구니에 담았어");
-    }
+    openCartChoice(Number(cartButton.dataset.openCart), cartButton);
     return;
   }
   const zoomImg = e.target.closest("[data-zoom-src]");
@@ -2334,7 +2409,6 @@ $("grid").addEventListener("click", (e) => {
     return;
   }
   if (e.target.closest("button")) return;
-  if (e.target.closest(".cart-picker")) return;
   if (e.target.closest(".history-panel")) return;
   // Product cards are informational. Only an explicit link may open the
   // seller's website; touches beside cart controls must never navigate away.
@@ -2346,6 +2420,8 @@ $("lightbox").addEventListener("click", (e) => {
 });
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
+    // Native modal dialogs handle Escape and backdrop focus by themselves.
+    if ($("cartChoiceDialog").open) return;
     if ($("cartOverlay").classList.contains("open")) setCartOpen(false);
     else closeLightbox();
   }
