@@ -227,6 +227,7 @@
     .confirm-line.final{color:var(--brand-primary)}
     .hidden-cart-alert{font-size:12px;line-height:1.55;padding:12px 13px;margin:12px 0;border-radius:12px;background:#FFF1E4;border:1px solid #EBCBAA;color:#795027}
     #cartSubmit:disabled{cursor:not-allowed;opacity:.60;box-shadow:none}
+    .stock.hidden{color:#AC6376}
     @media(min-width:650px){
       .cart-sheet{border-radius:24px}
       .cart-overlay{align-items:center}
@@ -487,7 +488,7 @@ function durationText(seconds) {
 
 function label(p) {
   if (p.state === "sold_out") return "품절";
-  if (p.state === "hidden") return "숨김/판매종료";
+  if (p.state === "hidden") return Number(p.current_stock)>0 ? "숨김·재고" : "숨김/판매종료";
   if (Number(p.current_stock) <= 2) return "재고 얼마 안 남음";
   return "판매중";
 }
@@ -1665,9 +1666,9 @@ function render() {
       ((cartIsAvailable(p, "single") || cartIsAvailable(p, "fullbox")) ?
         '<div class="cart-add-row">' +
         (cartIsAvailable(p, "single") ?
-          '<button class="cart-add' + (p.state==="hidden"?" draft-only":"") + '" type="button" data-add-cart="single" data-cart-id="' + Number(p.doll_id) + '">' + (p.state==="hidden"?"🔒 낱개 담기":"🛒 낱개 담기") + '</button>' : '') +
+          '<button class="cart-add' + (p.state==="hidden"?" draft-only":"") + '" type="button" data-add-cart="single" data-cart-id="' + Number(p.doll_id) + '">' + (p.state==="hidden"?"📌 낱개 담기":"🛒 낱개 담기") + '</button>' : '') +
         (cartIsAvailable(p, "fullbox") ?
-          '<button class="cart-add' + (p.state==="hidden"?" draft-only":"") + '" type="button" data-add-cart="fullbox" data-cart-id="' + Number(p.doll_id) + '">' + (p.state==="hidden"?"🔒 풀박스 담기":"📦 풀박스 담기") + '</button>' : '') +
+          '<button class="cart-add' + (p.state==="hidden"?" draft-only":"") + '" type="button" data-add-cart="fullbox" data-cart-id="' + Number(p.doll_id) + '">' + (p.state==="hidden"?"📌 풀박스 담기":"📦 풀박스 담기") + '</button>' : '') +
         '</div>' : '') +
       '<div id="history-' + Number(p.doll_id) + '" class="history-panel" hidden></div>' +
     '</article>';
