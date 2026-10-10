@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fffaf6">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#F6F5F0">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#17191F">
 <meta name="color-scheme" content="light dark">
 <title>베베픽 주문 옵션 조회</title>
 <style>
@@ -206,6 +207,67 @@ button{background:#6c2f64;color:#fff;-webkit-text-fill-color:#fff}
  .err{background:#432a31;color:#f4bfc5;border-color:#84535c}
  .loading{color:#c5b2ca}
  .save-state{color:#dda9e9}
+}
+
+
+/* Companion order lookup visual theme: D ivory by day, B graphite cobalt by night. */
+:root{color-scheme:light;--brand-primary:#315A78;--brand-ink:#315A78;
+--brand-soft:#E9F1F5;--brand-border:#BDCFDA;--paper:#F6F5F0;--ink:#242C34;
+--sb-card:#FFFFFF;--sb-muted:#677583;--sb-line:#DEE3E5;--sb-chip:#EFF2F3;--sb-accent-text:#FFFFFF}
+html{color-scheme:light;background:var(--paper)}
+body{background:var(--paper);color:var(--ink)}
+.sub,.meta,.note,.saved-sub,.saved-order-meta,.vault-note,.vault-msg,
+.item-meta,.detail .k,.memo .k,.empty,.saved-empty{color:var(--sb-muted)}
+.back,.box,.flag,.memo,.detail,.saved-order,.ghost,.saved-sort{background:var(--sb-card);border-color:var(--sb-line);color:var(--ink)}
+.main-tabs{background:#E9ECEE;border-color:var(--sb-line)}
+.main-tab{color:var(--sb-muted)}
+.main-tab.on{background:var(--sb-card);color:var(--brand-ink)}
+input,.vault-import input{background:var(--sb-card);color:var(--ink);border-color:var(--sb-line)}
+input::placeholder{color:#858E96}
+#orderNo:focus{border-color:var(--brand-primary);outline-color:var(--brand-border)}
+button{background:var(--brand-primary);color:var(--sb-accent-text);-webkit-text-fill-color:var(--sb-accent-text)}
+.saved-sort,.ghost,.vault-actions button{background:var(--sb-chip);color:var(--ink);-webkit-text-fill-color:var(--ink);border-color:var(--sb-line)}
+.saved-sort{color-scheme:light}
+.saved-order{background:var(--sb-card);color:var(--ink)}
+.saved-order:active{background:var(--brand-soft)}
+.saved-order-no,.save-state{color:var(--brand-ink)}
+.saved-remove{background:#FFF2F2;color:#A33039;-webkit-text-fill-color:#A33039;border-color:#EFC9CF}
+.saved-total,.item-name,.detail .v,.memo .v{color:var(--ink)}
+.flag.yes{background:#EBF5F1;border-color:#CCE2D7}
+.flag.no{background:var(--sb-chip);color:var(--sb-muted)}
+.badge{background:var(--sb-chip);color:var(--sb-muted)}
+.item,.items,.vault{border-color:var(--sb-line)}
+.vault-code{background:var(--sb-chip);color:var(--ink);border-color:var(--sb-line)}
+.vault-actions button.primary{background:var(--brand-primary);color:#FFF;-webkit-text-fill-color:#FFF;border-color:var(--brand-primary)}
+.err{background:#FFF2F2;color:#9E3E40;border-color:#EFC9CF}
+@media(prefers-color-scheme:dark){
+ :root{color-scheme:dark;--brand-primary:#548EF4;--brand-ink:#B5CFFC;
+ --brand-soft:#283951;--brand-border:#4E668D;--paper:#17191F;--ink:#F5F7FA;
+ --sb-card:#282C35;--sb-muted:#B7BEC9;--sb-line:#434955;--sb-chip:#343B49;--sb-accent-text:#0D1B31}
+ html{color-scheme:dark;background:var(--paper)}
+ body{background:var(--paper);color:var(--ink)}
+ .back,.box,.flag,.memo,.detail,.saved-order,.ghost,.saved-sort{background:var(--sb-card);border-color:var(--sb-line);color:var(--ink)}
+ .main-tabs{background:#222732;border-color:var(--sb-line)}
+ .main-tab{color:var(--sb-muted)}
+ .main-tab.on{background:#343C4B;color:var(--ink)}
+ input,.vault-import input{background:#303641;color:var(--ink);border-color:var(--sb-line)}
+ input::placeholder{color:#9CA7B9}
+ button{background:var(--brand-primary);color:var(--sb-accent-text);-webkit-text-fill-color:var(--sb-accent-text)}
+ .saved-sort,.ghost,.vault-actions button{background:var(--sb-chip);color:var(--ink);-webkit-text-fill-color:var(--ink);border-color:var(--sb-line)}
+ .saved-sort{color-scheme:dark}
+ .saved-order{background:var(--sb-card);color:var(--ink);border-color:var(--sb-line)}
+ .saved-order:active{background:#343D4B}
+ .saved-order-no,.save-state{color:#BDD5FF}
+ .saved-remove{background:#442D36;color:#FFC2CD;-webkit-text-fill-color:#FFC2CD;border-color:#85515F}
+ .saved-total,.item-name,.detail .v,.memo .v{color:var(--ink)}
+ .flag.yes{background:#233C38;border-color:#3C6A5E}
+ .flag.no{background:var(--sb-chip);color:var(--sb-muted)}
+ .badge{background:var(--sb-chip);color:var(--sb-muted)}
+ .item,.items,.vault{border-color:var(--sb-line)}
+ .vault-code{background:var(--sb-chip);color:var(--ink);border-color:var(--sb-line)}
+ .vault-actions button.primary{background:var(--brand-primary);color:var(--sb-accent-text);-webkit-text-fill-color:var(--sb-accent-text);border-color:var(--brand-primary)}
+ .err{background:#442D36;color:#FFC2CD;border-color:#85515F}
+ .loading{color:var(--sb-muted)}
 }
 
 </style>
