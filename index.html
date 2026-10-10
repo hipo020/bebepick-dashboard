@@ -3,7 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <meta name="theme-color" content="#fffaf6" />
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#F6F5F0" />
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#17191F" />
   <meta name="color-scheme" content="light dark" />
   <title>베베픽 재고판</title>
   <style>
@@ -509,6 +510,157 @@ body{color:#2d2926;background:#fffaf6}
   -webkit-text-fill-color:#fff;border-color:#9163a2}
 }
 
+
+/* Stockboard UI 2026-10-10: light D (soft ivory), dark B (graphite cobalt).
+   Presentation only; original images, inventory, history, and checkout API are unchanged. */
+:root{
+  color-scheme:light;--brand-primary:#315A78;--brand-dark:#24465F;
+  --brand-soft:#E9F1F5;--brand-border:#BDCFDA;--brand-ink:#315A78;
+  --paper:#F6F5F0;--surface:#FFFFFF;--ink:#242C34;--muted:#677583;
+  --sb-bg:#F6F5F0;--sb-card:#FFFFFF;--sb-ink:#242C34;--sb-muted:#677583;
+  --sb-line:#DEE3E5;--sb-accent:#315A78;--sb-accent-text:#FFFFFF;
+  --sb-soft:#EFF2F3;--sb-status:#347D66;--sb-controls:rgba(246,245,240,.96);
+}
+html{color-scheme:light;background:var(--sb-bg)}
+body{background:var(--sb-bg);color:var(--sb-ink)}
+.sub,.meta,.summary,.my-queue,.status-muted,.cart-item-meta,.cart-result-subtitle{color:var(--sb-muted)}
+.summary b,.name,.status-summary,.cart-item-name,.cart-section-title{color:var(--sb-ink)}
+.controls{background:var(--sb-controls)}
+.card,.status,.shop,.search,.main-tab.on{background:var(--sb-card);border-color:var(--sb-line);color:var(--sb-ink)}
+.card{position:relative;border-radius:16px;padding:10px;gap:10px;box-shadow:0 4px 14px rgba(25,35,50,.055)}
+.shop,.search,.refresh,.chip,.sort,.filter-select,.special-toggle{background-color:var(--sb-card);color:var(--sb-ink);border-color:var(--sb-line)}
+.main-tabs{background:#EAECED;border-color:#DFE3E6}
+.main-tab{color:#677583}
+.main-tab.on{box-shadow:0 2px 10px rgba(35,55,75,.06)}
+.status-summary{min-height:44px;padding:10px 12px}
+.status-summary:active{background:var(--sb-soft)}
+.status-details,.broadcast-state{border-color:var(--sb-line)}
+.status-chevron,.option-toggle{color:var(--sb-muted)}
+.chip.on,.special-toggle.on,.filter-select.on{background:var(--sb-accent);color:var(--sb-accent-text);-webkit-text-fill-color:var(--sb-accent-text);border-color:var(--sb-accent)}
+.chip.on b{background:rgba(255,255,255,.20);color:#FFF}
+.chip b{background:var(--sb-soft);color:var(--sb-muted)}
+.search:focus{border-color:var(--sb-accent);box-shadow:0 0 0 3px rgba(49,90,120,.13)}
+.search::placeholder{color:#858E96}
+.sort-toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:6px 2px 4px;min-height:38px}
+.sort-toolbar-label{font-size:12px;font-weight:750;color:var(--sb-muted)}
+.sort-toolbar .sort{width:auto;min-width:155px;max-width:70%;min-height:36px;border-radius:11px;font-size:12px;padding:7px 27px 7px 12px;color:var(--sb-ink);text-align:left}
+.queue-links{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:8px}
+.queue-link{min-width:0;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:3px;border-radius:12px;border:1px solid #C7D6E1;background:#EFF5F9;color:#315A78;padding:9px 10px;text-decoration:none}
+.queue-link-plus{background:#EAF4F1;border-color:#C7DDD5;color:#286F5A}
+.queue-name{font-size:12px;font-weight:800;line-height:1.3}
+.queue-description{font-size:10.5px;line-height:1.3;opacity:.90}
+.thumb,.ph{background:#ECEDF0}
+.history-btn{margin-top:0;border:1px solid var(--sb-line);background:var(--sb-soft);color:var(--sb-muted);padding:7px 8px;border-radius:9px;font-size:11px;font-weight:700;min-height:34px}
+.item-actions{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:7px}
+.cart-picker{position:relative;display:inline-block}
+.cart-picker summary{list-style:none;display:inline-flex;justify-content:center;align-items:center;min-height:34px;padding:7px 9px;background:var(--sb-accent);color:var(--sb-accent-text);-webkit-text-fill-color:var(--sb-accent-text);font-size:11px;font-weight:800;border-radius:9px;cursor:pointer;user-select:none}
+.cart-picker summary::-webkit-details-marker{display:none}
+.cart-picker summary::after{content:"⌄";margin-left:5px;font-size:13px}
+.cart-picker[open] summary::after{content:"⌃"}
+.cart-picker[open]{z-index:9}
+.cart-pick-options{position:absolute;top:calc(100% + 5px);left:0;z-index:12;display:grid;gap:5px;width:max-content;min-width:135px;padding:7px;background:var(--sb-card);border:1px solid var(--sb-line);border-radius:12px;box-shadow:0 12px 24px rgba(20,30,40,.22)}
+.cart-pick-options button{display:block;min-height:40px;border:0;border-radius:9px;background:var(--sb-soft);color:var(--sb-ink);-webkit-text-fill-color:var(--sb-ink);font:inherit;font-size:12px;font-weight:750;padding:9px 10px;text-align:left;cursor:pointer}
+.cart-pick-options button:active{background:var(--brand-soft)}
+.stock.ok,.stock.hidden,.trend.up,.rt,.broadcast-state.live{color:var(--sb-status)}
+.history-panel{border-color:var(--sb-line);color:var(--sb-muted)}
+.history-row{border-color:var(--sb-line)}
+.price-values{color:var(--sb-ink)}
+.cart-bar{padding:4px;border-radius:14px;background:var(--sb-card);border-color:var(--sb-line);box-shadow:0 5px 18px rgba(20,30,40,.16)}
+.cart-bar button{min-height:44px;padding:10px 12px;border-radius:11px;background:var(--sb-accent);color:var(--sb-accent-text);-webkit-text-fill-color:var(--sb-accent-text)}
+.cart-sheet,.checkout-confirm-dialog{background:var(--sb-bg);color:var(--sb-ink);border-color:var(--sb-line)}
+.cart-top h2,.cart-title-emoji,.cart-overline,.cart-result-details strong{color:var(--sb-ink)}
+.cart-close,.cart-clear{background:var(--sb-soft);color:var(--sb-muted);border-color:var(--sb-line)!important}
+.cart-notice,.hidden-cart-alert{background:var(--brand-soft);color:var(--brand-ink);border-color:var(--brand-border)}
+.cart-notice strong{color:var(--brand-ink)}
+.cart-notice-icon,.cart-qty button,.cart-options span,.cart-grand-total,.cart-result-no{background:var(--sb-card);color:var(--sb-ink);border-color:var(--sb-line)}
+.cart-qty button{color:var(--sb-ink)}
+.cart-options span{background:var(--sb-card)!important;color:var(--sb-ink)!important;-webkit-text-fill-color:var(--sb-ink)!important;border-color:var(--sb-line)!important}
+.cart-options input:checked+span{background:var(--sb-accent)!important;color:var(--sb-accent-text)!important;-webkit-text-fill-color:var(--sb-accent-text)!important;border-color:var(--sb-accent)!important}
+.cart-step{background:var(--brand-soft);color:var(--brand-ink)}
+.cart-grand-total{color:var(--sb-ink)}
+.cart-grand-total span:last-child{color:var(--sb-accent)}
+.cart-visit,.cart-primary-action,#cartReceipt .cart-primary-action,.confirm-actions button[value="approve"]{background:var(--sb-accent)!important;color:var(--sb-accent-text)!important;-webkit-text-fill-color:var(--sb-accent-text)!important;border-color:var(--sb-accent)!important}
+#cartEditing>.cart-actions{background:linear-gradient(180deg,transparent,var(--sb-bg) 30%)}
+.cart-footnote,.cart-result-details span,.confirm-line{color:var(--sb-muted)}
+.cart-footnote a,.cart-result a{color:var(--sb-accent)}
+#cartReceipt,.cart-result-status{background:var(--brand-soft);color:var(--sb-ink)}
+.cart-result-title,.cart-result-no{color:var(--sb-ink)}
+.cart-result-no{border-color:var(--brand-border)}
+.cart-secondary-action,#cartReceipt .cart-secondary-action{background:var(--sb-card);color:var(--sb-accent);border-color:var(--sb-line)}
+.cart-toast{background:#263746;color:#FFF}
+.checkout-confirm-dialog h2,.confirm-line.final{color:var(--sb-accent)}
+.checkout-confirm-dialog p{color:var(--sb-muted)}
+.checkout-confirm-dialog .confirm-items,.confirm-actions button{background:var(--sb-card);color:var(--sb-ink);border-color:var(--sb-line)}
+@media(prefers-color-scheme:dark){
+ :root{
+  color-scheme:dark;--brand-primary:#548EF4;--brand-dark:#356ACB;
+  --brand-soft:#283951;--brand-border:#4E668D;--brand-ink:#B5CFFC;
+  --paper:#17191F;--surface:#282C35;--ink:#F5F7FA;--muted:#B7BEC9;
+  --sb-bg:#17191F;--sb-card:#282C35;--sb-ink:#F5F7FA;--sb-muted:#B7BEC9;
+  --sb-line:#434955;--sb-accent:#548EF4;--sb-accent-text:#0D1B31;
+  --sb-soft:#343B49;--sb-status:#7BD9AC;--sb-controls:rgba(23,25,31,.96);
+ }
+ html{color-scheme:dark;background:var(--sb-bg)}
+ body{background:var(--sb-bg);color:var(--sb-ink)}
+ .shop,.back,.card,.status,.search,.main-tab.on{background:var(--sb-card);color:var(--sb-ink);border-color:var(--sb-line)}
+ .controls{background:var(--sb-controls)}
+ .main-tabs{background:#222732;border-color:var(--sb-line)}
+ .main-tab{color:var(--sb-muted)}
+ .main-tab.on{background:#343C4B;color:var(--sb-ink)}
+ .status.err{background:#422D32;border-color:#89565D}
+ .status-summary,.status-top{color:var(--sb-ink)}
+ .status-summary:active{background:#323A46}
+ .search::placeholder{color:#9CA7B9}
+ .chip,.special-toggle,.filter-select,.sort,.refresh{background:var(--sb-card);color:var(--sb-ink);border-color:var(--sb-line)}
+ .chip.on,.special-toggle.on,.filter-select.on{background:var(--sb-accent);color:var(--sb-accent-text);-webkit-text-fill-color:var(--sb-accent-text);border-color:var(--sb-accent)}
+ .chip.on b{color:var(--sb-accent-text);background:rgba(0,0,0,.12)}
+ .chip b{background:#3D4655;color:var(--sb-muted)}
+ .stock.hidden{color:var(--sb-status)}
+ .queue-link{background:#2A3C53;border-color:#48658C;color:#C4DEFF}
+ .queue-link-plus{background:#23443F;border-color:#3D7268;color:#B9EADA}
+ .history-btn{background:var(--sb-soft);color:var(--sb-muted);border-color:var(--sb-line)}
+ .history-panel{background:var(--sb-card);color:var(--sb-muted)}
+ .price-values{color:var(--sb-ink)}
+ .cart-bar{background:var(--sb-card);border-color:var(--sb-line)}
+ .cart-bar button,.cart-picker summary{background:var(--sb-accent);color:var(--sb-accent-text);-webkit-text-fill-color:var(--sb-accent-text)}
+ .cart-pick-options{background:var(--sb-card);border-color:var(--sb-line)}
+ .cart-pick-options button{background:var(--sb-soft);color:var(--sb-ink);-webkit-text-fill-color:var(--sb-ink)}
+ .cart-sheet,.checkout-confirm-dialog{background:var(--sb-bg);color:var(--sb-ink);border-color:var(--sb-line)}
+ .cart-close,.cart-clear{background:var(--sb-soft);color:var(--sb-muted);border-color:var(--sb-line)!important}
+ .cart-notice,.hidden-cart-alert{background:var(--brand-soft);color:#B5CFFC;border-color:var(--brand-border)}
+ .cart-notice strong{color:#B5CFFC}
+ .cart-notice-icon,.cart-qty button,.cart-grand-total,.cart-result-no{background:var(--sb-card);color:var(--sb-ink);border-color:var(--sb-line)}
+ .cart-options span{background:var(--sb-card)!important;color:var(--sb-ink)!important;-webkit-text-fill-color:var(--sb-ink)!important;border-color:var(--sb-line)!important}
+ .cart-options input:checked+span{background:var(--sb-accent)!important;color:var(--sb-accent-text)!important;-webkit-text-fill-color:var(--sb-accent-text)!important;border-color:var(--sb-accent)!important}
+ .cart-options input:checked+span::before{color:var(--sb-accent-text)!important;-webkit-text-fill-color:var(--sb-accent-text)!important}
+ .cart-qty strong,.cart-item-name,.cart-section-title,.cart-result-title,.cart-result-no{color:var(--sb-ink)}
+ .cart-step{background:var(--brand-soft);color:#B5CFFC}
+ .cart-grand-total span:last-child{color:#95B9FA}
+ .cart-visit,.cart-primary-action,#cartReceipt .cart-primary-action,.confirm-actions button[value="approve"]{background:var(--sb-accent)!important;color:var(--sb-accent-text)!important;-webkit-text-fill-color:var(--sb-accent-text)!important;border-color:var(--sb-accent)!important}
+ #cartEditing>.cart-actions{background:linear-gradient(180deg,transparent,var(--sb-bg) 30%)}
+ #cartReceipt,.cart-result-status{background:var(--brand-soft);color:var(--sb-ink)}
+ .cart-result-no{border-color:var(--brand-border)}
+ .cart-secondary-action,#cartReceipt .cart-secondary-action{background:var(--sb-card);color:#BDD5FF;border-color:var(--sb-line)}
+ .cart-toast{background:#36465D;color:#FFF}
+ .checkout-confirm-dialog h2,.confirm-line.final{color:#B5CFFC}
+ .checkout-confirm-dialog p{color:var(--sb-muted)}
+ .checkout-confirm-dialog .confirm-items,.confirm-actions button{background:var(--sb-card);color:var(--sb-ink);border-color:var(--sb-line)}
+}
+@media(max-width:649px){
+ .card{padding:10px;gap:9px}
+ .sort-toolbar .sort{width:auto;min-width:150px;max-width:70%;font-size:12px}
+ .queue-links{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .queue-link{padding:9px 8px}
+ .queue-name{font-size:11px}
+ .queue-description{font-size:10px}
+}
+@media(max-width:365px){
+ .card{grid-template-columns:72px minmax(0,1fr) auto;gap:8px}
+ .thumb,.ph{width:72px;height:72px}
+ .stock{min-width:59px;font-size:21px}
+ .queue-links{grid-template-columns:1fr}
+}
+
 </style>
 </head>
 <body>
@@ -566,6 +718,19 @@ body{color:#2d2926;background:#fffaf6}
       </button>
     </div>
 
+    <div class="sort-toolbar">
+      <label class="sort-toolbar-label" for="sort">정렬</label>
+      <select id="sort" class="sort" aria-label="상품 정렬">
+        <option value="desc">재고 많은 순</option>
+        <option value="asc">재고 적은 순</option>
+        <option value="popular">최근 재고 감소순</option>
+        <option value="recent_created">최근 등록순</option>
+        <option value="old_created">오래된 등록순</option>
+        <option value="hidden_recent">최근 숨김 감지순</option>
+        <option value="hidden_first">숨김 우선순</option>
+        <option value="name">이름순</option>
+      </select>
+    </div>
     <div id="optionRow" class="option-row" hidden>
       <select id="filterSelect" class="filter-select" aria-label="기타 필터">
         <option value="">기타 필터</option>
@@ -575,12 +740,6 @@ body{color:#2d2926;background:#fffaf6}
 
       <button id="specialToggle" class="special-toggle" type="button" aria-pressed="false">특수상품</button>
 
-      <select id="sort" class="sort" aria-label="정렬">
-        <option value="desc">재고 많은 순</option>
-        <option value="asc">재고 적은 순</option>
-        <option value="popular">최근 인기순</option>
-        <option value="name">이름순</option>
-      </select>
     </div>
   </div>
   <div id="grid" class="grid"><div class="empty">재고 불러오는 중…</div></div>
@@ -911,7 +1070,10 @@ async function refreshBroadcastState() {
 
     if (queueRes.error) throw queueRes.error;
 
-    const rows = Array.isArray(queueRes.data) ? queueRes.data : [];
+    const channelPriority = { bebepick: 0, bebepick_plus: 1 };
+    const rows = (Array.isArray(queueRes.data) ? [...queueRes.data] : [])
+      .sort((a, b) => (channelPriority[a.channel_slug] ?? 9) - (channelPriority[b.channel_slug] ?? 9)
+        || Number(a.broadcast_id || 0) - Number(b.broadcast_id || 0));
     const etaMap = new Map(
       (Array.isArray(etaRes?.broadcasts) ? etaRes.broadcasts : []).map((x) => [
         Number(x.broadcast_id) + ":" + String(x.channel_slug || ""),
@@ -930,15 +1092,18 @@ async function refreshBroadcastState() {
     }
 
     const links = rows.map((row) => {
-      const channel = broadcastLabel(row.channel_slug);
+      const slug = String(row.channel_slug || "");
+      const channel = slug === "bebepick" ? "1호점 · 베베픽"
+        : slug === "bebepick_plus" ? "플러스 · 베베픽+" : broadcastLabel(slug);
       const rawName = String(row.broadcast_name || "").trim();
-      let shortName = rawName
-        .replace(/^\d{8}_/, "")
-        .replace(/^베플/, "베플 ")
-        .replace(/^베베픽/, "베베픽 ");
-      const label = shortName || channel;
-      return '<a class="queue-link" href="' + esc(queuePageUrl(row.channel_slug)) +
-        '" target="_blank" rel="noopener">📋 ' + esc(label) + ' 순서표 ↗</a>';
+      const broadcastName = rawName.replace(/^\d{8}_/, "")
+        .replace(/^(베플|베베픽 플러스|베베픽\+|베베픽)/, "").trim();
+      const description = (broadcastName || "방송") + " 순서표 ↗";
+      const channelClass = slug === "bebepick_plus" ? " queue-link-plus" : " queue-link-main";
+      return '<a class="queue-link' + channelClass + '" href="' + esc(queuePageUrl(slug)) +
+        '" target="_blank" rel="noopener"><span class="queue-name">📋 ' +
+        esc(channel) + '</span><span class="queue-description">' +
+        esc(description) + '</span></a>';
     });
 
     el.className = "broadcast-state live";
@@ -1320,6 +1485,7 @@ function changeCart(id, kind, delta) {
   }
   saveCartPreview();
   renderCartPreview();
+  return true;
 }
 
 const ORDER_API_URL = "https://fergbabqmwnbkkxjvgkj.supabase.co/functions/v1/bebepick-personal-checkout";
@@ -1830,15 +1996,38 @@ function render() {
     return true;
   });
 
+  const validTimestamp = (value) => {
+    const t = value ? new Date(value).getTime() : NaN;
+    return Number.isFinite(t) ? t : null;
+  };
+  const fallbackStock = (a, b) =>
+    Number(b.current_stock || 0) - Number(a.current_stock || 0)
+    || String(a.name || "").localeCompare(String(b.name || ""), "ko");
   list.sort((a, b) => {
     if (sort === "name") return String(a.name).localeCompare(String(b.name), "ko");
-    if (sort === "desc") return Number(b.current_stock) - Number(a.current_stock);
+    if (sort === "desc") return fallbackStock(a, b);
+    if (sort === "asc") return Number(a.current_stock) - Number(b.current_stock) || fallbackStock(a, b);
     if (sort === "popular") {
       const d = Number(b.recent_decrease_60m || 0) - Number(a.recent_decrease_60m || 0);
-      if (d !== 0) return d;
-      return Number(a.current_stock) - Number(b.current_stock);
+      return d || fallbackStock(a, b);
     }
-    return Number(a.current_stock) - Number(b.current_stock);
+    if (sort === "hidden_first") {
+      const d = Number(b.state === "hidden") - Number(a.state === "hidden");
+      return d || fallbackStock(a, b);
+    }
+    if (sort === "recent_created" || sort === "old_created" || sort === "hidden_recent") {
+      // 숨김 감지일은 실제 last_event=removed 이력만 사용하며, 미기록 상품은 마지막에 둔다.
+      const dateOf = (p) => sort === "hidden_recent"
+        ? (p.state === "hidden" && p.last_event === "removed"
+          ? validTimestamp(p.last_event_at) : null)
+        : validTimestamp(p.source_created_at);
+      const ta = dateOf(a), tb = dateOf(b);
+      if (ta === null) return tb === null ? fallbackStock(a, b) : 1;
+      if (tb === null) return -1;
+      const d = sort === "old_created" ? ta - tb : tb - ta;
+      return d || fallbackStock(a, b);
+    }
+    return fallbackStock(a, b);
   });
 
   const available = baseProducts.filter((p) => p.state === "available").length;
@@ -1911,18 +2100,21 @@ function render() {
         '<div class="name">' + esc(p.name) + '</div>' +
         '<div class="meta">' + esc(price + pack + full) + '</div>' +
         recentIncrease + recentDecrease + eta + selloutSpeed +
-        '<button class="history-btn" type="button" onclick="toggleHistory(' + Number(p.doll_id) + ')">📋 변경 기록 (재고·가격)</button>' +
+        '<div class="item-actions">' +
+          '<button class="history-btn" type="button" onclick="toggleHistory(' + Number(p.doll_id) + ')">📋 변경기록</button>' +
+          ((cartIsAvailable(p, "single") || cartIsAvailable(p, "fullbox")) ?
+            '<details class="cart-picker"><summary aria-label="장바구니 담기 종류 선택">🛒 담기</summary>' +
+            '<div class="cart-pick-options">' +
+            (cartIsAvailable(p, "single") ?
+              '<button type="button" data-add-cart="single" data-cart-id="' + Number(p.doll_id) + '">낱개 담기</button>' : '') +
+            (cartIsAvailable(p, "fullbox") ?
+              '<button type="button" data-add-cart="fullbox" data-cart-id="' + Number(p.doll_id) + '">풀박스 담기</button>' : '') +
+            '</div></details>' : '') +
+        '</div>' +
       '</div>' +
       '<div class="stock ' + stockClass(p) + '">' +
         stock + '<small>' + label(p) + '</small>' +
       '</div>' +
-      ((cartIsAvailable(p, "single") || cartIsAvailable(p, "fullbox")) ?
-        '<div class="cart-add-row">' +
-        (cartIsAvailable(p, "single") ?
-          '<button class="cart-add" type="button" data-add-cart="single" data-cart-id="' + Number(p.doll_id) + '">🛒 낱개 담기</button>' : '') +
-        (cartIsAvailable(p, "fullbox") ?
-          '<button class="cart-add" type="button" data-add-cart="fullbox" data-cart-id="' + Number(p.doll_id) + '">📦 풀박스 담기</button>' : '') +
-        '</div>' : '') +
       '<div id="history-' + Number(p.doll_id) + '" class="history-panel" hidden></div>' +
     '</article>';
   }).join("");
@@ -2052,7 +2244,11 @@ $("grid").addEventListener("click", (e) => {
   if (cartButton) {
     e.preventDefault();
     e.stopPropagation();
-    changeCart(Number(cartButton.dataset.cartId), cartButton.dataset.addCart, 1);
+    const kind = cartButton.dataset.addCart;
+    if (changeCart(Number(cartButton.dataset.cartId), kind, 1)) {
+      cartButton.closest(".cart-picker")?.removeAttribute("open");
+      cartToast(kind === "fullbox" ? "📦 풀박스를 장바구니에 담았어" : "🛒 낱개를 장바구니에 담았어");
+    }
     return;
   }
   const zoomImg = e.target.closest("[data-zoom-src]");
@@ -2062,6 +2258,7 @@ $("grid").addEventListener("click", (e) => {
     return;
   }
   if (e.target.closest("button")) return;
+  if (e.target.closest(".cart-picker")) return;
   if (e.target.closest(".history-panel")) return;
   const card = e.target.closest(".card");
   if (!card) return;
