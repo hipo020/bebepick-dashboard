@@ -14,6 +14,11 @@ const YOUTUBE_WATCH_URL = process.env.YOUTUBE_WATCH_URL ||
   WATCH_URL.replace(/\/bebepick-watch$/, "/bebepick-youtube-watch");
 const FOCUS_DURATION_MS = 8 * 60_000;
 const FOCUS_INTERVAL_MS = 20_000;
+// 2026-10-11: pause background YouTube webpage checks by default.
+// Enable only on explicit request via Render YOUTUBE_FOCUS_ENABLED=true.
+// Official YouTube app notification handling and on-demand LIVE verification
+// stay independent in the Android watcher and Supabase /verify endpoint.
+const YOUTUBE_FOCUS_ENABLED = process.env.YOUTUBE_FOCUS_ENABLED === "true";
 const PORT = Number(process.env.PORT || 10000);
 
 if (!WATCH_KEY) throw new Error("WATCH_KEY missing");
@@ -38,11 +43,14 @@ let rerun = false;
 const pendingReasons = new Set();
 
 // A homepage ON is a scheduling hint only; it must never send a Kakao order.
-// The existing 30-second YouTube cron remains independent of homepage events.
+// The separate Supabase YouTube cron is disabled in pg_cron (job 2).
+// Homepage events remain available for inventory, stock and queue alerts.
 const focusUntil = new Map();
 const focusTimers = new Map();
 
 function startYoutubeFocus(slug) {
+  // Do not make repeat YouTube requests unless the user explicitly enables it.
+  if (!YOUTUBE_FOCUS_ENABLED) return;
   if (slug !== "bebepick" && slug !== "bebepick_plus") return;
   focusUntil.set(slug, Date.now() + FOCUS_DURATION_MS);
   if (focusTimers.has(slug)) return;
@@ -247,6 +255,7 @@ const server = http.createServer(async (req, res) => {
     last_trigger_reason: lastTriggerReason,
     last_trigger_result: lastTriggerResult,
     last_trigger_error: lastTriggerError,
+    youtube_focus_enabled: YOUTUBE_FOCUS_ENABLED,
     youtube_focus_channels: [...focusUntil.keys()]
   }));
 });
