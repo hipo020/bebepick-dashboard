@@ -937,6 +937,15 @@ let query = "";
 let sort = "desc";
 let includeSpecial = false;
 let optionPanelOpen = false;
+const productSortPreference = Object.create(null);
+function chooseProductFilter(next) {
+  if (next !== filter) {
+    productSortPreference[filter] = sort;
+    filter = next;
+    sort = productSortPreference[next] || productSortDefault(next);
+  }
+  render();
+}
 
 const $ = (id) => document.getElementById(id);
 const fmt = (n) => Number(n || 0).toLocaleString("ko-KR");
@@ -1501,7 +1510,7 @@ async function toggleHistory(id) {
 }
 
 function syncFilterUI() {
-  const quickFilters = new Set(["available", "all", "hidden", "hidden_stock", "upcoming"]);
+  const quickFilters = new Set(["available", "all", "hidden", "hidden_stock", "upcoming", "unavailable"]);
   document.querySelectorAll(".chip").forEach((button) => {
     const on = button.dataset.f === filter;
     button.classList.toggle("on", on);
@@ -2098,6 +2107,8 @@ $("cartClear").addEventListener("click", () => {
 // Final official order action is implemented by submitOfficialOrder below.
 
 function render() {
+  // Keep just the relevant sort options for the current product filter.
+  sort = syncProductSortOptions(filter, sort);
   const q = normalizeSearch(query);
 
   const baseProducts = includeSpecial
@@ -2134,6 +2145,18 @@ function render() {
       const d = Number(b.state === "hidden") - Number(a.state === "hidden");
       return d || fallbackStock(a, b);
     }
+    if (sort === "unavailable_recent" || sort === "unavailable_old" ||
+        sort === "recent_restock_sort") {
+      const dateOf = (p) => sort === "recent_restock_sort"
+        ? validTimestamp(p.last_increase_at)
+        : validTimestamp(observedUnavailableAt(p));
+      const ta = dateOf(a), tb = dateOf(b);
+      // Unknown event dates stay below dated items in BOTH directions.
+      if (ta === null) return tb === null ? fallbackStock(a, b) : 1;
+      if (tb === null) return -1;
+      const diff = sort === "unavailable_old" ? ta - tb : tb - ta;
+      return diff || fallbackStock(a, b);
+    }
     if (sort === "recent_created" || sort === "old_created" || sort === "hidden_recent") {
       // 숨김 감지일은 실제 last_event=removed 이력만 사용하며, 미기록 상품은 마지막에 둔다.
       const dateOf = (p) => sort === "hidden_recent"
@@ -2151,6 +2174,7 @@ function render() {
 
   const available = baseProducts.filter((p) => p.state === "available").length;
   const sold = baseProducts.filter((p) => p.state === "sold_out").length;
+  const unavailable = baseProducts.filter((p) => p.state !== "available").length;
   const hidden = baseProducts.filter((p) => p.state === "hidden").length;
   const hiddenStock = baseProducts.filter(
     (p) => p.state === "hidden" && Number(p.current_stock) > 0
@@ -2162,6 +2186,7 @@ function render() {
   if ($("countHidden")) $("countHidden").textContent = fmt(hidden);
   if ($("countHiddenStock")) $("countHiddenStock").textContent = fmt(hiddenStock);
   if ($("countUpcoming")) $("countUpcoming").textContent = fmt(upcoming);
+  if ($("countUnavailable")) $("countUnavailable").textContent = fmt(unavailable);
   syncFilterUI();
   syncSearchClear();
 
