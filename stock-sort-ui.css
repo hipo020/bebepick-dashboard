@@ -20,6 +20,10 @@
 .filter-row .chip[data-f="unavailable"].on b{
   -webkit-text-fill-color:var(--sb-accent-text)
 }
+@media(max-width:649px){
+ .filter-row .chip[data-f="unavailable"]{font-size:10.5px;padding:9px 3px;gap:3px}
+ .filter-row .chip[data-f="unavailable"] b{font-size:9px;min-width:16px;padding:2px 3px}
+}
 @media(max-width:390px){
  .filter-tools-left{min-width:120px}
  .filter-tools .sort-controls{margin-left:auto}
