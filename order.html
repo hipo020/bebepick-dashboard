@@ -548,7 +548,7 @@ function savedStatusChips(order){
   const opening=String(order?.opening_option||"").trim();
   if(opening && opening!=="확인 불가")
     result+='<span class="saved-state opening">'+esc(opening)+'</span>';
-  return result ? '<div class="saved-states">'+result+'</div>' : "";
+  return result ? '<span class="saved-states">'+result+'</span>' : "";
 }
 function renderSavedOrders(rows){
   const box=$("savedOrders");
@@ -567,16 +567,18 @@ function renderSavedOrders(rows){
     const no=esc(o.order_no||"");
     return '<div class="saved-row">'+
       '<button class="saved-order" type="button" data-order-no="'+no+'" aria-label="'+no+' 주문 상세 조회">'+
-        '<div class="saved-order-main">'+
-          '<div class="saved-order-no">'+no+'</div>'+
-          '<div class="saved-order-date">'+esc(timeKst(o.order_created_at)||"날짜 미확인")+'</div>'+
-          '<div class="saved-order-name">'+esc(productText||"상품 정보 없음")+'</div>'+
+        '<span class="saved-order-top">'+
+          '<span class="saved-order-no">'+no+'</span>'+
+          '<span class="saved-total">'+priceText+'</span>'+
+        '</span>'+
+        '<span class="saved-order-meta-line">'+
+          '<span class="saved-order-date">'+esc(timeKst(o.order_created_at)||"날짜 미확인")+'</span>'+
           savedStatusChips(o)+
-        '</div>'+
-        '<div class="saved-order-side">'+
-          '<div class="saved-total">'+priceText+'</div>'+
+        '</span>'+
+        '<span class="saved-order-bottom">'+
+          '<span class="saved-order-name">'+esc(productText||"상품 정보 없음")+'</span>'+
           '<span class="saved-order-arrow">상세 보기 ↗</span>'+
-        '</div>'+
+        '</span>'+
       '</button>'+
       '<button class="saved-remove" type="button" data-delete-no="'+no+'" aria-label="'+no+' 저장 목록에서 삭제">삭제</button>'+
     '</div>';
