@@ -2348,9 +2348,7 @@ $("sort").addEventListener("change", (e) => {
 $("filterSelect").addEventListener("change", (e) => {
   const value = e.target.value;
   if (!value) return;
-  filter = value;
-  syncFilterUI();
-  render();
+  chooseProductFilter(value);
 });
 
 $("specialToggle").addEventListener("click", () => {
@@ -2364,11 +2362,7 @@ $("specialToggle").addEventListener("click", () => {
 
 
 document.querySelectorAll(".chip").forEach((button) => {
-  button.addEventListener("click", () => {
-    filter = button.dataset.f;
-    syncFilterUI();
-    render();
-  });
+  button.addEventListener("click", () => chooseProductFilter(button.dataset.f));
 });
 
 $("refresh").addEventListener("click", async () => {
