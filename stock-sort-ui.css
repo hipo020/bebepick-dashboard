@@ -1,0 +1,27 @@
+/* Six primary filters remain a compact 3-by-2 grid on mobile.
+   Rare restock/special controls stay behind a small secondary toggle. */
+.filter-tools{flex-wrap:wrap;column-gap:7px;row-gap:3px}
+.filter-tools-left{display:flex;align-items:center;gap:6px;min-width:0;flex:1 1 auto}
+.filter-tools-left .summary{min-width:0;flex:1 1 auto}
+.filter-tools-left .option-toggle{
+  display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;
+  border:0;background:transparent;color:var(--sb-muted);
+  min-height:34px;padding:4px 6px;font-size:11px;font-weight:750;
+  border-radius:9px;white-space:nowrap
+}
+.filter-tools-left .option-toggle.on,.filter-tools-left .option-toggle.active-extra{
+  background:var(--sb-soft);color:var(--sb-accent)
+}
+.filter-tools .sort-controls{margin-left:auto}
+.filter-row .chip[data-f="unavailable"].on{
+  background:var(--sb-accent);color:var(--sb-accent-text);
+  -webkit-text-fill-color:var(--sb-accent-text)
+}
+.filter-row .chip[data-f="unavailable"].on b{
+  -webkit-text-fill-color:var(--sb-accent-text)
+}
+@media(max-width:390px){
+ .filter-tools-left{min-width:120px}
+ .filter-tools .sort-controls{margin-left:auto}
+ .filter-tools-left .option-toggle{padding:4px;font-size:10px}
+}
