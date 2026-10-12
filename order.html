@@ -562,20 +562,23 @@ function renderSavedOrders(rows){
     const items=Array.isArray(o.items)?o.items:[];
     const names=items.map(x=>String(x.name||"")).filter(Boolean);
     const productText=names.slice(0,2).join(", ")+(names.length>2?" 외 "+(names.length-2)+"개":"");
-    const opt=savedOptionText(o);
+    const amount=orderAmount(o);
+    const priceText=amount===null?"금액 미확인":fmt(amount)+"원";
+    const no=esc(o.order_no||"");
     return '<div class="saved-row">'+
-      '<button class="saved-order" type="button" data-order-no="'+esc(o.order_no||"")+'">'+
-        '<div>'+
-          '<div class="saved-order-no">'+esc(o.order_no||"")+'</div>'+
-          '<div class="saved-order-meta">'+
-            esc(timeKst(o.order_created_at)||"시각 없음")+
-            (opt?' · '+esc(opt):'')+
-            (productText?'<br>'+esc(productText):'')+
-          '</div>'+
+      '<button class="saved-order" type="button" data-order-no="'+no+'" aria-label="'+no+' 주문 상세 조회">'+
+        '<div class="saved-order-main">'+
+          '<div class="saved-order-no">'+no+'</div>'+
+          '<div class="saved-order-date">'+esc(timeKst(o.order_created_at)||"날짜 미확인")+'</div>'+
+          '<div class="saved-order-name">'+esc(productText||"상품 정보 없음")+'</div>'+
+          savedStatusChips(o)+
         '</div>'+
-        '<div class="saved-total">'+fmt(o.total_amount)+'원</div>'+
+        '<div class="saved-order-side">'+
+          '<div class="saved-total">'+priceText+'</div>'+
+          '<span class="saved-order-arrow">상세 보기 ↗</span>'+
+        '</div>'+
       '</button>'+
-      '<button class="saved-remove" type="button" data-delete-no="'+esc(o.order_no||"")+'" aria-label="'+esc(o.order_no||"")+' 저장 목록에서 삭제">삭제</button>'+
+      '<button class="saved-remove" type="button" data-delete-no="'+no+'" aria-label="'+no+' 저장 목록에서 삭제">삭제</button>'+
     '</div>';
   }).join("");
 }
