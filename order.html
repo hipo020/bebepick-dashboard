@@ -719,7 +719,10 @@ async function lookup(){
 $("lookup").addEventListener("click",lookup);
 $("orderNo").addEventListener("keydown",e=>{ if(e.key==="Enter") lookup(); });
 $("savedRefresh").addEventListener("click",loadSavedOrders);
-$("savedSort").addEventListener("change",()=>renderSavedOrders(cachedSavedOrders));
+$("savedSort").addEventListener("change",()=>{
+  try{localStorage.setItem(SAVED_SORT_STORAGE_KEY,$("savedSort").value);}catch{}
+  renderSavedOrders(cachedSavedOrders);
+});
 $("vaultReveal").addEventListener("click",()=>{
   vaultVisible=!vaultVisible;
   renderVaultCode();
