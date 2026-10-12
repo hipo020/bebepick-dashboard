@@ -300,12 +300,14 @@ button{background:var(--brand-primary);color:var(--sb-accent-text);-webkit-text-
     <div class="saved-head">
       <div>
         <div class="saved-title">🗂️ 내 주문내역</div>
-        <div class="saved-sub">주문 생성시각 기준 정렬 · 저장한 시간과 무관해</div>
+        <div class="saved-sub">기본은 최근 주문순 · 보관 상태나 금액으로도 정렬할 수 있어</div>
       </div>
       <div class="saved-controls">
-        <select id="savedSort" class="saved-sort" aria-label="주문번호 생성시각 정렬">
-          <option value="newest">생성 최신순 ↓</option>
-          <option value="oldest">생성 오래된순 ↑</option>
+        <select id="savedSort" class="saved-sort" aria-label="내 주문내역 정렬 기준">
+          <option value="newest">최근 주문순 ↓</option>
+          <option value="oldest">오래된순 ↑</option>
+          <option value="stored">보관 먼저 📦</option>
+          <option value="amount">금액 높은순 ↓</option>
         </select>
         <button id="savedRefresh" class="ghost" type="button" aria-label="저장 주문 새로고침">↻</button>
       </div>
