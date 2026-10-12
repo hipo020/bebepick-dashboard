@@ -490,25 +490,65 @@ function savedOptionText(o){
 }
 
 let cachedSavedOrders=[];
+const SAVED_SORT_STORAGE_KEY="bebepick_order_history_sort_v1";
+const SAVED_SORT_OPTIONS=["newest","oldest","stored","amount"];
+try{
+  const previousSort=localStorage.getItem(SAVED_SORT_STORAGE_KEY);
+  if(SAVED_SORT_OPTIONS.includes(previousSort)) $("savedSort").value=previousSort;
+}catch{}
 
-// Compare the ORIGINAL order_created_at returned by the seller, never the
-// time this order was saved or last checked in the private order vault.
+// Always use the ORIGINAL seller order_created_at, never the time saved locally.
 function orderCreationMs(order){
   if(!order?.order_created_at) return null;
   const timestamp=Date.parse(order.order_created_at);
   return Number.isFinite(timestamp) ? timestamp : null;
 }
+function orderAmount(order){
+  if(order?.total_amount===null || order?.total_amount===undefined ||
+     order?.total_amount==="") return null;
+  const amount=Number(order.total_amount);
+  return Number.isFinite(amount) ? amount : null;
+}
+function storageOrderRank(order){
+  if(order?.storage_option==="보관") return 0;
+  if(order?.storage_option==="발송") return 1;
+  return 2; // Unknown is not misclassified as either storage or shipping.
+}
+function compareCreatedOrders(a,b,oldest=false){
+  const at=orderCreationMs(a), bt=orderCreationMs(b);
+  // Unknown creation timestamps always last, in both directions.
+  if(at===null && bt!==null) return 1;
+  if(bt===null && at!==null) return -1;
+  if(at!==null && bt!==null && at!==bt) return oldest ? at-bt : bt-at;
+  return String(a.order_no||"").localeCompare(String(b.order_no||""));
+}
 function sortSavedOrders(rows){
-  const oldest=$("savedSort")?.value==="oldest";
+  const mode=SAVED_SORT_OPTIONS.includes($("savedSort")?.value) ? $("savedSort").value : "newest";
   return [...rows].sort((a,b)=>{
-    const at=orderCreationMs(a);
-    const bt=orderCreationMs(b);
-    // Missing/invalid creation times are always last in both directions.
-    if(at===null && bt!==null) return 1;
-    if(bt===null && at!==null) return -1;
-    if(at!==null && bt!==null && at!==bt) return oldest ? at-bt : bt-at;
-    return String(a.order_no||"").localeCompare(String(b.order_no||""));
+    if(mode==="stored"){
+      const diff=storageOrderRank(a)-storageOrderRank(b);
+      if(diff) return diff;
+    }
+    if(mode==="amount"){
+      const at=orderAmount(a),bt=orderAmount(b);
+      if(at===null && bt!==null) return 1;
+      if(bt===null && at!==null) return -1;
+      if(at!==null && bt!==null && at!==bt) return bt-at;
+    }
+    return compareCreatedOrders(a,b,mode==="oldest");
   });
+}
+function savedStatusChips(order){
+  let result="";
+  const storage=String(order?.storage_option||"").trim();
+  if(storage){
+    const kind=storage==="보관" ? "hold" : storage==="발송" ? "ship" : "";
+    result+='<span class="saved-state '+kind+'">'+esc(storage)+'</span>';
+  }
+  const opening=String(order?.opening_option||"").trim();
+  if(opening && opening!=="확인 불가")
+    result+='<span class="saved-state opening">'+esc(opening)+'</span>';
+  return result ? '<div class="saved-states">'+result+'</div>' : "";
 }
 function renderSavedOrders(rows){
   const box=$("savedOrders");
