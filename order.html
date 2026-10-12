@@ -271,6 +271,7 @@ button{background:var(--brand-primary);color:var(--sb-accent-text);-webkit-text-
 }
 
 </style>
+<link rel="stylesheet" href="./order-history.css?v=20261012">
 </head>
 <body>
 <main class="wrap">
@@ -299,12 +300,14 @@ button{background:var(--brand-primary);color:var(--sb-accent-text);-webkit-text-
     <div class="saved-head">
       <div>
         <div class="saved-title">🗂️ 내 주문내역</div>
-        <div class="saved-sub">주문 생성시각 기준 정렬 · 저장한 시간과 무관해</div>
+        <div class="saved-sub">기본은 최근 주문순 · 보관 상태나 금액으로도 정렬할 수 있어</div>
       </div>
       <div class="saved-controls">
-        <select id="savedSort" class="saved-sort" aria-label="주문번호 생성시각 정렬">
-          <option value="newest">생성 최신순 ↓</option>
-          <option value="oldest">생성 오래된순 ↑</option>
+        <select id="savedSort" class="saved-sort" aria-label="내 주문내역 정렬 기준">
+          <option value="newest">최근 주문순 ↓</option>
+          <option value="oldest">오래된순 ↑</option>
+          <option value="stored">보관 먼저 📦</option>
+          <option value="amount">금액 높은순 ↓</option>
         </select>
         <button id="savedRefresh" class="ghost" type="button" aria-label="저장 주문 새로고침">↻</button>
       </div>
@@ -487,25 +490,65 @@ function savedOptionText(o){
 }
 
 let cachedSavedOrders=[];
+const SAVED_SORT_STORAGE_KEY="bebepick_order_history_sort_v1";
+const SAVED_SORT_OPTIONS=["newest","oldest","stored","amount"];
+try{
+  const previousSort=localStorage.getItem(SAVED_SORT_STORAGE_KEY);
+  if(SAVED_SORT_OPTIONS.includes(previousSort)) $("savedSort").value=previousSort;
+}catch{}
 
-// Compare the ORIGINAL order_created_at returned by the seller, never the
-// time this order was saved or last checked in the private order vault.
+// Always use the ORIGINAL seller order_created_at, never the time saved locally.
 function orderCreationMs(order){
   if(!order?.order_created_at) return null;
   const timestamp=Date.parse(order.order_created_at);
   return Number.isFinite(timestamp) ? timestamp : null;
 }
+function orderAmount(order){
+  if(order?.total_amount===null || order?.total_amount===undefined ||
+     order?.total_amount==="") return null;
+  const amount=Number(order.total_amount);
+  return Number.isFinite(amount) ? amount : null;
+}
+function storageOrderRank(order){
+  if(order?.storage_option==="보관") return 0;
+  if(order?.storage_option==="발송") return 1;
+  return 2; // Unknown is not misclassified as either storage or shipping.
+}
+function compareCreatedOrders(a,b,oldest=false){
+  const at=orderCreationMs(a), bt=orderCreationMs(b);
+  // Unknown creation timestamps always last, in both directions.
+  if(at===null && bt!==null) return 1;
+  if(bt===null && at!==null) return -1;
+  if(at!==null && bt!==null && at!==bt) return oldest ? at-bt : bt-at;
+  return String(a.order_no||"").localeCompare(String(b.order_no||""));
+}
 function sortSavedOrders(rows){
-  const oldest=$("savedSort")?.value==="oldest";
+  const mode=SAVED_SORT_OPTIONS.includes($("savedSort")?.value) ? $("savedSort").value : "newest";
   return [...rows].sort((a,b)=>{
-    const at=orderCreationMs(a);
-    const bt=orderCreationMs(b);
-    // Missing/invalid creation times are always last in both directions.
-    if(at===null && bt!==null) return 1;
-    if(bt===null && at!==null) return -1;
-    if(at!==null && bt!==null && at!==bt) return oldest ? at-bt : bt-at;
-    return String(a.order_no||"").localeCompare(String(b.order_no||""));
+    if(mode==="stored"){
+      const diff=storageOrderRank(a)-storageOrderRank(b);
+      if(diff) return diff;
+    }
+    if(mode==="amount"){
+      const at=orderAmount(a),bt=orderAmount(b);
+      if(at===null && bt!==null) return 1;
+      if(bt===null && at!==null) return -1;
+      if(at!==null && bt!==null && at!==bt) return bt-at;
+    }
+    return compareCreatedOrders(a,b,mode==="oldest");
   });
+}
+function savedStatusChips(order){
+  let result="";
+  const storage=String(order?.storage_option||"").trim();
+  if(storage){
+    const kind=storage==="보관" ? "hold" : storage==="발송" ? "ship" : "";
+    result+='<span class="saved-state '+kind+'">'+esc(storage)+'</span>';
+  }
+  const opening=String(order?.opening_option||"").trim();
+  if(opening && opening!=="확인 불가")
+    result+='<span class="saved-state opening">'+esc(opening)+'</span>';
+  return result ? '<div class="saved-states">'+result+'</div>' : "";
 }
 function renderSavedOrders(rows){
   const box=$("savedOrders");
@@ -519,20 +562,23 @@ function renderSavedOrders(rows){
     const items=Array.isArray(o.items)?o.items:[];
     const names=items.map(x=>String(x.name||"")).filter(Boolean);
     const productText=names.slice(0,2).join(", ")+(names.length>2?" 외 "+(names.length-2)+"개":"");
-    const opt=savedOptionText(o);
+    const amount=orderAmount(o);
+    const priceText=amount===null?"금액 미확인":fmt(amount)+"원";
+    const no=esc(o.order_no||"");
     return '<div class="saved-row">'+
-      '<button class="saved-order" type="button" data-order-no="'+esc(o.order_no||"")+'">'+
-        '<div>'+
-          '<div class="saved-order-no">'+esc(o.order_no||"")+'</div>'+
-          '<div class="saved-order-meta">'+
-            esc(timeKst(o.order_created_at)||"시각 없음")+
-            (opt?' · '+esc(opt):'')+
-            (productText?'<br>'+esc(productText):'')+
-          '</div>'+
+      '<button class="saved-order" type="button" data-order-no="'+no+'" aria-label="'+no+' 주문 상세 조회">'+
+        '<div class="saved-order-main">'+
+          '<div class="saved-order-no">'+no+'</div>'+
+          '<div class="saved-order-date">'+esc(timeKst(o.order_created_at)||"날짜 미확인")+'</div>'+
+          '<div class="saved-order-name">'+esc(productText||"상품 정보 없음")+'</div>'+
+          savedStatusChips(o)+
         '</div>'+
-        '<div class="saved-total">'+fmt(o.total_amount)+'원</div>'+
+        '<div class="saved-order-side">'+
+          '<div class="saved-total">'+priceText+'</div>'+
+          '<span class="saved-order-arrow">상세 보기 ↗</span>'+
+        '</div>'+
       '</button>'+
-      '<button class="saved-remove" type="button" data-delete-no="'+esc(o.order_no||"")+'" aria-label="'+esc(o.order_no||"")+' 저장 목록에서 삭제">삭제</button>'+
+      '<button class="saved-remove" type="button" data-delete-no="'+no+'" aria-label="'+no+' 저장 목록에서 삭제">삭제</button>'+
     '</div>';
   }).join("");
 }
@@ -673,7 +719,10 @@ async function lookup(){
 $("lookup").addEventListener("click",lookup);
 $("orderNo").addEventListener("keydown",e=>{ if(e.key==="Enter") lookup(); });
 $("savedRefresh").addEventListener("click",loadSavedOrders);
-$("savedSort").addEventListener("change",()=>renderSavedOrders(cachedSavedOrders));
+$("savedSort").addEventListener("change",()=>{
+  try{localStorage.setItem(SAVED_SORT_STORAGE_KEY,$("savedSort").value);}catch{}
+  renderSavedOrders(cachedSavedOrders);
+});
 $("vaultReveal").addEventListener("click",()=>{
   vaultVisible=!vaultVisible;
   renderVaultCode();
