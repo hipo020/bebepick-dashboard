@@ -54,14 +54,14 @@ button:disabled{opacity:.5}.event{padding:12px 0;border-top:1px solid #eeeaf3}.e
 </section>
 <section class="card">
 <h2>알림 기준</h2>
-<p class="hint">사이트 설정, TEST 표시, 테스트 상품 문구, 결제·주문·회원가입 관련 코드 표식처럼 중요한 변화는 기존 ntfy로 알려줘. 단순 JS·HTML 수정은 기록만 남겨.</p>
+<p class="hint">사이트 설정, TEST 표시, 테스트 상품 문구, 결제·주문·회원가입 관련 코드 표식처럼 중요한 변화는 신규 홈페이지 전용 ntfy 토픽으로 알려줘. 휴대폰 ntfy 앱에서 해당 토픽을 구독해야 푸시 알림이 도착해. 단순 JS·HTML 수정은 기록만 남겨.</p>
 <p class="hint">처음 확인했을 때는 기준값만 저장하며 알림을 보내지 않아. 회원가입 가능 여부, 실제 결제 성공, 로그인 뒤 상품·가격은 공개 코드만으로 단정하지 않아.</p>
 <p class="hint">전체 감시와 푸시 알림은 서버에서 따로 켜고 끌 수 있어. 이 화면은 읽기 전용이라 다른 방문자가 설정을 바꿀 수 없어.</p>
 </section>
 <div class="footer">
  <a href="https://bebepick.me/live" rel="noopener" target="_blank">새 베베픽 주문 페이지 ↗</a> ·
  <a href="https://bebepick.me/plus" rel="noopener" target="_blank">베베픽 플러스 ↗</a>
- <p>로그인·카카오톡 주문·결제 요청은 실행하지 않는 읽기 전용 감시야. 기존 재고·신상·재입고·품절 알림은 그대로 유지돼.</p>
+ <p>로그인·카카오톡 주문·결제 요청은 실행하지 않는 읽기 전용 감시야. 새 사이트 전용 ntfy 토픽을 사용하며 기존 재고·신상·재입고·품절 알림은 그대로 유지돼.</p>
 </div>
 </main>
 <script>
@@ -74,7 +74,7 @@ const results={live:"베베픽",plus:"베베픽 플러스"};
 function render(data){
   $("mode").className="pill"+(data.enabled?"":" wait");
   $("mode").textContent=data.enabled?"감시 ON":"감시 OFF";
-  $("summary").textContent=data.enabled?(data.notify_enabled?"중요 변화는 기존 ntfy로 알림 · 단순 소스 변경은 기록만":"감시는 켜짐 · ntfy 알림 OFF"):"감시가 일시 중단돼 있어";
+  $("summary").textContent=data.enabled?(data.notify_enabled?"중요 변화는 새 홈페이지 전용 ntfy 토픽으로 발송 · 앱에서 추가 구독 필요":"감시는 켜짐 · ntfy 알림 OFF"):"감시가 일시 중단돼 있어";
   const stores=$("stores");stores.replaceChildren();
   for(const store of ["live","plus"]){
     const s=(data.stores||[]).find(x=>x.store===store)||{};
