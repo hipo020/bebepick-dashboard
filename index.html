@@ -753,9 +753,10 @@ body{background:var(--sb-bg);color:var(--sb-ink)}
     <a class="shop" href="https://bebepick-web.pages.dev/" target="_blank" rel="noopener">베베픽 열기 ↗</a>
   </div>
 
-  <nav class="main-tabs" aria-label="베베픽 도구">
+  <nav class="main-tabs" style="grid-template-columns:repeat(3,minmax(0,1fr));gap:5px" aria-label="베베픽 도구">
     <a class="main-tab on" href="./">🧸 재고표</a>
-    <a class="main-tab" href="./order.html">📦 주문옵션 조회</a>
+    <a class="main-tab" href="./order.html">📦 주문 조회</a>
+    <a class="main-tab" href="./new-site.html" style="padding-left:3px;padding-right:3px">🔎 새 홈페이지</a>
   </nav>
   <div id="savedOrderShortcut" class="saved-order-shortcut" hidden>
     <button id="savedOrderOpen" type="button" aria-haspopup="dialog">🧾 이전 주문 결과 보기 ↗</button>
