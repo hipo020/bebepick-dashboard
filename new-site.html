@@ -48,12 +48,20 @@ button:disabled{opacity:.5}.event{padding:12px 0;border-top:1px solid #eeeaf3}.e
 </div>
 <p class="hint">10분 간격(매시 00·10·20·30·40·50분)으로 공개 자료를 확인해. 여기에 표시된 시간은 실제 서버의 마지막 점검 시각이야. 이 버튼은 결과만 다시 불러오며 쇼핑몰에 추가 요청하지 않아.</p>
 </section>
+
+<section class="card" aria-labelledby="signalsTitle">
+<div class="headrow"><h2 id="signalsTitle">공개 상품·주문 접수 상태</h2><span class="pill">2차 감시</span></div>
+<div id="publicSignals" aria-live="polite"><div class="empty">조회 중…</div></div>
+<p class="hint">로그인 없이 공개되는 상품·주문 상태만 확인해. 주문 접수 표시가 ‘열림’이어도 TEST 환경에서는 실주문·실결제가 가능하다는 의미가 아니야.</p>
+<p class="hint">회원가입 성공·카드결제 승인·순번 자동 등록은 이 화면에서 시험하지 않아. 해당 기능의 코드·안내 변화만 별도로 기록해.</p>
+</section>
 <section class="card" aria-labelledby="eventTitle">
 <div class="headrow"><h2 id="eventTitle">변경 기록</h2><span class="pill">최신 35건</span></div>
 <div id="events" aria-live="polite"><div class="empty">조회 중…</div></div>
 </section>
 <section class="card">
 <h2>알림 기준</h2>
+<p class="hint">기존 상품 알림과는 별개로 새 사이트 공개 상품의 새로운 SKU·품절 상태도 변경 기록에 남겨.</p>
 <p class="hint">사이트 설정, TEST 표시, 테스트 상품 문구, 결제·주문·회원가입 관련 코드 표식처럼 중요한 변화는 신규 홈페이지 전용 ntfy 토픽으로 보내. 해당 토픽을 구독하지 않으면 휴대폰 알림은 오지 않아. 단순 JS·HTML 수정은 기록만 남겨.</p>
 <p class="hint">처음 확인했을 때는 기준값만 저장하며 알림을 보내지 않아. 회원가입 가능 여부, 실제 결제 성공, 로그인 뒤 상품·가격은 공개 코드만으로 단정하지 않아.</p>
 <p class="hint">전체 감시와 푸시 알림은 서버에서 따로 켜고 끌 수 있어. 이 화면은 읽기 전용이라 다른 방문자가 설정을 바꿀 수 없어.</p>
@@ -71,6 +79,36 @@ const $=id=>document.getElementById(id);
 const when=iso=>iso?new Date(iso).toLocaleString("ko-KR",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"}):"아직 없음";
 const add=(parent,tag,className,value)=>{const e=document.createElement(tag);if(className)e.className=className;e.textContent=value;parent.appendChild(e);return e;};
 const results={live:"베베픽",plus:"베베픽 플러스"};
+
+function renderPublicSignals(s){
+  const root=$("publicSignals");root.replaceChildren();
+  if(!s){add(root,"div","empty","공개 상품·주문 조회를 아직 시작하지 않았어.");return;}
+  const site=add(root,"div","site","");
+  const title=add(site,"div","site-head","");
+  add(title,"div","site-name","🧸 공개 상품 목록");
+  add(title,"span","pill "+(s.catalog_result==="ok"?"":"wait"),
+      s.catalog_result==="ok"?"조회 성공":s.catalog_result==="login_or_permission_required"?"조회 제한":"확인 대기");
+  if(s.catalog_result==="ok"){
+    add(site,"div","status","전체 "+s.catalog_count+"종 · 예시 "+s.demo_count+"종 · 그 외 상품 후보 "+s.non_demo_candidate_count+"종");
+    add(site,"div","hint","마지막 정상 확인 "+when(s.last_catalog_ok_at)+" · 가격이나 정확한 재고 수량은 조회·저장하지 않아.");
+    if(s.non_demo_candidate_count>0) add(site,"div","hint","예시 상품 밖의 상품이 나왔어! 실제 판매용인지는 추가 확인이 필요해.");
+  }else{
+    add(site,"div","hint","공개 목록이 확인되지 않았어. 로그인 또는 조회 권한 제한이면 접근을 시도하지 않아.");
+  }
+  for(const [key,name] of [["main","베베픽 주문 접수"],["china","플러스 주문 접수"]]){
+    const wrap=add(root,"div","site","");
+    const head=add(wrap,"div","site-head","");
+    add(head,"div","site-name",name);
+    const w=s.windows&&s.windows[key];
+    add(head,"span","pill "+(s.windows_result==="ok"?"":"wait"),s.windows_result==="ok"?"조회 성공":"확인 제한");
+    if(!w){add(wrap,"div","hint","공개 접수 상태를 확인하지 못했어.");continue;}
+    const open=w.open===true?"열림 표시":w.open===false?"닫힘 표시":"상태 미확인";
+    const live=w.yt_live===true?"유튜브 LIVE 표시":w.yt_live===false?"유튜브 LIVE 아님":"LIVE 미확인";
+    add(wrap,"div","status",open+" · "+live);
+    add(wrap,"div","hint","최종 서버 주문 수락·실제 결제 가능 여부와는 다른 정보야. 마지막 정상 확인 "+when(s.last_windows_ok_at));
+  }
+}
+
 function render(data){
   $("mode").className="pill"+(data.enabled?"":" wait");
   $("mode").textContent=data.enabled?"감시 ON":"감시 OFF";
@@ -91,6 +129,7 @@ function render(data){
       add(card,"div","hint","결제·회원가입 가능 여부는 공개 소스만으로 확인되지 않아.");
     }
   }
+  renderPublicSignals(data.public_signals);
   const list=$("events");list.replaceChildren();
   if(!Array.isArray(data.events)||data.events.length===0){
     add(list,"div","empty","아직 기록된 변경이 없어. 첫 점검은 기준값만 저장해.");return;
