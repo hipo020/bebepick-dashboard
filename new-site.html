@@ -59,7 +59,7 @@ button:disabled{opacity:.5}.event{padding:12px 0;border-top:1px solid #eeeaf3}.e
 <section class="card" aria-labelledby="importantTitle">
 <div class="headrow"><h2 id="importantTitle">🔔 중요한 변화</h2><span class="pill">최근 20건</span></div>
 <div id="importantEvents" aria-live="polite"><div class="empty">조회 중…</div></div>
-<p class="hint">신규 상품·품절 및 재입고 가능성·공개 주문 접수창 상태 변화만 중요하게 보여줘. 푸시는 감시 ON·알림 ON·전용 토픽 구독 조건에서 전송돼.</p>
+<p class="hint">신규 상품·품절 및 재입고 가능성·공개 주문 접수창·무료배송 기준 변화 등을 중요하게 보여줘. 푸시는 감시 ON·알림 ON·전용 토픽 구독 조건에서 전송돼.</p>
 </section>
 <section class="card" aria-labelledby="eventTitle">
 <details class="tech-details">
@@ -114,6 +114,9 @@ function renderPublicSignals(s){
     const open=w.open===true?"열림 표시":w.open===false?"닫힘 표시":"상태 미확인";
     const live=w.yt_live===true?"유튜브 LIVE 표시":w.yt_live===false?"유튜브 LIVE 아님":"LIVE 미확인";
     add(wrap,"div","status",open+" · "+live);
+    if(Number.isInteger(w.free_threshold) && w.free_threshold>=30000){
+      add(wrap,"div","hint","공개 무료배송 기준 "+w.free_threshold.toLocaleString("ko-KR")+"원 · 실제 적용 여부는 별도 확인 필요");
+    }
     add(wrap,"div","hint","최종 서버 주문 수락·실제 결제 가능 여부와는 다른 정보야. 마지막 정상 확인 "+when(s.last_windows_ok_at));
   }
 }
