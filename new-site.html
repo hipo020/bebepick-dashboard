@@ -21,7 +21,7 @@ nav a{color:#5c5870;text-decoration:none;text-align:center;font-size:12px;font-w
 .site a,.footer a{color:var(--purple)}.site-meta{margin-top:5px}.status{margin:9px 0 0;font-size:12px;line-height:1.55;font-weight:650}
 .actions{display:flex;gap:7px;align-items:center}button{border:0;background:var(--purple);color:white;-webkit-text-fill-color:white;font:inherit;font-size:12px;font-weight:750;border-radius:10px;padding:10px 12px;min-height:40px;cursor:pointer}
 button:disabled{opacity:.5}.event{padding:12px 0;border-top:1px solid #eeeaf3}.event:first-child{border-top:0}
-.event b{font-size:12px}.event p{font-size:12px;line-height:1.5;margin:6px 0}.event small{font-size:11px;color:var(--muted)}.empty{color:var(--muted);font-size:12px;line-height:1.7;padding:7px 0}
+.event b{font-size:12px}.event p{font-size:12px;line-height:1.5;margin:6px 0}.event small{font-size:11px;color:var(--muted)}.event.important{padding:12px 9px;margin:6px 0;border:1px solid #e7dcf5;background:#fcfaff;border-radius:11px}.tech-details{margin-top:7px}.tech-details summary{cursor:pointer;font-size:12px;font-weight:750;color:#6554a8;padding:10px 0}.empty{color:var(--muted);font-size:12px;line-height:1.7;padding:7px 0}
 .footer{font-size:11px;line-height:1.7;color:var(--muted);padding:7px 1px}
 @media(max-width:380px){nav a{font-size:11px}h1{font-size:20px}}
 </style>
@@ -56,14 +56,22 @@ button:disabled{opacity:.5}.event{padding:12px 0;border-top:1px solid #eeeaf3}.e
 <p class="hint">로그인 없이 공개되는 상품·주문 상태만 확인해. 주문 접수 표시가 ‘열림’이어도 TEST 환경에서는 실주문·실결제가 가능하다는 의미가 아니야.</p>
 <p class="hint">회원가입 성공·카드결제 승인·순번 자동 등록은 이 화면에서 시험하지 않아. 해당 기능의 코드·안내 변화만 별도로 기록해.</p>
 </section>
+<section class="card" aria-labelledby="importantTitle">
+<div class="headrow"><h2 id="importantTitle">🔔 중요한 변화</h2><span class="pill">최근 20건</span></div>
+<div id="importantEvents" aria-live="polite"><div class="empty">조회 중…</div></div>
+<p class="hint">신규 상품·품절 및 재입고 가능성·공개 주문 접수창·무료배송 기준 변화 등을 중요하게 보여줘. 푸시는 감시 ON·알림 ON·전용 토픽 구독 조건에서 전송돼.</p>
+</section>
 <section class="card" aria-labelledby="eventTitle">
-<div class="headrow"><h2 id="eventTitle">변경 기록</h2><span class="pill">최신 35건</span></div>
+<details class="tech-details">
+<summary id="eventTitle">🔧 기술 변경 기록 펼치기 · HTML/JavaScript/일반 상태 기록</summary>
 <div id="events" aria-live="polite"><div class="empty">조회 중…</div></div>
+</details>
+<p class="hint">코드/디자인 수정은 이력만 저장하고 즉시 알림으로 보내지 않아. 중요한 상품 변화와 섞이지 않게 접어뒀어.</p>
 </section>
 <section class="card">
 <h2>알림 기준</h2>
-<p class="hint">기존 상품 알림과는 별개로 새 사이트 공개 상품의 새로운 SKU·품절 상태도 변경 기록에 남겨.</p>
-<p class="hint">사이트 설정, TEST 표시, 테스트 상품 문구, 결제·주문·회원가입 관련 코드 표식처럼 중요한 변화는 신규 홈페이지 전용 ntfy 토픽으로 보내. 해당 토픽을 구독하지 않으면 휴대폰 알림은 오지 않아. 단순 JS·HTML 수정은 기록만 남겨.</p>
+<p class="hint">기존 재고판 알림은 그대로 두고, 새 사이트의 새 상품·품절 표시·품절 해제(재입고 가능성)·공개 주문창 열림/닫힘 변화는 신규 홈페이지 전용 ntfy 토픽으로 알려줘.</p>
+<p class="hint">TEST 표시 제거, 결제·주문 코드 표식 신규 등장 같은 큰 단서는 코드상 의미가 있는 방향의 변화일 때만 알림 대상이야. 단순 HTML·JS·설정 파일 수정은 기록만 남겨.</p>
 <p class="hint">처음 확인했을 때는 기준값만 저장하며 알림을 보내지 않아. 회원가입 가능 여부, 실제 결제 성공, 로그인 뒤 상품·가격은 공개 코드만으로 단정하지 않아.</p>
 <p class="hint">전체 감시와 푸시 알림은 서버에서 따로 켜고 끌 수 있어. 이 화면은 읽기 전용이라 다른 방문자가 설정을 바꿀 수 없어.</p>
 </section>
@@ -106,6 +114,9 @@ function renderPublicSignals(s){
     const open=w.open===true?"열림 표시":w.open===false?"닫힘 표시":"상태 미확인";
     const live=w.yt_live===true?"유튜브 LIVE 표시":w.yt_live===false?"유튜브 LIVE 아님":"LIVE 미확인";
     add(wrap,"div","status",open+" · "+live);
+    if(Number.isInteger(w.free_threshold) && w.free_threshold>=30000){
+      add(wrap,"div","hint","공개 무료배송 기준 "+w.free_threshold.toLocaleString("ko-KR")+"원 · 실제 적용 여부는 별도 확인 필요");
+    }
     add(wrap,"div","hint","최종 서버 주문 수락·실제 결제 가능 여부와는 다른 정보야. 마지막 정상 확인 "+when(s.last_windows_ok_at));
   }
 }
@@ -131,17 +142,23 @@ function render(data){
     }
   }
   renderPublicSignals(data.public_signals);
-  const list=$("events");list.replaceChildren();
-  if(!Array.isArray(data.events)||data.events.length===0){
-    add(list,"div","empty","아직 기록된 변경이 없어. 첫 점검은 기준값만 저장해.");return;
-  }
-  for(const ev of data.events){
-    const item=add(list,"div","event","");
-    const top=add(item,"div","event-top","");
-    add(top,"b","",results[ev.store]||"사이트");
-    add(top,"small","",when(ev.observed_at));
-    add(item,"p","",ev.message||"공개 자료 변경");
-  }
+  const renderRows=(target,items,important)=>{
+    const list=$(target);list.replaceChildren();
+    if(!items.length){
+      add(list,"div","empty",important?"아직 중요한 변화가 없어. 감시는 정상적으로 계속 진행 중이야.":"기록된 기술 변경이 아직 없어.");
+      return;
+    }
+    for(const ev of items){
+      const item=add(list,"div","event"+(important?" important":""),
+        "");
+      const top=add(item,"div","event-top","");
+      add(top,"b","",results[ev.store]||"사이트");
+      add(top,"small","",when(ev.observed_at));
+      add(item,"p","",ev.message||"공개 자료 변경");
+    }
+  };
+  renderRows("importantEvents",Array.isArray(data.important_events)?data.important_events:[],true);
+  renderRows("events",Array.isArray(data.events)?data.events.filter(e=>e.notify_required!==true):[],false);
 }
 async function load(){
   $("refresh").disabled=true;
