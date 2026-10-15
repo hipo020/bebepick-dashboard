@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#141a2a">
+<title>방송 순번 현황 · 베베픽</title>
+<style>
+:root{color-scheme:dark;--bg:#111626;--panel:#1a2235;--panel2:#232c43;--ink:#eef3ff;--muted:#b4c2d8;--border:#3c4961;--accent:#b9a7ff;--accent2:#77c8d7;--good:#9de4bb;--warn:#ffcd90}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(circle at 35% -20%,#33335a 0,transparent 40%),var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Noto Sans KR","Malgun Gothic",sans-serif;line-height:1.55}
+.wrap{width:min(800px,100%);margin:0 auto;padding:18px 16px 90px}
+a{color:#d9d0ff} h1{font-size:25px;line-height:1.28;margin:0 0 6px;font-weight:850;letter-spacing:-.7px}
+h2{font-size:16px;margin:0 0 12px} p{margin:4px 0}
+.eyebrow{font-size:12px;letter-spacing:.05em;color:var(--accent);font-weight:800;margin-bottom:5px}
+.muted{color:var(--muted);font-size:12px}.tiny{font-size:11px;color:var(--muted)}
+nav{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:16px 0 18px;padding:5px;border-radius:15px;background:#20273c}
+nav a{text-decoration:none;color:#c4ccdd;border-radius:11px;text-align:center;padding:10px 3px;font-size:11px;font-weight:750}
+nav a.on{background:#4c4279;color:#fff}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:18px;padding:17px;margin-top:13px;box-shadow:0 7px 25px #080b1540}
+.segment{display:flex;gap:7px}
+button{font:inherit;cursor:pointer}
+.segment button{flex:1;border:1px solid #56637b;background:var(--panel2);color:var(--ink);border-radius:12px;padding:11px 5px;font-size:13px;font-weight:800;min-height:43px}
+.segment button[aria-pressed=true]{background:#594b89;border-color:#b8a1ff;color:white}
+.header-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.pill{font-size:11px;font-weight:800;border:1px solid #53627d;border-radius:999px;padding:4px 9px;color:var(--muted)}
+.pill.ok{color:var(--good);border-color:#447865}.pill.warn{color:var(--warn);border-color:#866f4e}
+.hero{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:10px 0 14px}
+.big{font-size:34px;line-height:1.15;font-weight:900;letter-spacing:-1px;font-variant-numeric:tabular-nums}
+.big span{font-size:15px;color:var(--muted);font-weight:700;letter-spacing:0}
+.bar{height:9px;border-radius:99px;background:#303a52;overflow:hidden;margin-top:12px}
+.bar>div{height:100%;border-radius:99px;background:linear-gradient(90deg,#997ee5,#77cad9);transition:width .25s}
+.statrow{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:14px}
+.statrow>div{background:var(--panel2);padding:11px;border-radius:12px;min-width:0}
+.statrow strong{display:block;font-size:15px;color:#ecf2ff;font-variant-numeric:tabular-nums}
+label{font-size:13px;color:#dfe6f7;font-weight:750}
+.input-row{display:flex;gap:9px;margin-top:8px}
+input[type=number]{background:#10182b;border:1px solid #67718b;color:white;border-radius:12px;min-width:0;width:100%;padding:11px 13px;font-size:18px;font-weight:800}
+input[type=number]:focus{outline:2px solid #baa2ff;outline-offset:1px}
+.primary{background:#bba8ff;border:0;border-radius:12px;color:#211b35;font-size:13px;font-weight:900;padding:11px 14px;white-space:nowrap}
+.eta{font-weight:900;color:#e4d6ff;font-size:25px;line-height:1.4}
+.notice{margin-top:9px;padding:11px 12px;border:1px solid #4c526d;border-radius:12px;background:#222941;font-size:12px;color:#d3dbee}
+.refresh{color:#d8d0ff;border:1px solid #675e98;border-radius:10px;background:#342d4c;padding:6px 10px;font-size:12px;font-weight:750}
+.timing{display:grid;grid-template-columns:1fr auto;gap:5px 10px;padding:10px 0;border-bottom:1px solid #344058;align-items:center}
+.timing:last-child{border-bottom:0}
+.timing.current{border-radius:11px;background:#2b3051;border:1px solid #7869a6;padding:10px;margin:5px 0}
+.timing .number{font-size:13px;font-weight:850}.timing .start{font-size:11px;color:var(--muted)}
+.timing .duration{text-align:right;font-size:13px;font-weight:850;font-variant-numeric:tabular-nums}
+footer{padding-top:20px}
+.hide{display:none!important}
+@media(max-width:390px){.wrap{padding:13px 11px 65px}nav a{font-size:10px;padding:9px 1px}.card{padding:13px}.big{font-size:29px}.eta{font-size:21px}}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="eyebrow">BEBEPICK · READ ONLY</div>
+  <h1>📋 방송 순번 현황</h1>
+  <p class="muted">순번 이동 이력과 내 차례까지의 예상 대기시간을 함께 확인해 💜</p>
+  <nav aria-label="베베픽 도구">
+    <a href="./">🧸 재고표</a><a href="./order.html">📦 주문 조회</a>
+    <a href="./new-site.html">🔎 새 홈페이지</a><a class="on" aria-current="page" href="./queue.html">⏳ 순번 현황</a>
+  </nav>
+
+  <div class="segment" role="group" aria-label="방송 채널 선택">
+    <button type="button" data-channel="bebepick" aria-pressed="false">🧸 베베픽</button>
+    <button type="button" data-channel="bebepick_plus" aria-pressed="true">💜 베베픽플러스</button>
+  </div>
+
+  <section class="card" aria-live="polite">
+    <div class="header-row"><h2 style="margin:0" id="broadcastTitle">방송 순번 불러오는 중…</h2><span id="freshness" class="pill">확인 중</span></div>
+    <p id="broadcastMeta" class="muted">관측 기록 기준 · 공식 주문 진행 안내가 아님</p>
+    <div class="hero">
+      <div><p class="tiny">현재 진행 중인 순번</p><div class="big" id="currentNumber">—</div></div>
+      <div><p class="tiny">총 대기열 등록</p><div class="big" id="totalNumber">—</div></div>
+    </div>
+    <div class="bar"><div id="progressBar" style="width:0%"></div></div>
+    <div class="statrow">
+      <div><span class="tiny">방송 최초 감지</span><strong id="broadcastStarted">—</strong></div>
+      <div><span class="tiny">첫 순번 확인</span><strong id="firstTurn">—</strong></div>
+      <div><span class="tiny">마지막 순번 변화 관측</span><strong id="lastUpdated">—</strong></div>
+      <div><span class="tiny">감시기 마지막 확인</span><strong id="monitorChecked">—</strong></div>
+    </div>
+    <p class="tiny" style="margin-top:10px">※ 순번은 1부터 표시해. 원본 current_idx(0부터 시작)를 자동 변환했어. 감시기가 정상이어도 실제 판매자 처리 시각과 관측 시각 사이에는 차이가 날 수 있어.</p>
+  </section>
+
+  <section class="card">
+    <h2>🎯 내 순번은 언제쯤?</h2>
+    <p class="muted">대기열에서 받은 <b>내 순번</b>을 입력해줘. 입력한 숫자는 이 기기 브라우저에만 저장돼.</p>
+    <label for="myPosition">내 순번 (1번째부터)</label>
+    <div class="input-row">
+      <input id="myPosition" type="number" min="1" inputmode="numeric" pattern="[0-9]*" placeholder="예: 25">
+      <button class="primary" id="applyPosition" type="button">예상 보기</button>
+    </div>
+    <div style="margin-top:15px" aria-live="polite">
+      <p id="etaTitle" class="muted">내 순번을 입력하면 예상 시간이 나타나</p>
+      <div class="eta" id="etaValue">—</div>
+      <p class="muted" id="etaDetail"></p>
+    </div>
+    <div class="notice">예상 시간은 최근 순번 이동 기록을 바탕으로 계산한 <b>넓은 참고 범위</b>야. 순번별 소요 시간이 크게 다르고 잠시 쉬기도 해서 실제 차례를 보장하지 않아. 기록이 부족하거나 감시가 오래 멈췄으면 예측을 표시하지 않아.</div>
+  </section>
+
+  <section class="card">
+    <div class="header-row"><h2 style="margin:0">⏱ 순번별 진행 기록</h2><button id="refresh" class="refresh" type="button">↻ 새로고침</button></div>
+    <div class="statrow">
+      <div><span class="tiny">최근 순번 소요 중앙값</span><strong id="medianTime">—</strong></div>
+      <div><span class="tiny">계산에 사용한 구간</span><strong id="sampleCount">—</strong></div>
+    </div>
+    <p class="tiny" style="margin:9px 0 8px">서버에 기록된 최초 관측 시각 기준. 연속해서 다음 순번으로 넘어간 경우에만 소요 시간을 계산해.</p>
+    <div id="timeline" aria-live="polite"><p class="muted">기록을 가져오는 중…</p></div>
+    <button class="refresh hide" id="showAll" type="button" style="margin-top:11px">이전 순번 더 보기</button>
+  </section>
+  <p class="muted" id="syncStatus" aria-live="polite">서버 연결 중…</p>
+  <footer class="tiny">공식 베베픽 페이지나 주문 API를 조작하지 않는 읽기 전용 분석이야. 개인 닉네임·대기열 원문·주문정보를 이 화면에서 수집하거나 서버에 저장하지 않아.</footer>
+</main>
+<script src="./queue-estimator.js?v=20261015"></script>
+<script>
+"use strict";
+const QUEUE_API = "https://fergbabqmwnbkkxjvgkj.supabase.co/functions/v1/bebepick-queue-progress";
+const QUEUE_PUBLIC_ANON_JWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZlcmdiYWJxbXduYmtreGp2Z2tqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE2NDgyMTAsImV4cCI6MjA5NzIyNDIxMH0.Mv4yJ8zRW2Qm1s7cOh_Od2oy-JgpjjubNmpzImIlwME";
+const CHANNEL_NAMES = {bebepick:"베베픽",bebepick_plus:"베베픽플러스"};
+const $ = (id) => document.getElementById(id);
+const clock = (iso) => {
+  const at = BebepickQueueMath.validDateMs(iso);
+  return at === null ? "기록 없음" : new Intl.DateTimeFormat("ko-KR",{
+    timeZone:"Asia/Seoul",hour:"2-digit",minute:"2-digit",hour12:false
+  }).format(at);
+};
+const mins = (sec) => BebepickQueueMath.prettyDuration(sec);
+const fmt = (n) => Number(n||0).toLocaleString("ko-KR");
+let payload = null;
+let selectedChannel = new URLSearchParams(location.search).get("channel")==="bebepick"
+  ? "bebepick" : "bebepick_plus";
+let shownAll = false, loadedBroadcast = null, loading = false;
+const selectedData = () => payload?.channels?.find(x=>x.channel_slug===selectedChannel);
+function targetKey(row){return "bebepick_queue_target_v1_"+row.broadcast_id+"_"+row.channel_slug;}
+function readTarget(row){
+  try { return localStorage.getItem(targetKey(row)) || ""; }
+  catch { return ""; }
+}
+function storeTarget(row,value){
+  try {
+    if (value) localStorage.setItem(targetKey(row),value);
+    else localStorage.removeItem(targetKey(row));
+  } catch {}
+}
+function setText(id,text){$(id).textContent = text;}
+function renderEstimate() {
+  const row = selectedData();
+  const target = $("myPosition").value;
+  if(!row?.available){setText("etaTitle","기록을 기다리고 있어");setText("etaValue","—");setText("etaDetail","해당 방송 데이터가 없어.");return;}
+  if(!target){setText("etaTitle","내 순번을 입력하면 예상 시간이 나타나");setText("etaValue","—");setText("etaDetail","");return;}
+  const info=BebepickQueueMath.estimate(row,target,Date.now());
+  if(info.kind==="estimated"){
+    setText("etaTitle","내 차례까지 앞에 "+info.ahead+"개 순번 · 참고 추정");
+    setText("etaValue","약 "+fmt(info.fromMinutes)+"~"+fmt(info.toMinutes)+"분");
+    setText("etaDetail","예상 시각 "+clock(info.fromAt)+"~"+clock(info.toAt)+" · 최근 "+info.sampleCount+"개 순번 기준 · 현재 순번 진행 경과 "+mins(info.currentElapsedSeconds)+" · 정확한 도착 시각 아님");
+  } else {
+    const messages={
+      missing:"내 순번을 입력해줘",
+      out_of_range:"입력한 순번이 현재 등록 대기열("+fmt(info.total)+"명)을 넘어. 등록된 순번을 확인해줘.",
+      not_started:"아직 첫 순번 진행이 확인되지 않았어.",
+      passed:"입력한 순번은 관측 기준 이미 지나갔어.",
+      your_turn:"현재 내 순번이 진행 중인 것으로 관측돼!",
+      stale:"감시가 최근 갱신되지 않아 예상 시간을 잠시 보류할게.",
+      insufficient:"순번 이동 기록이 부족해서 예상 시간을 아직 계산하기 어려워."
+    };
+    setText("etaTitle",info.kind==="stale"?"마지막 순번 기록 확인 필요":"내 순번 확인 결과");
+    setText("etaValue",messages[info.kind]||"분석 대기 중");
+    setText("etaDetail",info.kind==="stale"?"마지막 순번 변화 관측: "+clock(row.observed_at)+" · 실제 진행 여부를 확인해줘.":"");
+  }
+}
+function renderTimeline(row) {
+  const list=Array.isArray(row?.transitions)?row.transitions:[];
+  $("timeline").replaceChildren();
+  if(!list.length){
+    const p=document.createElement("p");p.className="muted";p.textContent="순번 진행 기록이 아직 없어."; $("timeline").append(p);$("showAll").classList.add("hide");return;
+  }
+  const items=(shownAll?list:list.slice(-12)).slice().reverse();
+  for(const item of items){
+    const current=item.position===row.current_position;
+    const el=document.createElement("div");el.className="timing"+(current?" current":"");
+    const left=document.createElement("div"),right=document.createElement("div");
+    const position=document.createElement("div");position.className="number";position.textContent=item.position+"번째 순번"+(current?" · 진행 중":"");
+    const start=document.createElement("div");start.className="start";start.textContent=clock(item.observed_at)+" 처음 관측";
+    left.append(position,start);
+    right.className="duration";
+    if(current){
+      const startMs=BebepickQueueMath.validDateMs(item.observed_at);
+      right.textContent=startMs===null?"진행 중":"관측 이후 "+mins(Math.max(0,(Date.now()-startMs)/1000));
+    } else if(item.duration_seconds!==null && item.duration_seconds!==undefined){
+      right.textContent=mins(item.duration_seconds);
+    } else if(item.skipped>0){
+      right.textContent="중간 "+item.skipped+"개 미관측";
+    } else {right.textContent="시간 미확인";}
+    el.append(left,right);$("timeline").append(el);
+  }
+  $("showAll").classList.toggle("hide",shownAll||list.length<=12);
+  $("showAll").textContent="이전 순번 "+Math.max(0,list.length-12)+"개 더 보기";
+}
+function render() {
+  document.querySelectorAll("[data-channel]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.channel===selectedChannel)));
+  const row=selectedData();
+  setText("broadcastTitle",row?.available?CHANNEL_NAMES[selectedChannel]+" · 순번 진행":CHANNEL_NAMES[selectedChannel]+" · 관측 대기");
+  const prevId=loadedBroadcast;
+  const nextId=row?.available?row.channel_slug+":"+row.broadcast_id:null;
+  if(nextId!==prevId){loadedBroadcast=nextId;$("myPosition").value=row?.available?readTarget(row):"";shownAll=false;}
+  if(!row?.available){
+    setText("freshness","기록 없음");$("freshness").className="pill warn";
+    ["currentNumber","totalNumber","broadcastStarted","firstTurn","lastUpdated","monitorChecked","medianTime","sampleCount"].forEach(id=>setText(id,"—"));
+    setText("broadcastMeta","관측된 순번이 없는 방송이야.");
+    $("progressBar").style.width="0%";
+    renderTimeline(null);renderEstimate();return;
+  }
+  const ageMs=Date.now()-Date.parse(row.observed_at);
+  const monitor=payload?.monitor;
+  const fresh=Boolean(row.monitoring_recent);
+  const oldBroadcast=ageMs > 6*60*60*1000;
+  const badge=oldBroadcast?"지난 방송 기록":fresh?"감시 정상":"감시 지연 확인 필요";
+  setText("freshness",badge);$("freshness").className="pill "+(fresh&&!oldBroadcast?"ok":"warn");
+  setText("broadcastMeta",row.broadcast_name+" · 방송 ID "+row.broadcast_id+" · 마지막 변화 "+clock(row.observed_at));
+  setText("currentNumber",row.current_position?fmt(row.current_position)+"번째":"대기 중");
+  setText("totalNumber",fmt(row.queue_length)+"명");
+  setText("broadcastStarted",clock(row.broadcast_first_seen_at));
+  setText("firstTurn",clock(row.first_turn_observed_at));
+  setText("lastUpdated",clock(row.observed_at));
+  setText("monitorChecked",clock(monitor?.checked_at)+(fresh?" ✓":""));
+  $("progressBar").style.width=row.queue_length&&row.current_position
+    ?Math.min(100,100*row.current_position/row.queue_length)+"%":"0%";
+  setText("medianTime",row.median_seconds===null?"기록 부족":mins(row.median_seconds));
+  setText("sampleCount",row.duration_sample_count+"개 (최대 최근 8개)");
+  renderTimeline(row);renderEstimate();
+}
+async function refresh() {
+  if(loading)return;
+  loading=true;$("refresh").disabled=true;
+  setText("syncStatus","순번 기록 확인 중…");
+  try{
+    const res=await fetch(QUEUE_API+"?t="+Date.now(),{
+      method:"GET",headers:{"apikey":QUEUE_PUBLIC_ANON_JWT,"Authorization":"Bearer "+QUEUE_PUBLIC_ANON_JWT},
+      cache:"no-store"
+    });
+    if(!res.ok)throw new Error("HTTP "+res.status);
+    const data=await res.json();
+    if(!data.ok||!Array.isArray(data.channels))throw new Error("invalid_response");
+    payload=data;render();
+    setText("syncStatus","마지막 조회 "+clock(data.generated_at)+" · 30초마다 자동 확인 · 실제 판매 순번과 시각은 오차가 있을 수 있어");
+  }catch(e){
+    setText("syncStatus","서버 조회에 실패했어. 잠시 후 새로고침해줘. ("+String(e.message||"오류")+")");
+  }finally{loading=false;$("refresh").disabled=false;}
+}
+document.querySelectorAll("[data-channel]").forEach(btn=>btn.addEventListener("click",()=>{
+  selectedChannel=btn.dataset.channel;loadedBroadcast=null;shownAll=false;render();
+}));
+$("applyPosition").addEventListener("click",()=>{
+  const row=selectedData();if(!row?.available)return;
+  const value=$("myPosition").value.trim();
+  if(value&&(!/^[0-9]+$/.test(value)||!Number.isSafeInteger(Number(value))||Number(value)<1)){
+    setText("etaDetail","1 이상의 순번 숫자를 입력해줘.");return;
+  }
+  storeTarget(row,value);renderEstimate();
+});
+$("myPosition").addEventListener("keydown",e=>{if(e.key==="Enter")$("applyPosition").click();});
+$("refresh").addEventListener("click",refresh);
+$("showAll").addEventListener("click",()=>{shownAll=true;renderTimeline(selectedData());});
+refresh();
+setInterval(()=>{if(!document.hidden)refresh();else renderEstimate();},30000);
+</script>
+</body>
+</html>
