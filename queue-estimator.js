@@ -21,7 +21,11 @@
     if (t === current) return { kind: "your_turn" };
     const observed = validDateMs(queue?.observed_at);
     const age = observed === null ? Infinity : Math.max(0, nowMs - observed);
-    if (age > 10 * 60 * 1000) return { kind: "stale", minutesAgo: Math.round(age / 60000) };
+    // Observations are change-only. A healthy watcher can confirm that the
+    // same position persists without inserting a new observation row.
+    if (age > 10 * 60 * 1000 && !queue?.monitoring_recent) {
+      return { kind: "stale", minutesAgo: Math.round(age / 60000) };
+    }
     const median = Number(queue?.median_seconds);
     const low = Number(queue?.p25_seconds);
     const high = Number(queue?.p75_seconds);
