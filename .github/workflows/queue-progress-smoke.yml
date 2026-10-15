@@ -1,0 +1,74 @@
+name: Queue Progress Smoke
+on:
+  push:
+    branches: [main]
+    paths:
+      - "queue.html"
+      - "queue-estimator.js"
+      - "queue-estimator.test.cjs"
+      - ".github/workflows/queue-progress-smoke.yml"
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify queue estimation with fixture tests
+        run: node --test queue-estimator.test.cjs
+      - name: Check production queue API with public anon JWT
+        run: |
+          python3 - <<'PY'
+          import json, re, time, urllib.request, urllib.error
+          html = open("queue.html", encoding="utf-8").read()
+          match = re.search(r'const QUEUE_PUBLIC_ANON_JWT = "(eyJ[^"]+)";', html)
+          assert match, "Missing public anon JWT in queue.html"
+          anon = match.group(1)  # Public anon key; never print to logs.
+          url = "https://fergbabqmwnbkkxjvgkj.supabase.co/functions/v1/bebepick-queue-progress"
+          result = None
+          for attempt in range(4):
+            request = urllib.request.Request(url, headers={
+              "apikey": anon, "Authorization": "Bearer " + anon, "accept": "application/json"
+            })
+            try:
+              with urllib.request.urlopen(request, timeout=20) as response:
+                assert response.status == 200, "Queue API non-200"
+                result = json.load(response)
+              break
+            except Exception as exc:
+              print(f"API attempt {attempt+1} failed: {type(exc).__name__} (not printing sensitive headers)")
+              if attempt == 3: raise
+              time.sleep(6)
+          assert result.get("ok") is True, "Queue API not OK"
+          assert len(result.get("channels", [])) == 2, "Expected 2 channels"
+          for channel in result["channels"]:
+            assert channel["channel_slug"] in ("bebepick", "bebepick_plus")
+            for forbidden in ("queue_data", "nickname", "own_position", "phone", "email"):
+              assert forbidden not in channel, "Unexpected private field returned"
+            if channel.get("available"):
+              assert isinstance(channel.get("queue_length"), int)
+              assert isinstance(channel.get("transitions"), list)
+              assert "observed_at" in channel
+          print("OK: JWT-protected sanitized numeric API, 2 channels")
+          PY
+      - name: Verify the public GitHub Pages queue route
+        run: |
+          python3 - <<'PY'
+          import time, urllib.request
+          url="https://hipo020.github.io/bebepick-dashboard/queue.html"
+          for attempt in range(15):
+            try:
+              with urllib.request.urlopen(url, timeout=20) as response:
+                text = response.read().decode("utf-8", "replace")
+                if response.status == 200 and "방송 순번 현황" in text and "queue-estimator.js" in text:
+                  print("OK: Published queue.html page accessible")
+                  break
+                print("Page not updated yet; waiting for Pages publish")
+            except Exception as exc:
+              print(f"Page attempt {attempt+1}: {type(exc).__name__}")
+            if attempt == 14: raise AssertionError("queue.html not publicly available after 15 attempts")
+            time.sleep(10)
+          PY
