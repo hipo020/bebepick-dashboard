@@ -38,7 +38,8 @@ label{font-size:13px;color:#dfe6f7;font-weight:750}
 input[type=number]{background:#10182b;border:1px solid #67718b;color:white;border-radius:12px;min-width:0;width:100%;padding:11px 13px;font-size:18px;font-weight:800}
 input[type=number]:focus{outline:2px solid #baa2ff;outline-offset:1px}
 .primary{background:#bba8ff;border:0;border-radius:12px;color:#211b35;font-size:13px;font-weight:900;padding:11px 14px;white-space:nowrap}
-.eta{font-weight:900;color:#e4d6ff;font-size:25px;line-height:1.4}
+.eta{font-weight:900;color:#e4d6ff;font-size:28px;line-height:1.4}
+.eta-range{margin:5px 0 0;font-size:13px;font-weight:750;color:#d2c8f4}
 .notice{margin-top:9px;padding:11px 12px;border:1px solid #4c526d;border-radius:12px;background:#222941;font-size:12px;color:#d3dbee}
 .refresh{color:#d8d0ff;border:1px solid #675e98;border-radius:10px;background:#342d4c;padding:6px 10px;font-size:12px;font-weight:750}
 .timing{display:grid;grid-template-columns:1fr auto;gap:5px 10px;padding:10px 0;border-bottom:1px solid #344058;align-items:center}
@@ -94,15 +95,16 @@ footer{padding-top:20px}
     <div style="margin-top:15px" aria-live="polite">
       <p id="etaTitle" class="muted">내 순번을 입력하면 예상 시간이 나타나</p>
       <div class="eta" id="etaValue">—</div>
+      <p id="etaRange" class="eta-range"></p>
       <p class="muted" id="etaDetail"></p>
     </div>
-    <div class="notice">예상 시간은 최근 순번 이동 기록을 바탕으로 계산한 <b>넓은 참고 범위</b>야. 순번별 소요 시간이 크게 다르고 잠시 쉬기도 해서 실제 차례를 보장하지 않아. 기록이 부족하거나 감시가 오래 멈췄으면 예측을 표시하지 않아.</div>
+    <div class="notice">큰 숫자는 최근 순번의 <b>산술평균 기반 예상 시간</b>, 작은 숫자는 <b>예상 범위</b>야. 순번별 소요 시간이 크게 다르고 잠시 쉬기도 해서 실제 차례를 보장하지 않아. 기록이 부족하거나 감시가 오래 멈췄으면 예측을 표시하지 않아.</div>
   </section>
 
   <section class="card">
     <div class="header-row"><h2 style="margin:0">⏱ 순번별 진행 기록</h2><button id="refresh" class="refresh" type="button">↻ 새로고침</button></div>
     <div class="statrow">
-      <div><span class="tiny">최근 순번 소요 중앙값</span><strong id="medianTime">—</strong></div>
+      <div><span class="tiny">최근 순번 소요 평균</span><strong id="medianTime">—</strong></div>
       <div><span class="tiny">계산에 사용한 구간</span><strong id="sampleCount">—</strong></div>
     </div>
     <p class="tiny" style="margin:9px 0 8px">서버에 기록된 최초 관측 시각 기준. 연속해서 다음 순번으로 넘어간 경우에만 소요 시간을 계산해.</p>
@@ -126,6 +128,7 @@ const clock = (iso) => {
   }).format(at);
 };
 const mins = (sec) => BebepickQueueMath.prettyDuration(sec);
+const waitMinutes = m => Math.floor(m/60)>0 ? Math.floor(m/60)+"시간 "+(m%60)+"분" : m+"분";
 const fmt = (n) => Number(n||0).toLocaleString("ko-KR");
 let payload = null;
 let selectedChannel = new URLSearchParams(location.search).get("channel")==="bebepick"
@@ -151,8 +154,9 @@ function renderEstimate() {
   if(!target){setText("etaTitle","내 순번을 입력하면 예상 시간이 나타나");setText("etaValue","—");setText("etaDetail","");return;}
   const info=BebepickQueueMath.estimate(row,target,Date.now());
   if(info.kind==="estimated"){
-    setText("etaTitle","내 차례까지 앞에 "+info.ahead+"개 순번 · 참고 추정");
-    setText("etaValue","약 "+fmt(info.fromMinutes)+"~"+fmt(info.toMinutes)+"분");
+    setText("etaTitle","내 차례까지 앞에 "+info.ahead+"개 순번 · 최근 평균 기준");
+    setText("etaValue","약 "+waitMinutes(info.minutes));
+    setText("etaRange","예상 범위: "+fmt(info.fromMinutes)+"~"+fmt(info.toMinutes)+"분");
     setText("etaDetail","예상 시각 "+clock(info.fromAt)+"~"+clock(info.toAt)+" · 최근 "+info.sampleCount+"개 순번 기준 · 현재 순번 진행 경과 "+mins(info.currentElapsedSeconds)+" · 정확한 도착 시각 아님");
   } else {
     const messages={
@@ -188,7 +192,7 @@ function renderTimeline(row) {
       const startMs=BebepickQueueMath.validDateMs(item.observed_at);
       right.textContent=startMs===null?"진행 중":"관측 이후 "+mins(Math.max(0,(Date.now()-startMs)/1000));
     } else if(item.duration_seconds!==null && item.duration_seconds!==undefined){
-      right.textContent=mins(item.duration_seconds);
+      right.textContent=mins(item.duration_seconds)+" 소요";
     } else if(item.skipped>0){
       right.textContent="중간 "+item.skipped+"개 미관측";
     } else {right.textContent="시간 미확인";}
@@ -226,8 +230,8 @@ function render() {
   setText("monitorChecked",clock(monitor?.checked_at)+(fresh?" ✓":""));
   $("progressBar").style.width=row.queue_length&&row.current_position
     ?Math.min(100,100*row.current_position/row.queue_length)+"%":"0%";
-  setText("medianTime",row.median_seconds===null?"기록 부족":mins(row.median_seconds));
-  setText("sampleCount",row.duration_sample_count+"개 (최대 최근 8개)");
+  setText("medianTime",BebepickQueueMath.recentDurationStats(row).averageSeconds===null?"기록 부족":mins(BebepickQueueMath.recentDurationStats(row).averageSeconds));
+  setText("sampleCount",BebepickQueueMath.recentDurationStats(row).count+"개 (최대 최근 8개)");
   renderTimeline(row);renderEstimate();
 }
 async function refresh() {
