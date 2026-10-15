@@ -1,0 +1,60 @@
+name: New Shop Alert Live Smoke
+on:
+  push:
+    branches: [main]
+    paths:
+      - "new-site.html"
+      - ".github/workflows/new-shop-alert-smoke.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify sanitized production monitor response (GET only)
+        run: |
+          python3 - <<'PY'
+          import json, urllib.request, time
+          url="https://fergbabqmwnbkkxjvgkj.supabase.co/functions/v1/bebepick-new-site-watch"
+          for attempt in range(5):
+            try:
+              with urllib.request.urlopen(urllib.request.Request(url,method="GET"),timeout=20) as response:
+                assert response.status==200
+                data=json.load(response)
+              assert isinstance(data.get("important_events"),list)
+              assert isinstance(data.get("events"),list)
+              assert isinstance(data.get("stores"),list)
+              assert isinstance(data.get("notify_enabled"),bool)
+              for event in data["important_events"]:
+                for key in ("ntfy_topic","phone","queue_data","apikey","token"):
+                  assert key not in event
+              assert "ntfy_topic" not in data
+              print("OK: v4 new-site public read-only response and important event partition")
+              break
+            except Exception as exc:
+              print(f"GET attempt {attempt+1}: {type(exc).__name__}")
+              if attempt==4: raise
+              time.sleep(5)
+          PY
+      - name: Verify updated public monitoring UI
+        run: |
+          python3 - <<'PY'
+          import urllib.request,time
+          url="https://hipo020.github.io/bebepick-dashboard/new-site.html"
+          for attempt in range(10):
+            try:
+              with urllib.request.urlopen(url,timeout=20) as response:
+                html=response.read().decode("utf-8","replace")
+              assert "id=\"importantEvents\"" in html
+              assert "class=\"tech-details\"" in html
+              assert "무료배송 기준" in html
+              print("OK: important-first UI is publicly deployed")
+              break
+            except Exception as exc:
+              print(f"Pages attempt {attempt+1}: {type(exc).__name__}")
+              if attempt==9: raise
+              time.sleep(10)
+          PY
