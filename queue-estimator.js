@@ -23,7 +23,8 @@
     const age = observed === null ? Infinity : Math.max(0, nowMs - observed);
     // Observations are change-only. A healthy watcher can confirm that the
     // same position persists without inserting a new observation row.
-    if (age > 10 * 60 * 1000 && !queue?.monitoring_recent) {
+    if (age > 6 * 60 * 60 * 1000 ||
+        (age > 10 * 60 * 1000 && !queue?.monitoring_recent)) {
       return { kind: "stale", minutesAgo: Math.round(age / 60000) };
     }
     const median = Number(queue?.median_seconds);
