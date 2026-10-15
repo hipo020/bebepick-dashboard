@@ -9,6 +9,25 @@
     return Number.isFinite(value) ? value : null;
   }
 
+  // The most recent eight COMPLETED one-step turns are used for both the
+  // headline mean and the existing historical spread. An incomplete/current
+  // turn and jumped/missing indices are not counted as zero-duration turns.
+  function recentDurationStats(queue) {
+    const transitions = Array.isArray(queue?.transitions) ? queue.transitions : [];
+    const samples = transitions
+      .map(turn => turn?.duration_seconds)
+      .filter(seconds => typeof seconds === "number" &&
+        Number.isFinite(seconds) && seconds >= 10 && seconds <= 4 * 3600)
+      .slice(-8);
+    const count = samples.length;
+    return {
+      count,
+      averageSeconds: count >= 3
+        ? samples.reduce((total, seconds) => total + seconds, 0) / count
+        : null
+    };
+  }
+
   // Positions on this page are always one-based. Raw current_idx is zero-based.
   function estimate(queue, target, nowMs) {
     const current = Number(queue?.current_position);
@@ -27,13 +46,14 @@
         (age > 10 * 60 * 1000 && !queue?.monitoring_recent)) {
       return { kind: "stale", minutesAgo: Math.round(age / 60000) };
     }
-    const median = Number(queue?.median_seconds);
+    const stats = recentDurationStats(queue);
+    const average = stats.averageSeconds;
     const low = Number(queue?.p25_seconds);
     const high = Number(queue?.p75_seconds);
-    const sampleCount = Number(queue?.duration_sample_count);
-    if (sampleCount < 3 || !Number.isFinite(median) || median <= 0 ||
-        !Number.isFinite(low) || !Number.isFinite(high)) {
-      return { kind: "insufficient", sampleCount: sampleCount || 0 };
+    const sampleCount = stats.count;
+    if (sampleCount < 3 || average === null || !Number.isFinite(average) ||
+        !Number.isFinite(low) || !Number.isFinite(high) || low <= 0 || high <= 0) {
+      return { kind: "insufficient", sampleCount };
     }
     const transitions = Array.isArray(queue?.transitions) ? queue.transitions : [];
     const lastTransition = transitions[transitions.length - 1];
@@ -43,18 +63,27 @@
       ? 0 : Math.max(0, (nowMs - currentStarted) / 1000);
     const ahead = t - current;
     const nextAfterCurrent = Math.max(0, ahead - 1);
-    // Current slot may already exceed the median. Avoid treating it as certainly done.
-    const currentRemaining = Math.max(60, median - currentElapsed);
+    // This is a rough mean-based estimate, not a promised wait time.
+    // Subtract elapsed time from the CURRENT turn only, and never claim that
+    // an overlong current turn has certainly finished.
+    const currentRemaining = Math.max(60, average - currentElapsed);
     const currentLow = Math.max(0, low - currentElapsed);
     const currentHigh = Math.max(60, Math.max(high - currentElapsed, high * 0.5));
-    const estimatedSec = currentRemaining + nextAfterCurrent * median;
-    const minSec = currentLow + nextAfterCurrent * Math.max(60, low);
-    const maxSec = currentHigh + nextAfterCurrent * Math.max(120, high * 1.5);
+    const estimatedSec = currentRemaining + nextAfterCurrent * average;
+    // The historic interquartile spread is illustrative, not a confidence
+    // interval. Guarantee that the displayed range contains the mean.
+    const minSec = Math.min(
+      estimatedSec, currentLow + nextAfterCurrent * Math.max(60, low)
+    );
+    const maxSec = Math.max(
+      estimatedSec, currentHigh + nextAfterCurrent * Math.max(120, high * 1.5)
+    );
     return {
       kind: "estimated",
       ahead,
       currentElapsedSeconds: Math.round(currentElapsed),
       sampleCount,
+      averageSeconds: Math.round(average),
       minutes: Math.max(1, Math.round(estimatedSec / 60)),
       fromMinutes: Math.max(0, Math.floor(minSec / 60)),
       toMinutes: Math.max(1, Math.ceil(maxSec / 60)),
@@ -71,5 +100,5 @@
     return m > 0 ? m + "분 " + String(sec).padStart(2,"0") + "초" : sec + "초";
   }
 
-  return {estimate, prettyDuration, validDateMs};
+  return {estimate, recentDurationStats, prettyDuration, validDateMs};
 });
