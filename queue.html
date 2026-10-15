@@ -107,7 +107,7 @@ footer{padding-top:20px}
       <div><span class="tiny">최근 순번 소요 평균</span><strong id="medianTime">—</strong></div>
       <div><span class="tiny">계산에 사용한 구간</span><strong id="sampleCount">—</strong></div>
     </div>
-    <p class="tiny" style="margin:9px 0 8px">서버에 기록된 최초 관측 시각 기준. 연속해서 다음 순번으로 넘어간 경우에만 소요 시간을 계산해.</p>
+    <p class="tiny" style="margin:9px 0 8px">서버에 기록된 최초 관측 시각 기준. 오른쪽 ‘소요’는 해당 순번에서 다음 순번으로 넘어가는 데 걸린 관측 시간이야.</p>
     <div id="timeline" aria-live="polite"><p class="muted">기록을 가져오는 중…</p></div>
     <button class="refresh hide" id="showAll" type="button" style="margin-top:11px">이전 순번 더 보기</button>
   </section>
@@ -150,14 +150,14 @@ function setText(id,text){$(id).textContent = text;}
 function renderEstimate() {
   const row = selectedData();
   const target = $("myPosition").value;
-  if(!row?.available){setText("etaTitle","기록을 기다리고 있어");setText("etaValue","—");setText("etaDetail","해당 방송 데이터가 없어.");return;}
-  if(!target){setText("etaTitle","내 순번을 입력하면 예상 시간이 나타나");setText("etaValue","—");setText("etaDetail","");return;}
+  if(!row?.available){setText("etaTitle","기록을 기다리고 있어");setText("etaValue","—");setText("etaRange","");setText("etaDetail","해당 방송 데이터가 없어.");return;}
+  if(!target){setText("etaTitle","내 순번을 입력하면 예상 시간이 나타나");setText("etaValue","—");setText("etaRange","");setText("etaDetail","");return;}
   const info=BebepickQueueMath.estimate(row,target,Date.now());
   if(info.kind==="estimated"){
     setText("etaTitle","내 차례까지 앞에 "+info.ahead+"개 순번 · 최근 평균 기준");
     setText("etaValue","약 "+waitMinutes(info.minutes));
     setText("etaRange","예상 범위: "+fmt(info.fromMinutes)+"~"+fmt(info.toMinutes)+"분");
-    setText("etaDetail","예상 시각 "+clock(info.fromAt)+"~"+clock(info.toAt)+" · 최근 "+info.sampleCount+"개 순번 기준 · 현재 순번 진행 경과 "+mins(info.currentElapsedSeconds)+" · 정확한 도착 시각 아님");
+    setText("etaDetail","예상 시각 "+clock(info.fromAt)+"~"+clock(info.toAt)+" · 최근 "+info.sampleCount+"개 순번 소요 평균 "+mins(info.averageSeconds)+" 기준 · 현재 순번 진행 경과 "+mins(info.currentElapsedSeconds)+" · 정확한 도착 시각 아님");
   } else {
     const messages={
       missing:"내 순번을 입력해줘",
@@ -170,6 +170,7 @@ function renderEstimate() {
     };
     setText("etaTitle",info.kind==="stale"?"마지막 순번 기록 확인 필요":"내 순번 확인 결과");
     setText("etaValue",messages[info.kind]||"분석 대기 중");
+    setText("etaRange","");
     setText("etaDetail",info.kind==="stale"?"마지막 순번 변화 관측: "+clock(row.observed_at)+" · 실제 진행 여부를 확인해줘.":"");
   }
 }
