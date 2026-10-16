@@ -1,0 +1,66 @@
+name: Inventory Bridge Production Smoke
+on:
+  push:
+    branches: [main]
+    paths:
+      - "inventory-bridge.html"
+      - ".github/workflows/inventory-bridge-smoke.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check deployed sanitized bridge API (GET only)
+        run: |
+          python3 - <<'PY'
+          import json,urllib.request
+          url="https://fergbabqmwnbkkxjvgkj.supabase.co/functions/v1/bebepick-inventory-bridge"
+          with urllib.request.urlopen(urllib.request.Request(url, method="GET"),timeout=25) as response:
+            assert response.status == 200
+            obj=json.load(response)
+          assert obj.get("ok") is True, "Bridge API unavailable"
+          assert isinstance(obj.get("new_products"),list)
+          assert isinstance(obj.get("old_site_hidden_products"),list)
+          assert isinstance(obj.get("old_monitor_recent"),bool)
+          assert len(obj["new_products"]) <= 1500
+          assert len(obj["old_site_hidden_products"]) <= 2000
+          assert obj["old_site_hidden_count"]==len(obj["old_site_hidden_products"])
+          for product in obj["new_products"]:
+            assert product["status"] in ("low","out","unknown")
+            assert product["match_status"] in ("unique_name_match","ambiguous_name","not_matched")
+            assert "current_stock" not in product
+            assert "password" not in product
+            assert "orders" not in product
+            if product["old_snapshot"] is not None:
+              assert "stock" in product["old_snapshot"]
+              assert "observed_at" in product["old_snapshot"]
+          for item in obj["old_site_hidden_products"]:
+            assert item["old_site_hidden_only"] is True
+            assert item["visible"] is False
+          print("OK: read-only dual-source inventory bridge")
+          print("New public products:",len(obj["new_products"]))
+          print("Legacy hidden snapshots:",obj["old_site_hidden_count"])
+          print("Matched legacy snapshots:",sum(x["old_snapshot"] is not None for x in obj["new_products"]))
+          print("Old monitor recent:",obj["old_monitor_recent"])
+          PY
+      - name: Check new inventory board is publicly deployed
+        run: |
+          python3 - <<'PY'
+          import time,urllib.request
+          url="https://hipo020.github.io/bebepick-dashboard/inventory-bridge.html"
+          for attempt in range(18):
+            try:
+              with urllib.request.urlopen(url,timeout=20) as response:
+                html=response.read().decode("utf-8","replace")
+              if response.status==200 and "새 홈페이지 통합 재고판" in html and "bebepick-inventory-bridge" in html:
+                print("OK: publicly deployed inventory board")
+                break
+            except Exception as e:
+              print(f"Pages attempt {attempt+1} {type(e).__name__}")
+            if attempt==17: raise AssertionError("Published page not yet available")
+            time.sleep(10)
+          PY
