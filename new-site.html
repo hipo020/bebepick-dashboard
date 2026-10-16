@@ -47,7 +47,7 @@ button:disabled{opacity:.5}.event{padding:12px 0;border-top:1px solid #eeeaf3}.e
  <button id="refresh" type="button">↻ 상태 새로고침</button>
  <span id="refreshed" class="hint"></span>
 </div>
-<p class="hint">일반 공개 자료는 10분 간격(매시 00·10·20·30·40·50분), 회원가입 설정은 2분 간격으로 확인해. 여기에 표시된 시간은 실제 서버의 마지막 점검 시각이야. 이 버튼은 결과만 다시 불러오며 쇼핑몰에 추가 요청하지 않아.</p>
+<p class="hint">공개 상품·주문창·회원가입 제한 설정을 모두 1분 간격(매분)으로 확인해. 여기에 표시된 시간은 실제 서버의 마지막 점검 시각이야. 이 버튼은 결과만 다시 불러오며 쇼핑몰에 추가 요청하지 않아.</p>
 </section>
 
 <section class="card" aria-labelledby="inventoryBridgeTitle">
@@ -58,7 +58,7 @@ button:disabled{opacity:.5}.event{padding:12px 0;border-top:1px solid #eeeaf3}.e
 <section class="card" aria-labelledby="signupTitle">
   <div class="headrow"><h2 id="signupTitle">🔓 회원가입 제한 감시</h2><span class="pill" id="signupBadge">확인 대기</span></div>
   <p id="signupStatus" class="status">공개 인증 서버 설정을 확인하고 있어…</p>
-  <p id="signupMeta" class="hint">2분마다 공개 설정 확인 · 로그인·회원가입 시도 없음</p>
+  <p id="signupMeta" class="hint">1분마다 공개 설정 확인 · 로그인·회원가입 시도 없음</p>
   <p class="hint">서버의 <code>disable_signup</code>이 제한 중에서 해제로 변경되면 신규 홈페이지 전용 ntfy 알림을 보내. <b>실제 계정 생성이나 주문 성공을 보장하는 신호는 아니야.</b></p>
 </section>
 <section class="card" aria-labelledby="signalsTitle">
@@ -118,7 +118,7 @@ function renderSignup(s){
   const google=s.signup_google_enabled===true?"구글 제공자 ON":
     s.signup_google_enabled===false?"구글 제공자 OFF":"구글 제공자 상태 미확인";
   meta.textContent="마지막 정상 확인 "+when(s.signup_last_ok_at)+" · "+google+
-    " · 제한 설정은 2분마다 확인";
+    " · 제한 설정은 1분마다 확인";
 }
 function renderPublicSignals(s){
   const root=$("publicSignals");root.replaceChildren();
