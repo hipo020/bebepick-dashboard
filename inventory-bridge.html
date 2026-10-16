@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#f6f3fa">
+<title>베베픽 새 홈페이지 통합 재고판</title>
+<style>
+:root{--bg:#f7f4fb;--card:#fff;--ink:#242236;--muted:#756f86;--edge:#e3ddec;--accent:#6955a8;--soft:#f0ebfb;--warn:#a26732}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Noto Sans KR",sans-serif}
+main{width:min(780px,100%);margin:auto;padding:17px 13px 64px}
+a{color:var(--accent)}h1{font-size:23px;margin:6px 0 4px}h2{font-size:16px;margin:0 0 10px}
+p{margin:5px 0}small,.small{font-size:12px;color:var(--muted)}.lead{margin-bottom:15px}
+.back{display:inline-block;font-size:12px;text-decoration:none;padding:5px 0;font-weight:750}
+.card{background:var(--card);border:1px solid var(--edge);border-radius:16px;padding:15px;margin:12px 0;box-shadow:0 3px 15px #29213808}
+.row{display:flex;align-items:center;justify-content:space-between;gap:9px;flex-wrap:wrap}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stat{background:#f5f1fc;border-radius:11px;padding:10px}
+.stat b{display:block;font-size:22px;color:#453775;font-variant-numeric:tabular-nums}
+.stat span{font-size:11px;color:var(--muted)}
+.notice{border-radius:11px;padding:12px;background:#f1ebfb;color:#50426b;font-size:12px;margin:12px 0}
+.warn{background:#fdf4e8;color:#805321}
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:10px 0}
+button{font:inherit;cursor:pointer;min-height:40px;border-radius:11px;border:1px solid #c9bee5;background:white;padding:9px 13px;color:#483a75;font-weight:800}
+button[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:#fff}
+.controls{display:flex;gap:7px;margin:10px 0}
+input,select{min-width:0;border:1px solid #cfc5e2;background:white;color:#26213a;border-radius:10px;padding:11px;font:inherit}
+input{width:100%}select{max-width:128px}
+#items{display:grid;gap:8px}
+.item{background:white;border:1px solid var(--edge);border-radius:13px;padding:13px;display:grid;gap:7px}
+.itemhead{display:flex;align-items:flex-start;justify-content:space-between;gap:9px}
+.itemhead b{font-size:14px;line-height:1.35}.pill{font-size:10px;font-weight:750;background:#f1eff7;color:#675f7c;border-radius:999px;padding:4px 8px;white-space:nowrap}
+.pill.out{background:#fff0ee;color:#a4403b}.pill.low{background:#fff3e3;color:#9c621e}
+.number{font-size:20px;font-weight:900;color:var(--accent);line-height:1.25}
+.number.stale{color:#776f83}.meta{font-size:11px;color:var(--muted);line-height:1.55}
+.desc{font-size:12px;color:#5b5666}
+.empty{text-align:center;padding:25px 8px;color:var(--muted);font-size:13px}
+@media(max-width:360px){main{padding:12px 9px 50px}.stat b{font-size:18px}input{max-width:200px}}
+</style>
+</head>
+<body>
+<main>
+<a class="back" href="./new-site.html">← 새 홈페이지 감시로 돌아가기</a>
+<h1>🧸 새 홈페이지 통합 재고판</h1>
+<p class="small lead">새 상품 상태 + 기존 사이트 수량 기록 · 모든 정보의 출처를 구분해서 보여줘</p>
+<div class="card">
+  <div class="row"><h2>상품 현황</h2><button id="refresh" type="button">↻ 새로고침</button></div>
+  <div class="stats">
+    <div class="stat"><b id="publicCount">—</b><span>새 사이트 공개</span></div>
+    <div class="stat"><b id="oldCount">—</b><span>기존 사이트 기록</span></div>
+    <div class="stat"><b id="hiddenCount">—</b><span>기존 사이트 숨김</span></div>
+  </div>
+  <div id="sourceStatus" class="notice" aria-live="polite">서버 확인 중…</div>
+  <p class="small">새 홈페이지가 공개하지 않는 정확한 재고와 숨김 여부는 알 수 없어. 아래 숫자는 <b>기존 사이트 관측 기록</b>이며 새 홈페이지 주문 가능 수량이 아닐 수 있어.</p>
+</div>
+<div class="tabs" aria-label="상품 목록 유형">
+  <button id="tabNew" type="button" aria-pressed="true">🛍️ 새 홈페이지 상품</button>
+  <button id="tabHidden" type="button" aria-pressed="false">🔒 기존 숨김 상품</button>
+</div>
+<div class="controls">
+  <input id="search" type="search" placeholder="상품 이름 검색 · 띄어쓰기 무관" aria-label="상품 이름 검색">
+  <select id="sort" aria-label="상품 정렬">
+    <option value="name">이름순</option>
+    <option value="stockDesc">기존 재고 많은순</option>
+    <option value="stockAsc">기존 재고 적은순</option>
+  </select>
+</div>
+<p id="shown" class="small" aria-live="polite">상품 조회 중…</p>
+<div id="items" aria-live="polite"></div>
+<div class="notice warn">숨김 탭의 상품은 <b>기존 홈페이지에서 숨김으로 관측된 상품</b>이야. 새 홈페이지 내부에도 숨겨져 있다고 확인된 게 아니야. 기존 서버가 중단되면 숫자를 마지막 기록으로만 유지하고, 새 사이트의 공개 상태만 계속 갱신할 수 있어.</div>
+<p class="small">읽기 전용 재고판이야. 로그인·주문·결제·장바구니 조작을 하지 않고, 기존 감시기의 저장된 결과만 조회해.</p>
+</main>
+<script>
+"use strict";
+const API="https://fergbabqmwnbkkxjvgkj.supabase.co/functions/v1/bebepick-inventory-bridge";
+const $=id=>document.getElementById(id);
+let dataset=null,tab="new",busy=false;
+const text=(node,s)=>{node.textContent=s;return node;};
+const fmt=n=>Number(n).toLocaleString("ko-KR");
+const clock=value=>value&&Number.isFinite(Date.parse(value))
+  ?new Date(value).toLocaleString("ko-KR",{timeZone:"Asia/Seoul",month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})
+  :"미확인";
+const sinceMinutes=value=>value&&Number.isFinite(Date.parse(value))
+  ?Math.max(0,Math.round((Date.now()-Date.parse(value))/60000)):Infinity;
+function descStatus(row){
+  return row.status==="out"?["품절 표시","out"]:
+    row.status==="low"?["매진 임박","low"]:["일반/미확인",""];
+}
+function infoItem(item) {
+  const el=document.createElement("article");el.className="item";
+  const header=document.createElement("div");header.className="itemhead";
+  const name=document.createElement("b");
+  text(name,item.name||"이름 미확인");
+  const badge=document.createElement("span");badge.className="pill";
+  if(tab==="new"){
+    const [label,className]=descStatus(item);
+    text(badge,label);if(className)badge.classList.add(className);
+  }else text(badge,"이전 사이트 숨김");
+  header.append(name,badge);el.append(header);
+  const num=document.createElement("div");num.className="number";
+  const old=tab==="new"?item.old_snapshot:item;
+  const oldFresh=dataset?.old_monitor_recent===true &&
+    old?.observed_at && sinceMinutes(old.observed_at)<=20;
+  if(old && typeof old.stock==="number"){
+    text(num,"기존 재고 "+fmt(old.stock)+"개"+(oldFresh?"":" · 과거 기록"));
+    if(!oldFresh)num.classList.add("stale");
+  }else {text(num,"기존 재고: 확인 불가");num.classList.add("stale");}
+  el.append(num);
+  const meta=document.createElement("div");meta.className="meta";
+  const pieces=[];
+  if(tab==="new"){
+    pieces.push("새 SKU "+item.sku);
+    if(item.is_new)pieces.push("NEW 표시");
+    if(item.channel==="plus")pieces.push("플러스 전용");
+    if(item.channel==="main")pieces.push("베베픽 전용");
+    if(item.has_fullbox)pieces.push(
+      item.pack_size?"세트 "+item.pack_size+"개입":"세트 판매");
+    if(item.fullbox_out)pieces.push("세트 품절 표시");
+    if(item.match_status!=="unique_name_match")
+      pieces.push("기존 상품 일치 확인 불가");
+    if(old && !old.visible)pieces.push("기존 사이트 기준 숨김");
+  }else pieces.push("기존 홈페이지 ID "+item.doll_id);
+  if(old?.observed_at)pieces.push("기존 수량 "+clock(old.observed_at)+" 관측");
+  text(meta,pieces.join(" · "));el.append(meta);
+  if(tab==="new"&&item.description){
+    const d=document.createElement("div");d.className="desc";
+    text(d,item.description);el.append(d);
+  }
+  return el;
+}
+function update(){
+  $("tabNew").setAttribute("aria-pressed",String(tab==="new"));
+  $("tabHidden").setAttribute("aria-pressed",String(tab==="hidden"));
+  const root=$("items");root.replaceChildren();
+  if(!dataset){text($("shown"),"서버 조회 중…");return;}
+  const list=tab==="new"?dataset.new_products:dataset.old_site_hidden_products;
+  const search=$("search").value.replace(/\s+/g,"").toLowerCase();
+  const filtered=list.filter(p=>(p.name||"").replace(/\s+/g,"").toLowerCase().includes(search));
+  const sort=$("sort").value;
+  const stock=x=>tab==="new"?x.old_snapshot?.stock:x.stock;
+  filtered.sort((a,b)=>{
+    if(sort==="stockDesc")return (Number(stock(b))||0)-(Number(stock(a))||0)
+      ||a.name.localeCompare(b.name,"ko");
+    if(sort==="stockAsc")return (Number(stock(a))||0)-(Number(stock(b))||0)
+      ||a.name.localeCompare(b.name,"ko");
+    return a.name.localeCompare(b.name,"ko");
+  });
+  text($("shown"),"표시 "+fmt(filtered.length)+"종 / 전체 "+fmt(list.length)+"종");
+  if(!filtered.length){
+    const e=document.createElement("div");e.className="empty";
+    text(e,"조건에 맞는 상품이 없어");root.append(e);return;
+  }
+  const fragment=document.createDocumentFragment();
+  for(const p of filtered)fragment.append(infoItem(p));
+  root.append(fragment);
+}
+async function refresh(){
+  if(busy)return;
+  busy=true;$("refresh").disabled=true;
+  try{
+    const r=await fetch(API,{cache:"no-store",signal:AbortSignal.timeout(16000)});
+    if(!r.ok)throw Error("HTTP "+r.status);
+    const data=await r.json();
+    if(!data.ok||!Array.isArray(data.new_products)||
+      !Array.isArray(data.old_site_hidden_products))throw Error("응답 형식 오류");
+    dataset=data;
+    text($("publicCount"),fmt(data.new_products.length));
+    text($("oldCount"),fmt(data.old_inventory_count));
+    text($("hiddenCount"),fmt(data.old_site_hidden_count));
+    const s=$("sourceStatus");
+    const recentNew=sinceMinutes(data.new_catalog_checked_at)<=20;
+    s.className="notice"+(!data.old_monitor_recent||!recentNew?" warn":"");
+    text(s,"새 홈페이지 상품: "+clock(data.new_catalog_checked_at)+
+      (recentNew?" 정상 관측":" · 마지막 기록")+
+      " / 기존 수량 감시: "+clock(data.old_monitor_checked_at)+
+      (data.old_monitor_recent?" · 최근 확인":" · 갱신 지연 또는 종료"));
+    update();
+  }catch(err){
+    text($("sourceStatus"),"연결에 실패했어. 새로고침으로 다시 시도해줘. ("+
+      String(err?.message||"오류")+")");
+  }finally{busy=false;$("refresh").disabled=false;}
+}
+$("tabNew").addEventListener("click",()=>{tab="new";update();});
+$("tabHidden").addEventListener("click",()=>{tab="hidden";update();});
+$("search").addEventListener("input",update);
+$("sort").addEventListener("change",update);
+$("refresh").addEventListener("click",refresh);
+refresh();
+setInterval(()=>{if(!document.hidden)refresh();},60000);
+</script>
+</body>
+</html>
