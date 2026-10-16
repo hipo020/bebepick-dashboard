@@ -47,13 +47,19 @@ button:disabled{opacity:.5}.event{padding:12px 0;border-top:1px solid #eeeaf3}.e
  <button id="refresh" type="button">↻ 상태 새로고침</button>
  <span id="refreshed" class="hint"></span>
 </div>
-<p class="hint">10분 간격(매시 00·10·20·30·40·50분)으로 공개 자료를 확인해. 여기에 표시된 시간은 실제 서버의 마지막 점검 시각이야. 이 버튼은 결과만 다시 불러오며 쇼핑몰에 추가 요청하지 않아.</p>
+<p class="hint">일반 공개 자료는 10분 간격(매시 00·10·20·30·40·50분), 회원가입 설정은 2분 간격으로 확인해. 여기에 표시된 시간은 실제 서버의 마지막 점검 시각이야. 이 버튼은 결과만 다시 불러오며 쇼핑몰에 추가 요청하지 않아.</p>
 </section>
 
 <section class="card" aria-labelledby="inventoryBridgeTitle">
 <div class="headrow"><h2 id="inventoryBridgeTitle">🧸 새 홈페이지 통합 재고판</h2><span class="pill">두 출처 비교</span></div>
 <p class="hint">새 사이트에서 공개된 상품과 기존 사이트의 마지막 정확 수량 기록을 한눈에 비교해. 예전 사이트의 숨김 인형  목록도 따로 볼 수 있어. 기존 수량 갱신이 중단되면 과거 기록으로 표시해.</p>
 <div class="actions" style="margin-top:10px"><a href="./inventory-bridge.html" style="border-radius:10px;padding:11px 14px;background:#6554a8;color:white;font-weight:800;font-size:12px;text-decoration:none">🔎 통합 재고판 열기 →</a></div>
+</section>
+<section class="card" aria-labelledby="signupTitle">
+  <div class="headrow"><h2 id="signupTitle">🔓 회원가입 제한 감시</h2><span class="pill" id="signupBadge">확인 대기</span></div>
+  <p id="signupStatus" class="status">공개 인증 서버 설정을 확인하고 있어…</p>
+  <p id="signupMeta" class="hint">2분마다 공개 설정 확인 · 로그인·회원가입 시도 없음</p>
+  <p class="hint">서버의 <code>disable_signup</code>이 제한 중에서 해제로 변경되면 신규 홈페이지 전용 ntfy 알림을 보내. <b>실제 계정 생성이나 주문 성공을 보장하는 신호는 아니야.</b></p>
 </section>
 <section class="card" aria-labelledby="signalsTitle">
 <div class="headrow"><h2 id="signalsTitle">공개 상품·주문 접수 상태</h2><span class="pill">2차 감시</span></div>
@@ -76,7 +82,7 @@ button:disabled{opacity:.5}.event{padding:12px 0;border-top:1px solid #eeeaf3}.e
 <section class="card">
 <h2>알림 기준</h2>
 <p class="hint">기존 재고판 알림은 그대로 두고, 새 사이트의 새 상품·품절 표시·품절 해제(재입고 가능성)·공개 주문창 열림/닫힘 변화는 신규 홈페이지 전용 ntfy 토픽으로 알려줘.</p>
-<p class="hint">TEST 표시 제거, 결제·주문 코드 표식 신규 등장 같은 큰 단서는 코드상 의미가 있는 방향의 변화일 때만 알림 대상이야. 단순 HTML·JS·설정 파일 수정은 기록만 남겨.</p>
+<p class="hint">TEST 표시 제거, 결제·주문 코드 표식 신규 등장 같은 단서도 기록해. <b>회원가입 제한 해제 알림은 코드 문구가 아니라 공개 인증 서버의 설정 변경으로 판단</b>해. 단순 HTML·JS·설정 파일 수정은 기록만 남겨.</p>
 <p class="hint">처음 확인했을 때는 기준값만 저장하며 알림을 보내지 않아. 회원가입 가능 여부, 실제 결제 성공, 로그인 뒤 상품·가격은 공개 코드만으로 단정하지 않아.</p>
 <p class="hint">전체 감시와 푸시 알림은 서버에서 따로 켜고 끌 수 있어. 이 화면은 읽기 전용이라 다른 방문자가 설정을 바꿀 수 없어.</p>
 </section>
@@ -94,6 +100,26 @@ const when=iso=>iso?new Date(iso).toLocaleString("ko-KR",{month:"numeric",day:"n
 const add=(parent,tag,className,value)=>{const e=document.createElement(tag);if(className)e.className=className;e.textContent=value;parent.appendChild(e);return e;};
 const results={live:"베베픽",plus:"베베픽 플러스"};
 
+function renderSignup(s){
+  const badge=$("signupBadge"),status=$("signupStatus"),meta=$("signupMeta");
+  if(!s || s.signup_result!=="ok" || typeof s.signup_disabled!=="boolean"){
+    badge.textContent="확인 불가";badge.className="pill wait";
+    status.textContent="공개 인증 서버 설정을 아직 정상 확인하지 못했어.";
+    meta.textContent="마지막 시도 "+when(s?.signup_last_checked_at)+" · 이전 확인 결과가 있어도 현재 사용 가능 여부는 알 수 없어.";
+    return;
+  }
+  if(s.signup_disabled){
+    badge.textContent="제한 중";badge.className="pill wait";
+    status.textContent="현재 공개 인증 서버 설정에서 신규 회원가입이 제한되어 있어.";
+  }else{
+    badge.textContent="해제 신호";badge.className="pill";
+    status.textContent="공개 인증 서버의 신규 가입 제한이 해제된 상태로 확인됐어! 실제 고객 가입·주문 가능 여부는 별도 확인이 필요해.";
+  }
+  const google=s.signup_google_enabled===true?"구글 제공자 ON":
+    s.signup_google_enabled===false?"구글 제공자 OFF":"구글 제공자 상태 미확인";
+  meta.textContent="마지막 정상 확인 "+when(s.signup_last_ok_at)+" · "+google+
+    " · 제한 설정은 2분마다 확인";
+}
 function renderPublicSignals(s){
   const root=$("publicSignals");root.replaceChildren();
   if(!s){add(root,"div","empty","공개 상품·주문 조회를 아직 시작하지 않았어.");return;}
@@ -146,6 +172,7 @@ function render(data){
       add(card,"div","hint","결제·회원가입 가능 여부는 공개 소스만으로 확인되지 않아.");
     }
   }
+  renderSignup(data.public_signals);
   renderPublicSignals(data.public_signals);
   const renderRows=(target,items,important)=>{
     const list=$(target);list.replaceChildren();
