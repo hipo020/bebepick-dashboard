@@ -3,7 +3,7 @@
 try{
  if(location.hostname!=='bebepick.me'||!/^\/live\/?$/.test(location.pathname)){alert('먼저 베베픽 주문 페이지 https://bebepick.me/live 에 들어가 줘.');return;}
  if(window.__bbpRabbitFast&&window.__bbpRabbitFast.__v2){window.__bbpRabbitFast.show();return;}if(window.__bbpRabbitFast){try{window.__bbpRabbitFast.stop();}catch(e){}var old=document.getElementById('bbpRabbitFastHelper');if(old)old.remove();}
- var KEY='bbp_cart_v1',SKU='D796',active=false,completed=false,autoPay=false,payRequested=false,payArmed=false,payDone=false,timer=null,pollTimer=null,pollAbort=null,pollBusy=false,confirmed=false,errors=0;
+ var KEY='bbp_cart_v1',SKU='D796',active=false,completed=false,autoPay=false,payRequested=false,payArmed=false,payDone=false,timer=null,pollTimer=null,pollAborts=new Set(),pollBusy=false,confirmed=false,errors=0,stateWindow=null,stateStock=null,lastWindowAt=0,lastStockAt=0;
  function mainLine(x){return x&&x.store!=='china';}
  function read(){var c=JSON.parse(localStorage.getItem(KEY)||'[]');if(!Array.isArray(c))throw Error('장바구니 저장 형식이 다름');return c;}
  function preflight(){var c=read().filter(mainLine);return c.length===1&&c[0].sku===SKU&&c[0].opt!=='fullbox'&&Number(c[0].qty)===1;}
@@ -27,12 +27,12 @@ try{
  function ready(){var p=el('[data-ctl="D796"]');p=p&&p.closest('.prod');return {card:!!p,product:!!p&&!p.classList.contains('soldout'),window:!!el('#storeBar .sb-order.open')};}
  var panel=document.createElement('section');panel.id='bbpRabbitFastHelper';
  panel.style.cssText='position:fixed;z-index:2147483645;left:12px;right:12px;bottom:12px;max-width:420px;margin:auto;background:#fff;color:#1f1f1f;border-radius:16px;padding:14px 16px;box-shadow:0 6px 28px #0006;font:14px/1.45 system-ui,sans-serif;border:2px solid #b79ade';
- panel.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><strong>🐰 밤토끼 D796 · 낱개 1개</strong><button type="button" id="rbClose" style="font-size:20px;background:none;border:0;color:#333">×</button></div><div style="color:#666;margin:6px 0">13,000원 · 배송비 등은 공식 화면에서 확인</div><div id="rbStatus" role="status" style="font-weight:700;margin-bottom:8px">대기 준비 중</div><label style="display:block;font-size:13px;margin:8px 0"><input type="checkbox" id="rbAutoPay"> 직접 주문 확정 후 페이앱 결제창 자동 열기 (선택)</label><div style="display:flex;gap:8px"><button type="button" id="rbStart" style="flex:1;border:0;border-radius:10px;background:#744eb4;color:white;padding:10px;font-weight:700">대기 시작</button><button type="button" id="rbStop" style="border:1px solid #ccc;border-radius:10px;background:#fff;padding:10px">중지</button></div><small style="display:block;color:#777;margin-top:8px">재고 확보·주문 자동 확정·결제는 하지 않아. 서버를 약 10초마다 조회하고, 주문이 열리면 D796 재고도 확인해. 크롬을 켜두고, 새로고침 후엔 다시 실행해야 해.</small>';
+ panel.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><strong>🐰 밤토끼 D796 · 낱개 1개</strong><button type="button" id="rbClose" style="font-size:20px;background:none;border:0;color:#333">×</button></div><div style="color:#666;margin:6px 0">13,000원 · 배송비 등은 공식 화면에서 확인</div><div id="rbStatus" role="status" style="font-weight:700;margin-bottom:8px">대기 준비 중</div><label style="display:block;font-size:13px;margin:8px 0"><input type="checkbox" id="rbAutoPay"> 직접 주문 확정 후 페이앱 결제창 자동 열기 (선택)</label><div style="display:flex;gap:8px"><button type="button" id="rbStart" style="flex:1;border:0;border-radius:10px;background:#744eb4;color:white;padding:10px;font-weight:700">대기 시작</button><button type="button" id="rbStop" style="border:1px solid #ccc;border-radius:10px;background:#fff;padding:10px">중지</button></div><small style="display:block;color:#777;margin-top:8px">재고 확보·주문 자동 확정·결제는 하지 않아. 주문 상태와 D796 재고를 각각 약 10초마다 조회해. 두 조건 모두 확인되면 안내하고 공식 주문 화면으로 이동해. 크롬을 켜두고, 새로고침 후엔 다시 실행해야 해.</small>';
  document.body.appendChild(panel);
  var reload=document.createElement('button');reload.type='button';reload.textContent='🛒 서버 판매 감지 · 새로고침하고 주문하기';reload.hidden=true;reload.style.cssText='width:100%;margin-top:9px;border:0;border-radius:10px;padding:12px;background:#2e2441;color:white;font-weight:700';panel.appendChild(reload);
  reload.onclick=function(){if(!preflight()){alert('장바구니를 확인해 줘.');return;}location.assign('https://bebepick.me/live');};
  function status(v){var t=panel.querySelector('#rbStatus');if(t&&t.textContent!==v)t.textContent=v;}
- function stop(){active=false;if(timer){clearInterval(timer);timer=null;}if(pollTimer){clearTimeout(pollTimer);pollTimer=null;}if(pollAbort){pollAbort.abort();pollAbort=null;}}
+ function stop(){active=false;if(timer){clearInterval(timer);timer=null;}if(pollTimer){clearTimeout(pollTimer);pollTimer=null;}pollAborts.forEach(function(c){c.abort();});pollAborts.clear();}
  function show(){panel.style.display='block';}
  window.__bbpRabbitFast={show:show,stop:stop,__v2:true};
  panel.querySelector('#rbClose').onclick=function(){stop();payArmed=false;panel.style.display='none';};
@@ -49,37 +49,66 @@ try{
  async function rpcRead(fn,data){
   var cfg=window.APP_CONFIG||{};
   if(cfg.supabaseUrl!=='https://eqytdtxemjlygnobhiio.supabase.co'||!/^sb_publishable_/.test(String(cfg.supabaseAnonKey||'')))throw Error('공개 서버 설정 없음');
-  var ctrl=new AbortController();pollAbort=ctrl;var timeout=setTimeout(function(){ctrl.abort();},7000);
+  var ctrl=new AbortController();pollAborts.add(ctrl);var timeout=setTimeout(function(){ctrl.abort();},7000);
   try{
    var r=await fetch(cfg.supabaseUrl+'/rest/v1/rpc/'+fn,{method:'POST',mode:'cors',credentials:'omit',cache:'no-store',signal:ctrl.signal,headers:{'apikey':cfg.supabaseAnonKey,'content-type':'application/json','accept':'application/json'},body:JSON.stringify(data||{})});
    if(!r.ok){var error=new Error('HTTP '+r.status);error.status=r.status;throw error;}return await r.json();
-  }finally{clearTimeout(timeout);if(pollAbort===ctrl)pollAbort=null;}
+  }finally{clearTimeout(timeout);pollAborts.delete(ctrl);}
  }
  function windowReady(w){return !!(w&&w.open===true&&w.enabled!==false&&w.closed!==true&&w.reason!=='paused');}
- function productReady(list){return Array.isArray(list)&&list.some(function(p){return p&&p.sku===SKU&&p.stock!=='out'&&(!p.only||p.only==='main');});}
+ function productReady(list){return Array.isArray(list)&&list.some(function(p){return p&&p.sku===SKU&&(p.stock===null||p.stock==='low')&&(!p.only||p.only==='main');});}
+ function stateText(v,opened,closed){return v===null?'확인 실패':(v?opened:closed);}
  async function pollServer(){
   if(!active||confirmed||pollBusy)return;
-  if(document.hidden){status('📱 크롬을 열면 서버 감시 재개');schedule(10000);return;}
+  if(document.hidden){status('📱 크롬을 열면 주문·재고 확인 재개');schedule(10000);return;}
   if(!preflight()){stop();status('⚠ 장바구니가 바뀌어서 감시 중지');return;}
   pollBusy=true;
   try{
-   var windows=await rpcRead('order_windows',{});
+   // 순서와 관계없이 매번 둘 다 묻고, 각 요청의 성공/실패를 독립적으로 기록한다.
+   var results=await Promise.allSettled([
+    rpcRead('order_windows',{}),
+    rpcRead('list_products',{p_brand:'main'})
+   ]);
    if(!active)return;
-   errors=0;
-   if(!windowReady(windows&&windows.main)){status('⏳ 공식 서버 주문 접수 대기 · '+new Date().toLocaleTimeString('ko-KR',{hour12:false}));schedule(10000);return;}
-   status('🛒 주문 접수 열림 · 밤토끼 서버 재고 확인 중');
-   var products=await rpcRead('list_products',{p_brand:'main'});
-   if(!active)return;
-   if(!Array.isArray(products))throw Error('상품 목록 응답 형식 오류');
-   if(productReady(products)){confirmed=true;status('✅ 서버에서 주문·밤토끼 판매 가능 확인');tick();return;}
-   status('⏳ 주문은 열림 · 밤토끼 아직 품절');schedule(10000);
+   var now=Date.now(),issues=[];
+   if(results[0].status==='fulfilled'){
+    var windows=results[0].value;
+    if(windows&&windows.main&&typeof windows.main.open==='boolean'){
+     stateWindow=windowReady(windows.main);lastWindowAt=now;
+    }else{stateWindow=null;lastWindowAt=0;issues.push(new Error('주문 상태 응답 형식 오류'));}
+   }else{stateWindow=null;lastWindowAt=0;issues.push(results[0].reason||new Error('주문 상태 조회 실패'));}
+   if(results[1].status==='fulfilled'){
+    var products=results[1].value;
+    if(Array.isArray(products)){
+     var found=products.find(function(p){return p&&p.sku===SKU;});
+     if(found&&Object.prototype.hasOwnProperty.call(found,'stock')){
+      stateStock=productReady(products);lastStockAt=now;
+     }else{stateStock=null;lastStockAt=0;issues.push(new Error('밤토끼 상품 정보 없음'));}
+    }else{stateStock=null;lastStockAt=0;issues.push(new Error('재고 조회 응답 형식 오류'));}
+   }else{stateStock=null;lastStockAt=0;issues.push(results[1].reason||new Error('재고 조회 실패'));}
+   var bothFresh=now-lastWindowAt<25000&&now-lastStockAt<25000;
+   if(bothFresh&&stateWindow===true&&stateStock===true){
+    confirmed=true;status('✅ 서버 확인: 주문 열림 + 밤토끼 판매 가능');tick();return;
+   }
+   var t=new Date(now).toLocaleTimeString('ko-KR',{hour12:false});
+   var summary='📡 주문 '+stateText(stateWindow,'열림','닫힘')+' · 밤토끼 '+stateText(stateStock,'판매 가능','품절')+' · '+t;
+   if(issues.length){
+    errors++;
+    if(issues.some(function(e){return e&&[401,403].includes(e.status); })){
+     stop();status('⚠ 서버 조회 권한 없음 · 자동 감시 중단');return;
+    }
+    var limited=issues.some(function(e){return e&&e.status===429;});
+    var delay=limited?60000:Math.min(120000,10000*Math.pow(2,Math.min(errors,4)));
+    status(summary+' · 조회 오류, '+Math.round(delay/1000)+'초 후 재확인');
+    schedule(delay);
+    return;
+   }
+   errors=0;status(summary);schedule(10000);
   }catch(e){
    if(!active)return;
    errors++;
-   if(e.status===401||e.status===403){stop();status('⚠ 서버 조회 권한 없음 · 감시 중단');return;}
-   if(e.status===429){status('⚠ 서버 요청 제한 · 60초 쉬는 중');schedule(60000);return;}
    var delay=Math.min(120000,10000*Math.pow(2,Math.min(errors,4)));
-   status('⚠ 서버 조회 실패 ('+String(e.message||e).slice(0,36)+') · '+Math.round(delay/1000)+'초 뒤 재시도');schedule(delay);
+   status('⚠ 상태 확인 처리 오류 · '+Math.round(delay/1000)+'초 후 재시도');schedule(delay);
   }finally{pollBusy=false;}
  }
  function tick(){
@@ -106,7 +135,7 @@ try{
   if(!prepare())return;
   autoPay=!!panel.querySelector('#rbAutoPay').checked;
   if(autoPay&&!confirm('동의와 주문 확정은 직접 진행하고, 그 후 페이앱 화면 열기만 자동으로 시도할까?'))return;
-  active=true;confirmed=false;errors=0;reload.hidden=true;status('✅ 낱개 1개 준비 · 서버 감시 시작 중');
+  active=true;confirmed=false;errors=0;stateWindow=null;stateStock=null;lastWindowAt=0;lastStockAt=0;reload.hidden=true;status('✅ 낱개 1개 준비 · 서버 감시 시작 중');
   if(timer)clearInterval(timer);
   timer=setInterval(tick,900);pollServer();
  };
