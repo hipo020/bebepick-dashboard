@@ -79,7 +79,7 @@ try{
    // 순서와 관계없이 매번 둘 다 묻고, 각 요청의 성공/실패를 독립적으로 기록한다.
    var results=await Promise.allSettled([
     rpcRead('order_windows',{}),
-    rpcRead('list_products',{})
+    rpcRead('list_products',{p_brand:'main'})
    ]);
    if(!active)return;
    var now=Date.now(),issues=[];
