@@ -1,0 +1,122 @@
+(function(){
+'use strict';
+try{
+ if(location.hostname!=='bebepick.me'||!/^\/live\/?$/.test(location.pathname)){alert('먼저 베베픽 주문 페이지 https://bebepick.me/live 에 들어가 줘.');return;}
+ if(window.__bbpRabbitFast&&window.__bbpRabbitFast.__v2){window.__bbpRabbitFast.show();return;}if(window.__bbpRabbitFast){try{window.__bbpRabbitFast.stop();}catch(e){}var old=document.getElementById('bbpRabbitFastHelper');if(old)old.remove();}
+ var KEY='bbp_cart_v1',SKU='D796',active=false,completed=false,autoPay=false,payRequested=false,payArmed=false,payDone=false,timer=null,pollTimer=null,pollAbort=null,pollBusy=false,confirmed=false,errors=0;
+ function mainLine(x){return x&&x.store!=='china';}
+ function read(){var c=JSON.parse(localStorage.getItem(KEY)||'[]');if(!Array.isArray(c))throw Error('장바구니 저장 형식이 다름');return c;}
+ function preflight(){var c=read().filter(mainLine);return c.length===1&&c[0].sku===SKU&&c[0].opt!=='fullbox'&&Number(c[0].qty)===1;}
+ function prepare(){
+  try{
+   var c=read(),extra=c.filter(function(x){return mainLine(x)&&x.sku!==SKU;});
+   if(extra.length){alert('기존 베베픽 장바구니에 다른 상품이 있어. 기존 상품은 변경하지 않았어.');return false;}
+   var same=c.filter(function(x){return mainLine(x)&&x.sku===SKU;});
+   if(same.length){
+    if(same.length!==1||same[0].opt==='fullbox'||Number(same[0].qty)!==1){alert('밤토끼가 다른 수량/옵션으로 담겨 있어. 먼저 장바구니를 확인해 줘.');return false;}
+   }else{
+    c.push({sku:SKU,qty:1,opt:'single',store:'main',lid:Date.now().toString(36)+Math.random().toString(36).slice(2,8)});
+    localStorage.setItem(KEY,JSON.stringify(c));
+    try{window.dispatchEvent(new StorageEvent('storage',{key:KEY}));}catch(_){}
+   }
+   if(!preflight())throw Error('장바구니 내용 검사 실패');
+   return true;
+  }catch(e){alert('장바구니 준비 실패: '+String(e.message||e));return false;}
+ }
+ function el(s){return document.querySelector(s);}
+ function ready(){var p=el('[data-ctl="D796"]');p=p&&p.closest('.prod');return {card:!!p,product:!!p&&!p.classList.contains('soldout'),window:!!el('#storeBar .sb-order.open')};}
+ var panel=document.createElement('section');panel.id='bbpRabbitFastHelper';
+ panel.style.cssText='position:fixed;z-index:2147483645;left:12px;right:12px;bottom:12px;max-width:420px;margin:auto;background:#fff;color:#1f1f1f;border-radius:16px;padding:14px 16px;box-shadow:0 6px 28px #0006;font:14px/1.45 system-ui,sans-serif;border:2px solid #b79ade';
+ panel.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><strong>🐰 밤토끼 D796 · 낱개 1개</strong><button type="button" id="rbClose" style="font-size:20px;background:none;border:0;color:#333">×</button></div><div style="color:#666;margin:6px 0">13,000원 · 배송비 등은 공식 화면에서 확인</div><div id="rbStatus" role="status" style="font-weight:700;margin-bottom:8px">대기 준비 중</div><label style="display:block;font-size:13px;margin:8px 0"><input type="checkbox" id="rbAutoPay"> 직접 주문 확정 후 페이앱 결제창 자동 열기 (선택)</label><div style="display:flex;gap:8px"><button type="button" id="rbStart" style="flex:1;border:0;border-radius:10px;background:#744eb4;color:white;padding:10px;font-weight:700">대기 시작</button><button type="button" id="rbStop" style="border:1px solid #ccc;border-radius:10px;background:#fff;padding:10px">중지</button></div><small style="display:block;color:#777;margin-top:8px">재고 확보·주문 자동 확정·결제는 하지 않아. 서버를 약 10초마다 조회하고, 주문이 열리면 D796 재고도 확인해. 크롬을 켜두고, 새로고침 후엔 다시 실행해야 해.</small>';
+ document.body.appendChild(panel);
+ var reload=document.createElement('button');reload.type='button';reload.textContent='🛒 서버 판매 감지 · 새로고침하고 주문하기';reload.hidden=true;reload.style.cssText='width:100%;margin-top:9px;border:0;border-radius:10px;padding:12px;background:#2e2441;color:white;font-weight:700';panel.appendChild(reload);
+ reload.onclick=function(){if(!preflight()){alert('장바구니를 확인해 줘.');return;}location.assign('https://bebepick.me/live');};
+ function status(v){var t=panel.querySelector('#rbStatus');if(t&&t.textContent!==v)t.textContent=v;}
+ function stop(){active=false;if(timer){clearInterval(timer);timer=null;}if(pollTimer){clearTimeout(pollTimer);pollTimer=null;}if(pollAbort){pollAbort.abort();pollAbort=null;}}
+ function show(){panel.style.display='block';}
+ window.__bbpRabbitFast={show:show,stop:stop,__v2:true};
+ panel.querySelector('#rbClose').onclick=function(){stop();payArmed=false;panel.style.display='none';};
+ panel.querySelector('#rbStop').onclick=function(){stop();payArmed=false;status('⏸ 대기 종료');};
+ function watchPay(){
+  if(!payArmed||payDone)return;
+  var pay=el('.panel[data-sheet="pay"] [data-act="pay-card"]');
+  if(!pay||pay.disabled||!pay.isConnected)return;
+  if(/테스트|흉내/.test(pay.textContent||'')){payArmed=false;status('⚠ 결제 버튼을 직접 확인해 줘');return;}
+  payDone=true;payArmed=false;status('✅ 주문 확인 완료 · 결제창 이동 시도');pay.click();
+ }
+ // 서버 공식 읽기 전용 RPC. 공개 설정만 사용하며 주문·결제 요청, 토큰·쿠키 수집 없음.
+ function schedule(ms){if(pollTimer)clearTimeout(pollTimer);if(active&&!confirmed)pollTimer=setTimeout(pollServer,ms);}
+ async function rpcRead(fn,data){
+  var cfg=window.APP_CONFIG||{};
+  if(cfg.supabaseUrl!=='https://eqytdtxemjlygnobhiio.supabase.co'||!/^sb_publishable_/.test(String(cfg.supabaseAnonKey||'')))throw Error('공개 서버 설정 없음');
+  var ctrl=new AbortController();pollAbort=ctrl;var timeout=setTimeout(function(){ctrl.abort();},7000);
+  try{
+   var r=await fetch(cfg.supabaseUrl+'/rest/v1/rpc/'+fn,{method:'POST',mode:'cors',credentials:'omit',cache:'no-store',signal:ctrl.signal,headers:{'apikey':cfg.supabaseAnonKey,'content-type':'application/json','accept':'application/json'},body:JSON.stringify(data||{})});
+   if(!r.ok){var error=new Error('HTTP '+r.status);error.status=r.status;throw error;}return await r.json();
+  }finally{clearTimeout(timeout);if(pollAbort===ctrl)pollAbort=null;}
+ }
+ function windowReady(w){return !!(w&&w.open===true&&w.enabled!==false&&w.closed!==true&&w.reason!=='paused');}
+ function productReady(list){return Array.isArray(list)&&list.some(function(p){return p&&p.sku===SKU&&p.stock!=='out'&&(!p.only||p.only==='main');});}
+ async function pollServer(){
+  if(!active||confirmed||pollBusy)return;
+  if(document.hidden){status('📱 크롬을 열면 서버 감시 재개');schedule(10000);return;}
+  if(!preflight()){stop();status('⚠ 장바구니가 바뀌어서 감시 중지');return;}
+  pollBusy=true;
+  try{
+   var windows=await rpcRead('order_windows',{});
+   if(!active)return;
+   errors=0;
+   if(!windowReady(windows&&windows.main)){status('⏳ 공식 서버 주문 접수 대기 · '+new Date().toLocaleTimeString('ko-KR',{hour12:false}));schedule(10000);return;}
+   status('🛒 주문 접수 열림 · 밤토끼 서버 재고 확인 중');
+   var products=await rpcRead('list_products',{p_brand:'main'});
+   if(!active)return;
+   if(!Array.isArray(products))throw Error('상품 목록 응답 형식 오류');
+   if(productReady(products)){confirmed=true;status('✅ 서버에서 주문·밤토끼 판매 가능 확인');tick();return;}
+   status('⏳ 주문은 열림 · 밤토끼 아직 품절');schedule(10000);
+  }catch(e){
+   if(!active)return;
+   errors++;
+   if(e.status===401||e.status===403){stop();status('⚠ 서버 조회 권한 없음 · 감시 중단');return;}
+   if(e.status===429){status('⚠ 서버 요청 제한 · 60초 쉬는 중');schedule(60000);return;}
+   var delay=Math.min(120000,10000*Math.pow(2,Math.min(errors,4)));
+   status('⚠ 서버 조회 실패 ('+String(e.message||e).slice(0,36)+') · '+Math.round(delay/1000)+'초 뒤 재시도');schedule(delay);
+  }finally{pollBusy=false;}
+ }
+ function tick(){
+  if(payArmed){watchPay();return;}
+  if(!active)return;
+  if(!confirmed)return;
+  if(document.hidden){status('📱 크롬 화면을 열어둬야 해');return;}
+  if(!preflight()){stop();status('⚠ 장바구니 내용 변경됨 · 자동 진행 중지');return;}
+  var r=ready();
+  if(!r.card){status('⚠ 밤토끼 상품을 찾지 못함');return;}
+  if(!r.window||!r.product){stop();completed=true;reload.hidden=false;status('🎉 서버 판매 가능 감지! 공식 화면은 이전 상태 · 아래 새로고침 버튼을 눌러 줘');return;}
+  var b=el('#cartBar .cb-submit')||el('#btnTopCart:not([hidden])');
+  if(!b||b.disabled){status('✅ 주문 가능 표시 · 주문 버튼 확인 필요');return;}
+  stop();completed=true;payRequested=autoPay;payArmed=false;payDone=false;status('✅ 판매 표시 확인 · 공식 주문창 열기 시도');
+  b.click();
+  var tries=0,seq=setInterval(function(){
+   var next=el('.panel[data-sheet="cart"] #checkout');
+   if(next&&!next.disabled){clearInterval(seq);next.click();status('📋 배송·개봉 조건 확인 및 주문 확정은 직접 해 줘');return;}
+   if(++tries>=16){clearInterval(seq);payRequested=false;status('⚠ 공식 주문 버튼이 비활성화되어 있어 · 직접 확인해 줘');}
+  },220);
+ }
+ panel.querySelector('#rbStart').onclick=function(){
+  if(completed){status('중복 실행 방지: 페이지 새로고침 후 다시 실행해 줘');return;}
+  if(!prepare())return;
+  autoPay=!!panel.querySelector('#rbAutoPay').checked;
+  if(autoPay&&!confirm('동의와 주문 확정은 직접 진행하고, 그 후 페이앱 화면 열기만 자동으로 시도할까?'))return;
+  active=true;confirmed=false;errors=0;reload.hidden=true;status('✅ 낱개 1개 준비 · 서버 감시 시작 중');
+  if(timer)clearInterval(timer);
+  timer=setInterval(tick,900);pollServer();
+ };
+ document.addEventListener('click',function(e){
+  var b=e.target&&e.target.closest?e.target.closest('[data-oc=ok]'):null;
+  if(payRequested&&completed&&b&&e.isTrusted&&!b.disabled&&el('#ocAll')&&el('#ocAll').checked){payArmed=true;payRequested=false;status('✅ 수동 주문 확정 확인 · 결제창 열기 대기');}
+ },true);
+ var observer=new MutationObserver(function(){if(active)tick();if(payArmed)watchPay();});
+ observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class','hidden','disabled']});
+ document.addEventListener('visibilitychange',function(){if(active&&!document.hidden&&!pollBusy){if(pollTimer)clearTimeout(pollTimer);schedule(100);}});window.addEventListener('pagehide',function(){stop();payArmed=false;});
+ status('✅ 도우미 실행 성공 · 대기 시작을 눌러 줘');
+}catch(e){alert('밤토끼 도우미 오류: '+String(e.message||e));}
+})();
