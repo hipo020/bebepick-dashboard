@@ -68,7 +68,7 @@ try{
   }finally{clearTimeout(timeout);pollAborts.delete(ctrl);}
  }
  function windowReady(w){return !!(w&&w.open===true&&w.enabled!==false&&w.closed!==true&&w.reason!=='paused');}
- function productReady(list){return Array.isArray(list)&&list.some(function(p){return p&&p.sku===SKU&&p.stock!=='out'&&(!p.only||p.only==='main')&&(selectedOpt==='single'||(p.has_fullbox===true&&p.fullbox_out===false));});}
+ function productReady(list){return Array.isArray(list)&&list.some(function(p){return p&&p.sku===SKU&&(p.stock===null||p.stock==='low')&&(!p.only||p.only==='main')&&(selectedOpt==='single'||(p.has_fullbox===true&&p.fullbox_out===false));});}
  function stateText(v,opened,closed){return v===null?'확인 실패':(v?opened:closed);}
  async function pollServer(){
   if(!active||confirmed||pollBusy)return;
