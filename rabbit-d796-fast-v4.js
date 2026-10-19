@@ -48,7 +48,7 @@ try{
  function show(){panel.style.display='block';}
  window.__bbpRabbitFast={show:show,stop:stop,__v4:true};
  panel.querySelector('#rbClose').onclick=function(){stop();payArmed=false;panel.style.display='none';};
- panel.querySelector('#rbStop').onclick=function(){stop();payArmed=false;if(wizardTimer)clearInterval(wizardTimer);wizardTimer=null;status('⏸ 감시·자동 진행 중지');};
+ panel.querySelector('#rbStop').onclick=function(){var sent=submitClicked;stop();payArmed=false;status(sent?'⚠ 주문 요청은 이미 제출됐을 수 있어 · 주문 내역 확인 필요':'⏸ 감시·자동 진행 중지');};
  function watchPay(){
   if(!payArmed||payDone)return;
   var pay=el('.panel[data-sheet="pay"] [data-act="pay-card"]');
@@ -63,7 +63,13 @@ try{
   if(cfg.supabaseUrl!=='https://eqytdtxemjlygnobhiio.supabase.co'||!/^sb_publishable_/.test(String(cfg.supabaseAnonKey||'')))throw Error('공개 서버 설정 없음');
   var ctrl=new AbortController();pollAborts.add(ctrl);var timeout=setTimeout(function(){ctrl.abort();},7000);
   try{
-   var r=await fetch(cfg.supabaseUrl+'/rest/v1/rpc/'+fn,{method:'POST',mode:'cors',credentials:'omit',cache:'no-store',signal:ctrl.signal,headers:{'apikey':cfg.supabaseAnonKey,'content-type':'application/json','accept':'application/json'},body:JSON.stringify(data||{})});
+   var headers={'apikey':cfg.supabaseAnonKey,'content-type':'application/json','accept':'application/json'};
+   // 베베픽 본래 로그인 저장소에서 현재 유효한 세션을 이 서버 요청에만 사용한다. 외부 전송·로그 기록 없음.
+   try{
+    var auth=JSON.parse(localStorage.getItem('sb-eqytdtxemjlygnobhiio-auth-token')||'null');
+    if(auth&&typeof auth.access_token==='string'&&auth.expires_at>Math.floor(Date.now()/1000)+10)headers.authorization='Bearer '+auth.access_token;
+   }catch(e){}
+   var r=await fetch(cfg.supabaseUrl+'/rest/v1/rpc/'+fn,{method:'POST',mode:'cors',credentials:'omit',cache:'no-store',signal:ctrl.signal,headers:headers,body:JSON.stringify(data||{})});
    if(!r.ok){var error=new Error('HTTP '+r.status);error.status=r.status;throw error;}return await r.json();
   }finally{clearTimeout(timeout);pollAborts.delete(ctrl);}
  }
