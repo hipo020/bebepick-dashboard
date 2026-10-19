@@ -44,7 +44,7 @@ try{
  var reload=document.createElement('button');reload.type='button';reload.textContent='🛒 서버 판매 감지 · 새로고침하고 주문하기';reload.hidden=true;reload.style.cssText='width:100%;margin-top:9px;border:0;border-radius:10px;padding:12px;background:#2e2441;color:white;font-weight:700';panel.appendChild(reload);
  reload.onclick=function(){if(!preflight()){alert('장바구니를 확인해 줘.');return;}location.assign('https://bebepick.me/live');};
  function status(v){var t=panel.querySelector('#rbStatus');if(t&&t.textContent!==v)t.textContent=v;}
- function stop(){active=false;if(timer){clearInterval(timer);timer=null;}if(pollTimer){clearTimeout(pollTimer);pollTimer=null;}pollAborts.forEach(function(c){c.abort();});pollAborts.clear();}
+ function stop(){active=false;if(wizardTimer){clearInterval(wizardTimer);wizardTimer=null;}if(timer){clearInterval(timer);timer=null;}if(pollTimer){clearTimeout(pollTimer);pollTimer=null;}pollAborts.forEach(function(c){c.abort();});pollAborts.clear();}
  function show(){panel.style.display='block';}
  window.__bbpRabbitFast={show:show,stop:stop,__v4:true};
  panel.querySelector('#rbClose').onclick=function(){stop();payArmed=false;panel.style.display='none';};
@@ -53,7 +53,7 @@ try{
   if(!payArmed||payDone)return;
   var pay=el('.panel[data-sheet="pay"] [data-act="pay-card"]');
   if(!pay||pay.disabled||!pay.isConnected)return;
-  if(/테스트|흉내/.test(pay.textContent||'')){payArmed=false;status('⚠ 결제 버튼을 직접 확인해 줘');return;}
+  if(/테스트|흉내|결제 끝내기/.test(pay.textContent||'')){payArmed=false;status('⚠ 결제 버튼을 직접 확인해 줘');return;}
   payDone=true;payArmed=false;status('✅ 주문 확인 완료 · 결제창 이동 시도');pay.click();
  }
  // 서버 공식 읽기 전용 RPC. 공개 설정만 사용하며 주문·결제 요청, 토큰·쿠키 수집 없음.
@@ -216,10 +216,10 @@ try{
   if(routeBusy||!active||document.hidden)return;
   if(location.hash&&location.hash!=='#'){stop();status('⚠ 다른 페이지 이동 감지 · 공식 갱신 중단');return;}
   routeBusy=true;lastRouteAt=Date.now();
-  location.hash='#terms';
+  history.replaceState(history.state,'',location.pathname+location.search+'#terms');window.dispatchEvent(new Event('hashchange'));
   setTimeout(function(){
    if(!active){routeBusy=false;return;}
-   location.hash='';
+   history.replaceState(history.state,'',location.pathname+location.search);window.dispatchEvent(new Event('hashchange'));
    setTimeout(function(){routeBusy=false;if(active)tick();},1200);
   },250);
  }
