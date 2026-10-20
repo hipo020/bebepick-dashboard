@@ -1,4 +1,4 @@
-name: Test Quick Order v2.2
+name: Test Quick Order v2.2.1
 
 on:
   pull_request:
@@ -6,6 +6,7 @@ on:
       - "bebepick-quick-order-general-v2.js"
       - "tests/general-fast-order-v2.test.mjs"
       - "tests/general-fast-order-v22-timing.test.mjs"
+      - "tests/general-fast-order-v221-dom.test.mjs"
       - ".github/workflows/quick-order-v22-tests.yml"
   push:
     branches: [main]
@@ -13,6 +14,7 @@ on:
       - "bebepick-quick-order-general-v2.js"
       - "tests/general-fast-order-v2.test.mjs"
       - "tests/general-fast-order-v22-timing.test.mjs"
+      - "tests/general-fast-order-v221-dom.test.mjs"
       - ".github/workflows/quick-order-v22-tests.yml"
 
 jobs:
@@ -23,4 +25,4 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - run: node --test tests/general-fast-order-v2.test.mjs tests/general-fast-order-v22-timing.test.mjs
+      - run: node --test tests/general-fast-order-v2.test.mjs tests/general-fast-order-v22-timing.test.mjs tests/general-fast-order-v221-dom.test.mjs
