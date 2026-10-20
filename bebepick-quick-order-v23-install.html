@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#f8f4ff"><title>베베픽 v2.3 여러 인형 빠른 자동주문 설치</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f8f5fd;color:#30263b;font:15px/1.6 system-ui,-apple-system,sans-serif}
+main{margin:18px auto;max-width:700px;padding:12px}section{background:white;border:1px solid #e5dcf2;border-radius:16px;padding:18px}
+h1{font-size:23px;line-height:1.3;margin:0 0 10px}h2{font-size:17px;margin-top:22px}
+button{background:#7150a7;color:white;border:0;border-radius:10px;padding:13px 18px;font-weight:750;font-size:15px}
+textarea{width:100%;min-height:100px;border:1px solid #d5c4e8;border-radius:8px;font:12px/1.5 monospace;padding:10px}
+li{margin:8px 0}.notice{background:#f3ecfb;border-radius:11px;padding:12px;font-size:13px;margin-top:12px}
+a{color:#5e388f}.sub{font-size:13px;color:#756c82}
+</style></head><body><main><section>
+<h1>🧸 베베픽 범용 자동주문 v2.3</h1>
+<p class="sub">여러 인형 감시 · 품절 제외 · 한 번의 묶음 주문 · 주문창 자동 이동</p>
+<p>감시할 인형을 여러 개 추가하면 <b>공식 서버에서 주문 가능한 인형만 골라 한 번의 장바구니에 담아</b> 공식 주문창으로 이동해. 품절인 인형은 자동 제외돼.</p>
+<h2>설치 및 사용</h2>
+<ol>
+<li><b>북마크 코드 복사</b>를 눌러 크롬 북마크 주소로 등록해.</li>
+<li><a href="https://bebepick.me/plus">베베픽 플러스</a> 또는 <a href="https://bebepick.me/live">베베픽</a> 공식 페이지에서 실행해. 다른 버전 도우미가 열려 있으면 대기를 중지한 뒤 페이지를 새로고침해야 해.</li>
+<li>위쪽 <b>＋ 인형 추가</b>를 펼쳐 검색하거나 코드를 적용하고, <b>＋ 등록</b>을 눌러 감시 목록에 추가해. 각 상품은 기본 1개 또는 풀박스 1세트야.</li>
+<li>감시 목록을 확인하고 <b>공통 개봉·보관/발송 옵션</b>과 서버 확인 주기를 설정해.</li>
+<li>처음에는 <b>무전송 시험 ON</b>으로 확인해. 실제 자동주문을 원하는 경우 기존과 같이 자동 클릭 ON + 무전송 OFF + 명시 동의가 필요해.</li>
+<li>재고가 확인되면 큰 창이 <b>상단 작은 펼치기 버튼</b>으로 접히고, 공식 장바구니·주문 확인창 버튼 쪽으로 자동 스크롤해. 결제 승인은 직접 진행해.</li>
+</ol>
+<button type="button" id="copy">📋 v2.3 북마크 코드 복사</button>
+<p id="status" aria-live="polite" class="sub"></p>
+<textarea id="bookmark" readonly aria-label="북마크 코드"></textarea>
+<div class="notice">⚠️ <b>주문은 한 번만</b> 생성하도록 시도해. 여러 제품을 다른 시각에 각각 반복 주문하는 기능은 아니야. 첫 구매 가능한 상품 묶음을 기준으로 진행하며, 재고·가격·사이트 검증 결과에 따라 실패하거나 일부 상품이 제외될 수 있어. 앱이 다른 몰에 담긴 장바구니는 변경하지 않지만, 현재 몰 장바구니를 교체하려면 대기 시작 전에 확인을 받아.</div>
+<div class="notice">⏱️ 조회는 등록한 인형 수와 무관하게 <b>기존 상품 목록 RPC 한 번</b>을 공유해. 속도 기록도 계속 제공해. 도우미를 줄이고 스크롤한다고 최종 결제 승인을 자동으로 진행하지는 않아.</div>
+</section></main>
+<script>
+(function(){
+ const src="https://hipo020.github.io/bebepick-dashboard/bebepick-quick-order-general-v23.js?v=20261020-v23-multi-scroll";
+ const code="javascript:(function(){var s=document.createElement('script');s.src="+JSON.stringify(src)+";s.onerror=function(){alert('v2.3 도우미 로드 실패')};document.documentElement.appendChild(s)})()";
+ document.getElementById("bookmark").value=code;
+ document.getElementById("copy").onclick=async()=>{
+  try{await navigator.clipboard.writeText(code);document.getElementById("status").textContent="✅ 코드 복사 완료 · 북마크 주소에 붙여넣어 줘!";}
+  catch(e){const area=document.getElementById("bookmark");area.select();document.getElementById("status").textContent="자동 복사가 안 돼서 코드가 선택됐어. 수동으로 복사해 줘.";}
+ };
+})();
+</script></body></html>
