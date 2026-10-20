@@ -119,7 +119,7 @@ try {
   return prefill();
  }
  function prefill(){try{let v={};try{v=JSON.parse(sessionStorage.getItem(OPTS_KEY)||'{}')||{};}catch(e){}
-  v.open=open;v.storage=storage;sessionStorage.setItem(OPTS_KEY,JSON.stringify(v));return true;
+  v.open=open;v.storage=storage;v.use_credit=0;v.use_prize=0;v.use_free_ship=false;v.use_priority=false;v.store=STORE;sessionStorage.setItem(OPTS_KEY,JSON.stringify(v));return true;
  }catch(e){message('⚠ 개봉·보관 옵션을 미리 저장하지 못했어');return false;}}
  function serverOpen(w){return !!(w&&w.reason!=='paused'&&((w.open===true&&w.enabled!==false&&w.closed!==true)||w.yt_live===true));}
   function openMode(w){return w&&w.open===true&&w.enabled!==false&&w.closed!==true?'주문 접수':w&&w.yt_live===true&&w.reason!=='paused'?'LIVE 표시':'';}
@@ -187,16 +187,16 @@ try {
   let n=0;
   cartTimer=setInterval(()=>{
    const cartPanel=el('.panel[data-sheet="cart"]');
-   if(!cartPanel){if(++n>16){clearInterval(cartTimer);message('⚠ 장바구니를 열지 못했어. 수동으로 확인해 줘.');}return;}
-   if(!correctOrderControls(cartPanel)){clearInterval(cartTimer);message('⚠ 주문 옵션 '+open+'·'+storage+'을 확인하지 못했어. 직접 설정해 줘.');return;}
+   if(!cartPanel){if(++n>25){clearInterval(cartTimer);cartTimer=null;message('⚠ 장바구니를 열지 못했어. 수동으로 확인해 줘.');}return;}
+   if(!correctOrderControls(cartPanel)){if(++n>25){clearInterval(cartTimer);cartTimer=null;message('⚠ 주문 옵션 '+open+'·'+storage+'을 자동 확인하지 못했어. 직접 확인해 줘.');}return;}
    const next=el('#checkout',cartPanel);
-   if(!next||next.disabled){if(++n>16){clearInterval(cartTimer);message('⚠ 주문 버튼이 비활성화돼 있어. 직접 확인해 줘.');}return;}
+   if(!next||next.disabled){if(++n>25){clearInterval(cartTimer);cartTimer=null;message('⚠ 주문 버튼이 비활성화돼 있어. 직접 확인해 줘.');}return;}
    clearInterval(cartTimer);cartTimer=null;
     if(!expected()){message('⚠ 장바구니가 바뀌어 자동 진행 중단');return;}
     if(autoOrder){wizardStage=0;wizardStart=Date.now();submitClicked=false;wizardTimer=setInterval(watchWizard,50);}
     next.click();
     message(autoOrder?'📋 공식 주문 확인 2단계 · 선택값과 동의 확인 중':'📋 공식 확인창 · 최종 동의와 주문 확정은 직접 해 줘');
-  },250);
+  },100);
  }
  controls.reload.onclick=()=>{if(!expected()){message('⚠ 장바구니 내용을 확인해 줘');return;}location.assign(STORE==='main'?'https://bebepick.me/live':'https://bebepick.me/plus');};
  el('#qStart',panel).onclick=async()=>{
