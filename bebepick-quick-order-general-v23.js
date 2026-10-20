@@ -309,7 +309,7 @@ try {
   const code=String(raw||'').trim().toUpperCase(),opt=unit==='fullbox'?'fullbox':'single';
   if(active||completed){message('⚠ 대기를 먼저 중지해야 변경할 수 있어');return false;}
   if(!validSku(code)){message('⚠ 올바른 상품 코드를 입력해 줘');return false;}
-  if(watchItems.some(x=>x.sku===code&&x.option===opt)){message('이미 등록된 상품이야');return false;}
+  if(watchItems.some(x=>x.sku===code)){message('이미 등록된 상품이야');return false;}
   if(watchItems.length>=MAX_WATCH){message('⚠ 최대 10개까지 등록할 수 있어');return false;}
   const p=catalog.find(x=>x&&x.sku===code&&availableHere(x));
   if(p&&!allowedOption(p,opt)){message('⚠ 이 상품의 풀박스는 지원되지 않아');return false;}
@@ -527,7 +527,7 @@ try {
  };
  el('#qStop',panel).onclick=()=>{const sent=submitClicked;stop();message(sent?'⚠ 주문 요청을 이미 보냈을 수 있어 · 주문내역 확인':'⏸ 감시/확인 중지');};
  el('#qAdd',panel).onclick=()=>{
-  addWatchSku(controls.sku.value||controls.manual.value.trim().toUpperCase(),controls.opt.value);
+  addWatchSku(controls.manual.value.trim().toUpperCase()||controls.sku.value,controls.opt.value);
  };
  el('#qLoad',panel).onclick=()=>{if(active){message('⏳ 감시 중에는 목록 갱신하지 않아');return;}loadCatalog(false);};
  el('#qClose',panel).onclick=()=>{stop();panel.style.display='none';};
