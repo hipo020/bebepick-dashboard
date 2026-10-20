@@ -117,7 +117,7 @@ test('polling keeps sold-out settings without modifying cart until stock and win
  const allowedOption=()=>true,saleable=p=>p.stock===null||p.stock==='low';
  const prepare=async()=>{prepareCalls++;return true},fillCatalog=()=>{},updateInfo=()=>{},handoff=()=>{handoffCalls++};
  const serverOpen=w=>w&&(w.open===true||w.yt_live===true),openMode=w=>w.open===true?'주문 접수':w.yt_live?'LIVE 표시':'';
- const timingOnce=()=>{},timingMark=()=>{},timingRound=()=>{};
+ const timingOnce=()=>{},timingMark=()=>{},timingRound=()=>{},performance={now:()=>Date.now()};
  const latestAvailability=p=>saleable(p)?'판매 가능':'품절';
  `+code+'return {run:poll,stats:()=>({cartPrepared,awaitingCatalog,prepareCalls,handoffCalls,scheduleCalls})};');
  for(const [data,prep,hand] of [
