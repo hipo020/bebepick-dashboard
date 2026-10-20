@@ -85,7 +85,7 @@ function prepHarness(initial,requested,{consent=true,available=true}={}){
   factory+"return prepare;"
  );
  const prepare=fn(
-  requested,consent,initial.map(x=>[x.sku,(x.opt==='fullbox'?'fullbox':'single'),Number(x.qty),x.lid||''].join('|')).sort().join(';'),
+  requested,consent,initial.filter(belongs).map(x=>[x.sku,(x.opt==='fullbox'?'fullbox':'single'),Number(x.qty),x.lid||''].join('|')).sort().join(';'),
   list=>list.map(x=>[x.sku,(x.opt==='fullbox'?'fullbox':'single'),Number(x.qty),x.lid||''].join('|')).sort().join(';'),
   "china","bbp_cart_v1",()=>saved,belongs,eq,
   ()=>available,()=>({stock:"low"}),message=>messages.push(message),
