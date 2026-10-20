@@ -17,6 +17,17 @@ try {
  let storage=['보관','발송'].includes(pref.storage)?pref.storage:'보관';
  let cartProgress=null,cartPrepared=false,awaitingCatalog=false,autoPay=false,autoOrder=false,dryRun=true,active=false,polling=false,confirmed=false,completed=false,payArmed=false,payDone=false,tries=0,timer=null,controllers=new Set(),catalog=[],lastResults=null,triggerMode='',confirmedAt=0,routeBusy=false,lastRouteAt=0,cartTimer=null,wizardTimer=null,wizardStage=0,wizardStart=0,finalAgreeAt=0,submitClicked=false,payDeadline=0,oldPayOrder='';
 
+ const WATCH_KEY='bbp_general_v23_watches_'+STORE,MAX_WATCH=10;
+ let watchItems=[],armedItems=[],cartReplaceConsent=false;
+ try{const a=JSON.parse(localStorage.getItem(WATCH_KEY)||'[]');
+  if(Array.isArray(a))for(const v of a){
+   const code=String(v?.sku||'').trim().toUpperCase(),opt=v?.option==='fullbox'?'fullbox':'single';
+   if(/^[A-Z0-9-]{2,24}$/.test(code)&&!watchItems.some(w=>w.sku===code&&w.option===opt)&&watchItems.length<MAX_WATCH)
+    watchItems.push({sku:code,option:opt,qty:1});
+  }
+ }catch(e){}
+ if(!watchItems.length&&/^[A-Z0-9-]{2,24}$/.test(sku))watchItems=[{sku,option,qty:1}];
+ function saveWatchList(){try{localStorage.setItem(WATCH_KEY,JSON.stringify(watchItems));}catch(e){}}
  function el(q,root){return (root||document).querySelector(q);}
  function savePref(){try{localStorage.setItem(PREF_KEY,JSON.stringify({sku:sku,option:option,cycle:cycle,open:open,storage:storage}));}catch(e){}}
  function readCart(){let c=JSON.parse(localStorage.getItem(CART_KEY)||'[]');if(!Array.isArray(c))throw Error('장바구니 저장 형식이 올바르지 않아');return c;}
@@ -25,13 +36,17 @@ try {
  function expected(){const c=readCart().filter(belongs);return c.length===1&&c[0].sku===sku&&normalized(c[0])===option&&Number(c[0].qty)===1;}
  function availableHere(p){return p&&(!p.only||p.only===STORE);}
  function target(){return catalog.find(p=>p&&p.sku===sku&&availableHere(p));}
- function allowedOption(p){return option==='single'||!!(p&&p.has_fullbox&&p.pack_size>1);}
- function saleable(p){if(!p||!availableHere(p)||!allowedOption(p))return false;
+ function allowedOption(p,selectedOption=option){return selectedOption==='single'||!!(p&&p.has_fullbox&&p.pack_size>1);}
+ function saleableFor(p,unit){
+  if(!p||!availableHere(p)||!allowedOption(p,unit))return false;
   if(!(p.stock===null||p.stock==='low'))return false;
-  if(option==='fullbox'&&p.fullbox_out!==false)return false;
-  if(p.per_person_max&&option==='fullbox'&&Number(p.pack_size)>Number(p.per_person_max))return false;
+  if(unit==='fullbox'&&p.fullbox_out!==false)return false;
+  if(p.per_person_max&&unit==='fullbox'&&Number(p.pack_size)>Number(p.per_person_max))return false;
   return true;
  }
+ function saleable(p){return saleableFor(p,option);}
+ function productFor(row){return catalog.find(p=>p&&p.sku===row.sku&&availableHere(p));}
+ function eligibleNow(){return watchItems.filter(row=>saleableFor(productFor(row),row.option));}
  function label(p){return p?String(p.name||p.sku)+' · '+p.sku:String(sku||'상품 미선택');}
  function money(n){return n!==null&&n!==undefined&&n!==''&&Number.isFinite(+n)?Number(n).toLocaleString('ko-KR')+'원':'가격 로그인 후 확인';}
  const panel=document.createElement('aside');panel.id='bbpQuickGeneralV2';
