@@ -322,11 +322,11 @@ try {
   }catch(e){tries++;timingMark('poll_error','조회 처리 오류');message('⚠ 감시 오류 · 잠시 뒤 다시 시도');schedule(Math.min(120000,cycle*2000*Math.pow(2,Math.min(tries,4))));}
   finally{polling=false;}
  }
- function reloadShow(){controls.reload.style.display='block';controls.reload.hidden=false;message('🔄 서버 판매 가능 후보 확인 · 공식 상품 화면 갱신 대기');if(!routeBusy&&Date.now()-lastRouteAt>5500)refreshRoute();}
+ function reloadShow(){timingOnce('official_ui_wait','공식 DOM 주문상태 반영 대기');controls.reload.style.display='block';controls.reload.hidden=false;message('🔄 서버 판매 가능 후보 확인 · 공식 상품 화면 갱신 대기');if(!routeBusy&&Date.now()-lastRouteAt>5500)refreshRoute();}
   function refreshRoute(){
    if(routeBusy||!active||document.hidden)return;
    if(location.hash&&location.hash!=='#'){endPolling();message('⚠ 다른 경로 이동 감지 · 수동 확인 필요');return;}
-   routeBusy=true;lastRouteAt=Date.now();
+   routeBusy=true;lastRouteAt=Date.now();timingOnce('route_refresh','사이트 경로 내부 갱신');
    history.replaceState(history.state,'',location.pathname+location.search+'#terms');
    window.dispatchEvent(new Event('hashchange'));
    setTimeout(()=>{
@@ -352,19 +352,21 @@ try {
   const btn=el('#cartBar .cb-submit')||el('#btnTopCart:not([hidden])');
   if(!btn||btn.disabled){reloadShow();return;}
    if(Date.now()-confirmedAt>Math.max(10000,cycle*2000)){confirmed=false;message('🔄 구매 직전 공식 서버 재확인');poll();return;}
-  endPolling();completed=true;message('✅ 공식 장바구니·주문창 여는 중…');
-  btn.click();
+  timingOnce('official_ui_ready','공식 주문 버튼 활성화');endPolling();completed=true;message('✅ 공식 장바구니·주문창 여는 중…');
+  timingOnce('cart_click','버튼 호출 · 주문 생성 아님');btn.click();
   let n=0;
   cartTimer=setInterval(()=>{
    const cartPanel=el('.panel[data-sheet="cart"]');
    if(!cartPanel){if(++n>25){clearInterval(cartTimer);cartTimer=null;message('⚠ 장바구니를 열지 못했어. 수동으로 확인해 줘.');}return;}
+   timingOnce('cart_panel');
    if(!correctOrderControls(cartPanel)){if(++n>25){clearInterval(cartTimer);cartTimer=null;message('⚠ 주문 옵션 '+open+'·'+storage+'을 자동 확인하지 못했어. 직접 확인해 줘.');}return;}
+   timingOnce('option_ok',open+' + '+storage);
    const next=el('#checkout',cartPanel);
    if(!next||next.disabled){if(++n>25){clearInterval(cartTimer);cartTimer=null;message('⚠ 주문 버튼이 비활성화돼 있어. 직접 확인해 줘.');}return;}
    clearInterval(cartTimer);cartTimer=null;
     if(!expected()){message('⚠ 장바구니가 바뀌어 자동 진행 중단');return;}
     if(autoOrder){wizardStage=0;wizardStart=Date.now();submitClicked=false;wizardTimer=setInterval(watchWizard,50);}
-    next.click();
+    timingOnce('checkout_click','버튼 호출 · 주문 생성 아님');next.click();
     message(autoOrder?'📋 공식 주문 확인 2단계 · 선택값과 동의 확인 중':'📋 공식 확인창 · 최종 동의와 주문 확정은 직접 해 줘');
   },100);
  }
@@ -384,9 +386,11 @@ try {
    if(recentSubmit()){message('⚠ 최근 주문 요청 이력이 있어 · 주문내역 확인 후 새로고침해 줘');return;}
    if(!confirm('⚠ 실제 주문 자동 생성 확인\n\n'+label(target())+' · '+labels[option]+' · '+open+' + '+storage+'로 실제 주문을 생성할 수 있어. 공식 주문 확인 2단계를 자동 진행하고 최종 주문 버튼을 최대 한 번 눌러.\n\n결제는 직접 진행해야 하고 주문 생성 후 취소/변경은 제한될 수 있어. 다른 주문의 수령 방법 변경 경고가 나오면 자동 중단해. 진행할까?'))return;
   }
+  timingStart();
   if(target()&&saleable(target())){
-   if(!await prepare())return;
+   if(!await prepare()){timingStop('처음 장바구니 준비 실패');return;}
    cartPrepared=true;awaitingCatalog=false;
+   timingOnce('initial_cart','초기 목록 기준, 재조회 전');timingOnce('cart_ready','초기 목록 기준');
   }else{
    // 품절 또는 카탈로그 미노출 동안에는 설정만 저장하고 장바구니를 건드리지 않아.
    cartPrepared=false;awaitingCatalog=!target();
