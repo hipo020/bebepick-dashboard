@@ -79,8 +79,8 @@ try{
    if(!r.ok){var error=new Error('HTTP '+r.status);error.status=r.status;throw error;}return await r.json();
   }finally{clearTimeout(timeout);pollAborts.delete(ctrl);}
  }
- function windowReady(w){return !!(w&&(w.open===true||w.yt_live===true)&&w.enabled!==false&&w.closed!==true&&w.reason!=='paused');}
- function modeOf(w){return w.open===true?'주문 접수':w.yt_live===true?'LIVE 표시':null;}
+ function windowReady(w){return !!(w&&w.reason!=='paused'&&((w.open===true&&w.enabled!==false&&w.closed!==true)||w.yt_live===true));}
+ function modeOf(w){return w.open===true&&w.enabled!==false&&w.closed!==true?'주문 접수':w.yt_live===true?'LIVE 표시':null;}
  function productReady(list){return Array.isArray(list)&&list.some(function(p){return p&&p.sku===SKU&&(p.stock===null||p.stock==='low')&&(!p.only||p.only==='main')&&(selectedOpt==='single'||(p.has_fullbox===true&&p.fullbox_out===false));});}
  function stateText(v,opened,closed){return v===null?'확인 실패':(v?opened:closed);}
  async function pollServer(){
