@@ -188,7 +188,7 @@ try {
  el('#qChannel',panel).textContent='현재 주문몰: '+(STORE==='main'?'베베픽':'베베픽 플러스');
  function message(t){controls.status.textContent=t;}
  function show(){panel.style.display='block';}
- function stop(){active=false;confirmed=false;if(timer)clearTimeout(timer);timer=null;
+ function stop(){timingStop('감시 또는 안전장치 중지');active=false;confirmed=false;if(timer)clearTimeout(timer);timer=null;
    if(cartTimer)clearInterval(cartTimer);cartTimer=null;
    if(wizardTimer)clearInterval(wizardTimer);wizardTimer=null;
    controllers.forEach(c=>c.abort());controllers.clear();polling=false;payArmed=false;autoOrder=false;
@@ -196,7 +196,7 @@ try {
   function endPolling(){active=false;if(timer)clearTimeout(timer);timer=null;controllers.forEach(c=>c.abort());controllers.clear();polling=false;}
   function recentSubmit(){try{const prev=JSON.parse(sessionStorage.getItem('bbp_general_v2_submit_'+STORE)||'null');return prev&&Date.now()-prev.at<180000?prev:null;}catch(e){return null;}}
  function config(){const c=window.APP_CONFIG||{};if(!c.supabaseUrl||!c.supabaseAnonKey)throw Error('공식 홈페이지 서버 설정 없음');const base=String(c.supabaseUrl).replace(/\/$/,'');if(base!=='https://eqytdtxemjlygnobhiio.supabase.co')throw Error('공식 서버가 예상한 주소와 다름');return {base:base,key:c.supabaseAnonKey};}
- async function rpc(fn,args){const c=config(),ctl=new AbortController();controllers.add(ctl);const to=setTimeout(()=>ctl.abort(),7500);
+ async function rpc(fn,args){const rpcAt=performance.now(),c=config(),ctl=new AbortController();controllers.add(ctl);const to=setTimeout(()=>ctl.abort(),7500);
   try{
     const headers={apikey:c.key,'content-type':'application/json',accept:'application/json'};
     try{const user=JSON.parse(localStorage.getItem('sb-eqytdtxemjlygnobhiio-auth-token')||'null');
@@ -204,7 +204,7 @@ try {
     }catch(e){}
     const r=await fetch(c.base+'/rest/v1/rpc/'+fn,{method:'POST',credentials:'omit',cache:'no-store',mode:'cors',signal:ctl.signal,headers,body:JSON.stringify(args||{})});
    if(!r.ok){const e=new Error('HTTP '+r.status+' '+fn);e.httpStatus=r.status;throw e;}return await r.json();
-  }finally{clearTimeout(to);controllers.delete(ctl);}
+  }finally{timingRpc(fn,performance.now()-rpcAt);clearTimeout(to);controllers.delete(ctl);}
  }
  function validSku(value){return /^[A-Z0-9-]{2,24}$/.test(String(value||''));}
  function visibleProducts(){return catalog.filter(availableHere);}
@@ -285,10 +285,12 @@ try {
   if(document.hidden){message('📱 브라우저를 다시 열면 감시 재개');schedule(cycle*1000);return;}
   if(cartPrepared&&!expected()){stop();message('⚠ 장바구니 상품·옵션·수량이 바뀌어 감시 중지');return;}
   polling=true;
+  const pollStartedAt=performance.now();timingOnce('first_poll');
   try{const res=await Promise.allSettled([rpc('order_windows',{}),rpc('list_products',{p_brand:STORE})]);
+   timingRound(performance.now()-pollStartedAt,res.some(x=>x.status==='rejected'));
    if(!active)return;
    let windowOk=null,productOk=null,failed=[],p=null;
-   if(res[0].status==='fulfilled'){const w=res[0].value&&res[0].value[STORE];if(w&&(typeof w.open==='boolean'||typeof w.yt_live==='boolean')){windowOk=serverOpen(w);triggerMode=openMode(w);}else failed.push(new Error('주문 응답 형식 오류'));}
+   if(res[0].status==='fulfilled'){const w=res[0].value&&res[0].value[STORE];if(w&&(typeof w.open==='boolean'||typeof w.yt_live==='boolean')){windowOk=serverOpen(w);triggerMode=openMode(w);if(windowOk)timingOnce('window_open',triggerMode);}else failed.push(new Error('주문 응답 형식 오류'));}
    else failed.push(res[0].reason);
    if(res[1].status==='fulfilled'&&Array.isArray(res[1].value)){
    catalog=res[1].value;p=target();
@@ -296,10 +298,11 @@ try {
    else if(Object.prototype.hasOwnProperty.call(p,'stock')){
     awaitingCatalog=false;
     if(!allowedOption(p)){stop();message('⚠ 선택한 '+(option==='fullbox'?'풀박스':'상품')+'을 공식 상품 정보에서 지원하지 않아 · 수동 확인');return;}
-    // 품절인 동안에는 설정값만 보존해 사이트가 장바구니를 지우지 않게 한다.
+    if(saleable(p))timingOnce('sellable','공식 list_products 새 응답');
+     // 품절인 동안에는 설정값만 보존해 사이트가 장바구니를 지우지 않게 한다.
     if(!cartPrepared&&saleable(p)){
      if(!await prepare()){stop();message('⚠ 판매 가능 확인 후 장바구니 준비 실패 · 수동 확인');return;}
-     cartPrepared=true;fillCatalog();updateInfo();
+     cartPrepared=true;timingOnce('cart_ready','서버 재고 확인 후');fillCatalog();updateInfo();
     }
     productOk=!!cartPrepared&&saleable(p);
    }else failed.push(new Error('선택 상품 재고 응답 형식 오류'));
@@ -314,9 +317,9 @@ try {
     message(nowStatus+' · '+Math.round(delayed/1000)+'초 후 재확인');schedule(delayed);return;
    }
    tries=0;
-   if(windowOk&&productOk){confirmed=true;confirmedAt=Date.now();message('✅ '+triggerMode+' + 선택 상품 재고 표시 · 공식 주문 UI 확인 중');handoff();return;}
+   if(windowOk&&productOk){confirmed=true;confirmedAt=Date.now();timingOnce('both_ready','재고+접수 조건 충족');message('✅ '+triggerMode+' + 선택 상품 재고 표시 · 공식 주문 UI 확인 중');handoff();return;}
    message(nowStatus);schedule(cycle*1000);
-  }catch(e){tries++;message('⚠ 감시 오류 · 잠시 뒤 다시 시도');schedule(Math.min(120000,cycle*2000*Math.pow(2,Math.min(tries,4))));}
+  }catch(e){tries++;timingMark('poll_error','조회 처리 오류');message('⚠ 감시 오류 · 잠시 뒤 다시 시도');schedule(Math.min(120000,cycle*2000*Math.pow(2,Math.min(tries,4))));}
   finally{polling=false;}
  }
  function reloadShow(){controls.reload.style.display='block';controls.reload.hidden=false;message('🔄 서버 판매 가능 후보 확인 · 공식 상품 화면 갱신 대기');if(!routeBusy&&Date.now()-lastRouteAt>5500)refreshRoute();}
