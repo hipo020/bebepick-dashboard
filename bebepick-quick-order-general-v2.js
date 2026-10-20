@@ -16,6 +16,129 @@ try {
  let open=['개봉','미개봉','카드개봉'].includes(pref.open)?pref.open:'개봉';
  let storage=['보관','발송'].includes(pref.storage)?pref.storage:'보관';
  let cartPrepared=false,awaitingCatalog=false,autoPay=false,autoOrder=false,dryRun=true,active=false,polling=false,confirmed=false,completed=false,payArmed=false,payDone=false,tries=0,timer=null,controllers=new Set(),catalog=[],lastResults=null,triggerMode='',confirmedAt=0,routeBusy=false,lastRouteAt=0,cartTimer=null,wizardTimer=null,wizardStage=0,wizardStart=0,finalAgreeAt=0,submitClicked=false,payDeadline=0,oldPayOrder='';
+
+ // Instrumentation only. No extra site requests, no order submission,
+ // no recording of auth cookies, customer details, or generated order numbers.
+ const TIMING_KEY='bbp_general_v2_timing_last_'+STORE;
+ const TIMING_LABELS={
+  started:'대기 시작', initial_cart:'시작 전 장바구니 준비', first_poll:'첫 서버 조회 시작',
+  poll_sample:'서버 조회 구간 표본', poll_error:'서버 조회 문제',
+  sellable:'공식 상품 RPC 판매 가능 최초 확인', window_open:'주문 접수/LIVE 상태 확인',
+  cart_ready:'장바구니·선택 옵션 준비', both_ready:'재고+접수 조건 모두 확인',
+  official_ui_wait:'공식 주문 화면 반영 대기', route_refresh:'공식 화면 내부 경로 갱신',
+  official_ui_ready:'공식 화면 주문 버튼 활성 확인', cart_click:'장바구니 열기 클릭 호출',
+  cart_panel:'공식 장바구니 패널 표시', option_ok:'개봉/보관 옵션 확인',
+  checkout_click:'주문 확인창 열기 클릭 호출', confirm_visible:'주문 확인창 표시',
+  agree_step1:'1단계 확인/계속 클릭 호출', final_visible:'최종 주문 확인 단계 표시',
+  dry_run_stop:'무전송 시험 · 최종 주문 클릭 생략',
+  submit_click:'최종 주문 버튼 클릭 호출 (접수/주문번호 미확인)',
+  pay_panel:'새 주문번호가 표시된 결제 패널 확인', pay_click:'결제창 열기 버튼 클릭 호출',
+  stopped:'감시 중지', hidden:'브라우저 백그라운드 전환', resumed:'브라우저 다시 표시',
+  safety_stop:'안전장치로 자동 단계 중지'
+ };
+ let timingActive=false,timingEvents=[],timingOnceKeys=new Set(),timingStartPerf=0,timingSaleablePerf=null,
+  timingStartedAt=null,timingMode='',timingSku='',timingCycle=8,timingPersistTimer=null;
+ let timingStats={checks:0,errors:0,lastRoundMs:null,minRoundMs:null,maxRoundMs:null,rpc:{}};
+ const ms=n=>Math.round(n*10)/10;
+ function timingReport(){
+  return {kind:'bebepick-quick-order-timing-v22',version:'2.2',createdAt:new Date().toISOString(),
+   store:STORE,sku:timingSku,option:option,intervalSeconds:timingCycle,mode:timingMode,
+   startedAt:timingStartedAt,stats:timingStats,events:timingEvents,
+   note:'Browser observation only. LIVE/stock observed time is not actual opening time. Click called is not order accepted. Contains no order number, token, account information, or message body.'};
+ }
+ function persistTimingSoon(){
+  if(timingPersistTimer!==null)return;
+  timingPersistTimer=setTimeout(()=>{timingPersistTimer=null;
+   try{sessionStorage.setItem(TIMING_KEY,JSON.stringify(timingReport()));}catch(e){}
+  },300);
+ }
+ function timingRender(){
+  const recent=timingEvents.slice(-15);
+  controls.timingLog.textContent=recent.length?recent.map(x=>
+   x.elapsedMs.toFixed(1)+'ms · '+(TIMING_LABELS[x.event]||x.event)+(x.sinceSellableMs===null?'':' (재고 확인 후 '+x.sinceSellableMs.toFixed(1)+'ms)')+
+   (x.detail?' · '+x.detail:'')
+  ).join('\n'):'아직 기록이 없어.';
+  const milestones=n=>timingEvents.find(x=>x.event===n);
+  const a=milestones('sellable'),b=milestones('checkout_click');
+  const span=a&&b?(b.elapsedMs-a.elapsedMs).toFixed(1)+'ms':'측정 대기';
+  const avg=timingStats.checks?((timingStats.minRoundMs??0)+'~'+(timingStats.maxRoundMs??0)+'ms'):'—';
+  controls.timingSummary.textContent='공식 판매가능 확인 → 확인창 열기 클릭: '+span+' · 조회 '+timingStats.checks+'회 · 조회 구간 '+avg;
+ }
+ function timingMark(event,detail){
+  if(!timingActive)return;
+  const now=performance.now(),sinceSellable=timingSaleablePerf===null?null:ms(now-timingSaleablePerf);
+  if(event==='sellable'&&timingSaleablePerf===null)timingSaleablePerf=now;
+  timingEvents.push({event,at:new Date().toISOString(),elapsedMs:ms(now-timingStartPerf),
+   sinceSellableMs:event==='sellable'?0:sinceSellable,detail:String(detail||'').slice(0,80)});
+  // Preserve the start and the first milestone entries if waiting for hours.
+  if(timingEvents.length>260){
+   let cut=timingEvents.findIndex((x,i)=>i>0&&x.event==='poll_sample');
+   if(cut<1)cut=timingEvents.findIndex((x,i)=>i>0&&x.event==='poll_error');
+   if(cut<1)cut=1;
+   timingEvents.splice(cut,1);
+  }
+  timingRender();persistTimingSoon();
+ }
+ function timingOnce(event,detail){
+  if(!timingActive||timingOnceKeys.has(event))return;
+  timingOnceKeys.add(event);timingMark(event,detail);
+ }
+ function timingStart(){
+  timingActive=true;timingEvents=[];timingOnceKeys.clear();timingStartPerf=performance.now();timingSaleablePerf=null;
+  timingStartedAt=new Date().toISOString();timingSku=sku;timingCycle=cycle;
+  timingMode=autoOrder?(dryRun?'무전송 자동 확인':'명시 동의 실제 주문'):'수동 최종 확정';
+  timingStats={checks:0,errors:0,lastRoundMs:null,minRoundMs:null,maxRoundMs:null,rpc:{}};
+  timingMark('started',timingMode);
+ }
+ function timingRpc(fn,elapsed){
+  if(!timingActive||(fn!=='list_products'&&fn!=='order_windows'))return;
+  const t=ms(elapsed),stats=timingStats.rpc[fn]||{count:0,lastMs:null,minMs:null,maxMs:null,meanMs:null};
+  stats.meanMs=ms(((stats.meanMs||0)*stats.count+t)/(stats.count+1));
+  stats.count++;stats.lastMs=t;stats.minMs=stats.minMs===null?t:Math.min(stats.minMs,t);
+  stats.maxMs=stats.maxMs===null?t:Math.max(stats.maxMs,t);
+  timingStats.rpc[fn]=stats;
+ }
+ function timingRound(elapsed,failed){
+  if(!timingActive)return;
+  timingStats.checks++;
+  const t=ms(elapsed);timingStats.lastRoundMs=t;
+  timingStats.minRoundMs=timingStats.minRoundMs===null?t:Math.min(timingStats.minRoundMs,t);
+  timingStats.maxRoundMs=timingStats.maxRoundMs===null?t:Math.max(timingStats.maxRoundMs,t);
+  if(failed)timingStats.errors++;
+  if(timingStats.checks===1||timingStats.checks%10===0||failed)timingMark(failed?'poll_error':'poll_sample','조회 '+timingStats.checks+'회차 · '+t+'ms');
+  else persistTimingSoon();
+ }
+ function timingStop(detail){
+  if(!timingActive)return;
+  timingMark('stopped',detail||'종료');timingActive=false;
+  if(timingPersistTimer!==null){clearTimeout(timingPersistTimer);timingPersistTimer=null;}
+  try{sessionStorage.setItem(TIMING_KEY,JSON.stringify(timingReport()));}catch(e){}
+ }
+ function timingExport(){
+  // Export only already-observed timings; contains no response body, order number, or authorization.
+  return JSON.stringify(timingReport(),null,2);
+ }
+ try{
+  const last=JSON.parse(sessionStorage.getItem(TIMING_KEY)||'null');
+  if(last&&last.kind==='bebepick-quick-order-timing-v22'&&last.store===STORE&&Array.isArray(last.events)){
+   timingEvents=last.events.slice(0,260);timingStats=last.stats||timingStats;
+   timingSku=String(last.sku||'');timingCycle=Number(last.intervalSeconds)||8;
+   timingMode=String(last.mode||'');timingStartedAt=String(last.startedAt||'');
+   timingRender();controls.timingSummary.textContent+=' · 이전 페이지 기록 (새 시작 시 초기화)';
+  }
+ }catch(e){}
+ el('#qTimingCopy',panel).onclick=async()=>{
+  const data=timingExport();
+  try{await navigator.clipboard.writeText(data);message('📋 속도 기록 복사 완료 · 채팅에 붙여넣어 줘');}
+  catch(e){const t=document.createElement('textarea');t.value=data;t.style.cssText='width:100%;height:90px';el('#qTiming',panel).appendChild(t);t.select();message('복사 제한됨 · 아래 선택된 JSON을 수동으로 복사해 줘');}
+ };
+ el('#qTimingDownload',panel).onclick=()=>{
+  const blob=new Blob([timingExport()],{type:'application/json;charset=utf-8'});
+  const url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download='bebepick-speed-'+STORE+'.json';a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),2000);
+  message('💾 속도 기록 JSON 저장 완료 · 공유 전 내용을 확인해 줘');
+ };
  function el(q,root){return (root||document).querySelector(q);}
  function savePref(){try{localStorage.setItem(PREF_KEY,JSON.stringify({sku:sku,option:option,cycle:cycle,open:open,storage:storage}));}catch(e){}}
  function readCart(){let c=JSON.parse(localStorage.getItem(CART_KEY)||'[]');if(!Array.isArray(c))throw Error('장바구니 저장 형식이 올바르지 않아');return c;}
@@ -37,7 +160,7 @@ try {
  panel.style.cssText='position:fixed;z-index:2147483645;left:10px;right:10px;bottom:10px;max-width:455px;max-height:86dvh;overflow:auto;margin:auto;background:#fff;border:2px solid #8762b8;border-radius:16px;padding:14px 14px 12px;color:#282235;box-shadow:0 8px 32px #0005;font:14px/1.48 system-ui,-apple-system,sans-serif';
  const inputStyle='width:100%;margin-top:3px;min-height:37px;border:1px solid #d8cee5;border-radius:9px;padding:7px;background:#fff;color:#202020;font:inherit';
  const rowStyle='display:flex;gap:8px;flex-wrap:wrap;margin:8px 0';
- panel.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><strong>🧸 베베픽 자동주문 · 범용 v2.1 품절대기 시험판</strong><button id="qClose" type="button" style="border:0;background:#fff;font-size:23px;color:#333">×</button></div>'+
+ panel.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><strong>🧸 베베픽 자동주문 · 범용 v2.2 속도 기록</strong><button id="qClose" type="button" style="border:0;background:#fff;font-size:23px;color:#333">×</button></div>'+
  '<div style="font-size:12px;color:#71677d;margin:3px 0" id="qChannel"></div>'+
  '<label style="font-weight:600;display:block;margin-top:9px">인형 이름·상품코드 검색<input id="qSearch" placeholder="예: 밤토끼, D796" autocomplete="off" style="'+inputStyle+'"></label>'+
  '<label style="font-weight:600;display:block;margin-top:7px">선택할 상품 (품절 포함)<select id="qSku" style="'+inputStyle+'"><option value="">상품 목록 불러오는 중…</option></select></label>'+
@@ -53,9 +176,15 @@ try {
  '<div id="qStatus" role="status" style="font-weight:700;padding:8px 9px;background:#f5effc;border-radius:8px;margin:9px 0">📦 상품 목록을 불러오는 중…</div>'+
  '<div style="display:flex;gap:7px;margin-top:8px"><button id="qStart" type="button" style="flex:1;border:0;border-radius:10px;padding:11px;background:#6b4aac;color:#fff;font-weight:700">대기 시작</button><button id="qStop" type="button" style="border:1px solid #cbbadf;border-radius:10px;background:#fff;padding:10px">중지</button><button id="qLoad" type="button" style="border:1px solid #cbbadf;border-radius:10px;background:#fff;padding:10px">목록 갱신</button></div>'+
  '<button id="qReload" type="button" hidden style="display:none;width:100%;margin-top:8px;border:0;border-radius:9px;background:#332340;color:#fff;padding:11px;font-weight:700">🛒 판매 가능 확인 · 공식 화면 새로고침</button>'+
+ '<details id="qTiming" style="margin:9px 0;padding:10px;border:1px solid #d7c4e7;background:#faf7ff;border-radius:10px"><summary style="cursor:pointer;font-weight:750">⏱️ 자동주문 구간별 속도 기록 (로컬 저장)</summary>'+
+ '<div id="qTimingSummary" style="margin:6px 0;font-size:12px;color:#4c376a">대기 시작 후 기록이 표시돼.</div>'+
+ '<pre id="qTimingLog" style="white-space:pre-wrap;word-break:break-word;max-height:176px;overflow:auto;font:11px/1.5 ui-monospace,monospace;color:#3e3452">아직 기록이 없어.</pre>'+
+ '<div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" id="qTimingCopy" style="border:1px solid #c2afd6;background:#fff;padding:8px;border-radius:7px">📋 기록 복사</button><button type="button" id="qTimingDownload" style="border:1px solid #c2afd6;background:#fff;padding:8px;border-radius:7px">💾 JSON 저장</button></div>'+
+ '<small style="display:block;color:#756b80;margin-top:7px">자동 측정 · 0.1ms 정밀도 기록 · 세션 내 저장. 실제 재입고 시각은 알 수 없으므로 최초 판매 가능 응답부터 측정해. 주문 성공과 서버 접수를 의미하지 않아.</small></details>'+
  '<small style="display:block;color:#766d7f;margin-top:9px">품절이어도 설정하고 대기할 수 있어. 품절 또는 목록에 없는 코드일 때는 재고가 공식 서버에서 확인될 때까지 주문이나 장바구니 변경 없이 기다려. 주문 접수 또는 사이트 LIVE 표시와 선택 상품 재고를 확인해. LIVE 표시는 실제 구매 보장이 아니야. 공식 주문 UI 활성화가 필요하고 무전송 시험에서 최종 주문을 생성하지 않아. 5초 감시는 요청 제한 위험이 있어.</small>';
  document.body.appendChild(panel);
- const controls={search:el('#qSearch',panel),manual:el('#qManualSku',panel),sku:el('#qSku',panel),opt:el('#qOpt',panel),cycle:el('#qCycle',panel),open:el('#qOpen',panel),storage:el('#qStorage',panel),pay:el('#qPayAuto',panel),autoOrder:el('#qAutoOrder',panel),dryRun:el('#qDryRun',panel),status:el('#qStatus',panel),product:el('#qProduct',panel),reload:el('#qReload',panel)};
+ const controls={search:el('#qSearch',panel),manual:el('#qManualSku',panel),sku:el('#qSku',panel),opt:el('#qOpt',panel),cycle:el('#qCycle',panel),open:el('#qOpen',panel),storage:el('#qStorage',panel),pay:el('#qPayAuto',panel),autoOrder:el('#qAutoOrder',panel),dryRun:el('#qDryRun',panel),status:el('#qStatus',panel),product:el('#qProduct',panel),reload:el('#qReload',panel),
+ timingSummary:el('#qTimingSummary',panel),timingLog:el('#qTimingLog',panel)};
  el('#qChannel',panel).textContent='현재 주문몰: '+(STORE==='main'?'베베픽':'베베픽 플러스');
  function message(t){controls.status.textContent=t;}
  function show(){panel.style.display='block';}
