@@ -416,8 +416,11 @@ try {
  }
  function handoff(){
   if(!expected()){stop();message('⚠ 장바구니 내용 변경 · 주문 진행 중지');return;}
-  const pcard=el('[data-ctl="'+sku+'"]'),card=pcard&&pcard.closest('.prod');
-  const w=el('#storeBar .sb-order.open'),shopFresh=card&&!card.classList.contains('soldout')&&(option==='single'||!card.classList.contains('fbout'));
+  const w=el('#storeBar .sb-order.open');
+  const shopFresh=armedItems.length>0&&armedItems.every(row=>{
+   const node=el('[data-ctl="'+row.sku+'"]'),card=node&&node.closest('.prod');
+   return !!(card&&!card.classList.contains('soldout')&&(row.option==='single'||!card.classList.contains('fbout')));
+  });
   if((!w&&triggerMode!=='LIVE 표시')||!shopFresh){reloadShow();return;}
   const btn=el('#cartBar .cb-submit')||el('#btnTopCart:not([hidden])');
   if(!btn||btn.disabled){reloadShow();return;}
