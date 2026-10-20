@@ -200,44 +200,113 @@ try {
  }
  controls.reload.onclick=()=>{if(!expected()){message('⚠ 장바구니 내용을 확인해 줘');return;}location.assign(STORE==='main'?'https://bebepick.me/live':'https://bebepick.me/plus');};
  el('#qStart',panel).onclick=async()=>{
-  if(completed){message('이미 주문 진행을 시도했어. 새로고침 후 다시 실행해 줘.');return;}
+  if(completed){message('⚠ 이전 주문 시도가 있어 · 새로고침 후 다시 시도해 줘');return;}
   if(active){message('⏳ 이미 감시 중이야');return;}
   if(!target()){const loaded=await loadCatalog(false);if(!loaded)return;}
-  if(!controls.sku.value){message('⚠ 인형을 먼저 선택해 줘');return;}
-  sku=controls.sku.value;savePref();
-  if(!(await prepare()))return;
-  autoPay=controls.pay.checked;
-  if(autoPay&&!confirm('주문 내용·동의를 직접 확인하고 주문을 확정하면 페이앱 결제 화면 열기만 자동 시도할까?'))return;
-  active=true;confirmed=false;tries=0;controls.reload.hidden=true;controls.reload.style.display='none';
-  message('⏳ '+label(target())+' '+labels[option]+' · '+open+' + '+storage+' · '+cycle+'초 서버 감시 시작');
+  const selected=controls.sku.value;
+  if(!selected){message('⚠ 구매할 인형을 먼저 선택해 줘');return;}
+  sku=selected;option=controls.opt.value==='fullbox'?'fullbox':'single';
+  cycle=allowed.includes(+controls.cycle.value)?+controls.cycle.value:8;
+  open=controls.open.value;storage=controls.storage.value;savePref();
+  if(!target()||!allowedOption(target())){message('⚠ 상품 또는 풀박스 선택 상태를 확인해 줘');return;}
+  autoOrder=!!controls.autoOrder.checked;dryRun=!!controls.dryRun.checked;autoPay=!!controls.pay.checked;
+  if(autoOrder&&!dryRun){
+   if(recentSubmit()){message('⚠ 최근 주문 요청 이력이 있어 · 주문내역 확인 후 새로고침해 줘');return;}
+   if(!confirm('⚠ 실제 주문 자동 생성 확인\n\n'+label(target())+' · '+labels[option]+' · '+open+' + '+storage+'로 실제 주문을 생성할 수 있어. 공식 주문 확인 2단계를 자동 진행하고 최종 주문 버튼을 최대 한 번 눌러.\n\n결제는 직접 진행해야 하고 주문 생성 후 취소/변경은 제한될 수 있어. 다른 주문의 수령 방법 변경 경고가 나오면 자동 중단해. 진행할까?'))return;
+  }
+  if(!await prepare())return;
+  autoOrder=!!controls.autoOrder.checked;dryRun=!!controls.dryRun.checked;autoPay=!!controls.pay.checked;
+  if(autoOrder&&dryRun&&autoPay)autoPay=false;
+  active=true;confirmed=false;completed=false;tries=0;triggerMode='';routeBusy=false;
+  controls.reload.hidden=true;controls.reload.style.display='none';
+  message('⏳ '+label(target())+' · '+labels[option]+' · '+open+' + '+storage+' · '+cycle+'초 감시 · '+(autoOrder?(dryRun?'무전송 시험':'실제 자동 주문'):'수동 확정')+' 모드');
   poll();
  };
- el('#qStop',panel).onclick=()=>{stop();waitingForPay=false;message('⏸ 감시 중지');};
- el('#qLoad',panel).onclick=()=>{if(active){message('⏳ 감시 중에는 목록 갱신 불필요');return;}loadCatalog(false);};
- el('#qClose',panel).onclick=()=>{stop();waitingForPay=false;panel.style.display='none';};
- controls.search.addEventListener('input',()=>{if(active){stop();message('⚙ 검색으로 변경되어 감시 중지');}fillCatalog();});
+ el('#qStop',panel).onclick=()=>{const sent=submitClicked;stop();message(sent?'⚠ 주문 요청을 이미 보냈을 수 있어 · 주문내역 확인':'⏸ 감시/확인 중지');};
+ el('#qLoad',panel).onclick=()=>{if(active){message('⏳ 감시 중에는 목록 갱신하지 않아');return;}loadCatalog(false);};
+ el('#qClose',panel).onclick=()=>{stop();panel.style.display='none';};
+ controls.search.addEventListener('input',()=>{if(active){stop();message('⚙ 검색 변경으로 감시 중지');}fillCatalog();});
  controls.sku.addEventListener('change',saveSettings);
  [controls.opt,controls.cycle,controls.open,controls.storage].forEach(e=>e.addEventListener('change',saveSettings));
- document.addEventListener('click',e=>{if(!waitingForPay||payDone||!e.isTrusted)return;
-  const hit=e.target.closest&&e.target.closest('[data-oc="ok"]');
-  if(hit&&!hit.disabled&&el('#ocAll')&&el('#ocAll').checked){
-   const openShown=el('#ocOpen2'),storageShown=el('#ocStorage2');
-   if(openShown&&storageShown&&openShown.textContent.trim()===open&&storageShown.textContent.trim()===(storage==='보관'?'보관':'바로 배송')){waitingForPay='armed';message('✅ 주문 확정 직접 선택됨 · 공식 페이앱 버튼 대기');}
-   else{waitingForPay=false;message('⚠ 개봉·보관 선택 내용이 달라 결제 자동 열기 중지');}
+ function abortWizard(why){if(wizardTimer)clearInterval(wizardTimer);wizardTimer=null;autoOrder=false;payArmed=false;message('⛔ 자동 주문 중단 · '+why);}
+ function watchWizard(){
+  if(!autoOrder||submitClicked||!wizardTimer)return;
+  if(Date.now()-wizardStart>22000){abortWizard('공식 확인창 시간 초과');return;}
+  if(document.hidden){abortWizard('브라우저 백그라운드 전환');return;}
+  if(!expected()){abortWizard('장바구니가 변경됨');return;}
+  const box=el('.oc[role="alertdialog"] .oc-box');if(!box)return;
+  if(box.querySelector('#ocConv')||box.querySelector('#ocConv2')||box.querySelector('[data-oc-agree="convert"]')){abortWizard('다른 주문의 보관/발송 변경 경고');return;}
+  const st=box.querySelector('#ocStorage'),op=box.querySelector('#ocOpen'),next=box.querySelector('[data-oc="next"]');
+  if(st&&op&&next){
+   if(wizardStage!==0)return;
+   if(!matchesStorage(st.textContent)||op.textContent.trim()!==open){abortWizard('1단계 수령/개봉 옵션 불일치');return;}
+   const checks=Array.from(box.querySelectorAll('[data-oc-agree]'));
+   if(checks.length!==2||checks.some(c=>!['storage','open'].includes(c.getAttribute('data-oc-agree')))){abortWizard('동의 항목이 기존과 달라 수동 확인 필요');return;}
+   checks.forEach(c=>{c.checked=true;c.dispatchEvent(new Event('change',{bubbles:true}));});
+   if(next.disabled){abortWizard('1단계 계속 버튼 비활성');return;}
+   wizardStage=1;next.click();message('📋 1단계 선택값 확인 · 최종 주문 확인 중');return;
   }
+  const fs=box.querySelector('#ocStorage2'),fo=box.querySelector('#ocOpen2'),ok=box.querySelector('[data-oc="ok"]');
+  if(!fs||!fo||!ok)return;
+  if(!matchesStorage(fs.textContent)||fo.textContent.trim()!==open){abortWizard('최종 선택값 불일치');return;}
+  if(dryRun){abortWizard('무전송 시험 성공 · 실제 주문 요청 0회');return;}
+  const all=box.querySelector('#ocAll');
+  if(!all){abortWizard('최종 동의 항목 없음');return;}
+  if(wizardStage===1){
+   wizardStage=2;finalAgreeAt=Date.now();all.checked=true;all.dispatchEvent(new Event('change',{bubbles:true}));
+   message('✅ 최종 동의 완료 · 공식 주문 버튼 활성화 대기');return;
+  }
+  if(wizardStage!==2)return;
+  if(Date.now()-finalAgreeAt>4000){abortWizard('최종 주문 버튼 활성화 시간 초과');return;}
+  if(ok.disabled||!all.checked||!box.isConnected)return;
+  if(recentSubmit()){abortWizard('중복 주문 요청 방지');return;}
+  if(!expected()){abortWizard('제출 직전 장바구니 옵션 불일치');return;}
+  const prior=el('.panel[data-sheet="pay"]');
+  const m=(prior&&prior.textContent||'').match(/\bBP[A-Z0-9]{8,}\b/);
+  oldPayOrder=m?m[0]:'';
+  submitClicked=true;
+  try{sessionStorage.setItem('bbp_general_v2_submit_'+STORE,JSON.stringify({at:Date.now(),sku:sku,option:option,store:STORE}));}catch(e){}
+  clearInterval(wizardTimer);wizardTimer=null;
+  payArmed=autoPay;payDone=false;payDeadline=Date.now()+30000;
+  message('📨 공식 주문 버튼 1회 클릭 · 새 주문번호 확인 중');
+  ok.click();
+  if(payArmed)setTimeout(watchPay,250);
+ }
+ function watchPay(){
+  if(!payArmed||payDone)return;
+  if(Date.now()>payDeadline){payArmed=false;message('⚠ 결제창 자동 열기 시간 초과 · 직접 확인');return;}
+  const sheet=el('.panel[data-sheet="pay"]');
+  if(!sheet||!sheet.isConnected||sheet.hidden||getComputedStyle(sheet).display==='none')return;
+  const txt=sheet.textContent||'',m=txt.match(/\bBP[A-Z0-9]{8,}\b/);
+  if(!m||m[0]===oldPayOrder||!/주문서를?\s*만들었습니다|주문\s*완료|주문번호/.test(txt))return;
+  const pay=sheet.querySelector('[data-act="pay-card"]');
+  if(!pay||pay.disabled||!pay.isConnected)return;
+  if(/테스트|흉내|결제 끝내기/.test(pay.textContent||'')){payArmed=false;message('⚠ 결제 버튼 확인 필요 · 자동 이동 안 함');return;}
+  payDone=true;payArmed=false;message('✅ 새 주문번호 확인 · 페이앱 결제창 열기 시도');pay.click();
+ }
+ document.addEventListener('click',e=>{
+  if(autoOrder||payDone||!autoPay||payArmed||!completed||!e.isTrusted)return;
+  const btn=e.target.closest&&e.target.closest('[data-oc="ok"]');
+  if(!btn||btn.disabled||!el('#ocAll')?.checked)return;
+  const fs=el('#ocStorage2'),fo=el('#ocOpen2');
+  if(fs&&fo&&matchesStorage(fs.textContent)&&fo.textContent.trim()===open){
+   const prior=el('.panel[data-sheet="pay"]');
+   const m=(prior&&prior.textContent||'').match(/\bBP[A-Z0-9]{8,}\b/);
+   oldPayOrder=m?m[0]:'';
+   payArmed=true;payDone=false;payDeadline=Date.now()+30000;
+   message('✅ 수동 최종 클릭 감지 · 주문번호 확인 후 페이앱 대기');
+  }else message('⚠ 옵션 불일치 · 결제창 자동 이동 중지');
  },true);
  const ob=new MutationObserver(()=>{
-  if(waitingForPay!=='armed'||payDone)return;
-  const pay=el('.panel[data-sheet="pay"] [data-act="pay-card"]');
-  if(pay&&!pay.disabled&&pay.isConnected){
-   payDone=true;waitingForPay=false;message('✅ 직접 주문 확정 확인 · 페이앱 열기 시도');pay.click();
-  }
+  if(confirmed&&active&&!polling)handoff();
+  if(wizardTimer&&!submitClicked)watchWizard();
+  if(payArmed)watchPay();
  });
- ob.observe(document.body,{childList:true,subtree:true});
- document.addEventListener('visibilitychange',()=>{if(active&&!document.hidden&&!polling&&!confirmed){if(timer)clearTimeout(timer);schedule(100);}});
- window.addEventListener('pagehide',()=>{stop();waitingForPay=false;ob.disconnect();});
+ ob.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class','hidden','disabled']});
+ document.addEventListener('visibilitychange',()=>{if(active&&!document.hidden&&!polling){if(timer)clearTimeout(timer);schedule(100);}});
+ window.addEventListener('pagehide',()=>{stop();ob.disconnect();});
  controls.opt.value=option;controls.cycle.value=String(cycle);controls.open.value=open;controls.storage.value=storage;
- window.__bbpGeneralQuickV2={show,stop};
+ window.__bbpGeneralQuickV2={show,stop,__v2:true};
  loadCatalog(false);
-}catch(e){alert('범용 v2 오류: '+String(e.message||e));}
+}catch(e){alert('범용 v2 도우미 오류: '+String(e.message||e));}
 })();
