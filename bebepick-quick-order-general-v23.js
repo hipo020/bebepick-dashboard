@@ -18,7 +18,7 @@ try {
  let cartProgress=null,cartPrepared=false,awaitingCatalog=false,autoPay=false,autoOrder=false,dryRun=true,active=false,polling=false,confirmed=false,completed=false,payArmed=false,payDone=false,tries=0,timer=null,controllers=new Set(),catalog=[],lastResults=null,triggerMode='',confirmedAt=0,routeBusy=false,lastRouteAt=0,cartTimer=null,wizardTimer=null,wizardStage=0,wizardStart=0,finalAgreeAt=0,submitClicked=false,payDeadline=0,oldPayOrder='';
 
  const WATCH_KEY='bbp_general_v23_watches_'+STORE,MAX_WATCH=10;
- let watchItems=[],armedItems=[],cartReplaceConsent=false;
+ let watchItems=[],armedItems=[],cartReplaceConsent=false,initialCartSignature='';
  try{const a=JSON.parse(localStorage.getItem(WATCH_KEY)||'[]');
   if(Array.isArray(a))for(const v of a){
    const code=String(v?.sku||'').trim().toUpperCase(),opt=v?.option==='fullbox'?'fullbox':'single';
@@ -38,6 +38,7 @@ try {
   const sig=x=>x.map(c=>c.sku+'|'+(c.option||normalized(c))+'|'+Number(c.qty)).sort().join(',');
   return sig(a)===sig(b);
  }
+ function cartSignature(list){return list.map(x=>[x.sku,normalized(x),Number(x.qty),x.lid||''].join('|')).sort().join(';');}
  function expected(){try{return armedItems.length>0&&cartMatches(readCart().filter(belongs),armedItems);}catch(e){return false;}}
  function availableHere(p){return p&&(!p.only||p.only===STORE);}
  function target(){return catalog.find(p=>p&&p.sku===sku&&availableHere(p));}
@@ -346,6 +347,7 @@ try {
   }
   let original;try{original=readCart();}catch(e){message('⚠ 장바구니 읽기 오류');return false;}
   const existing=original.filter(belongs);
+  if(cartSignature(existing)!==initialCartSignature){message('⚠ 대기 중 기존 장바구니가 변경돼서 자동주문 중지');return false;}
   if(!cartMatches(existing,armedItems)){
    if(existing.length&&!cartReplaceConsent){
     message('⚠ 기존 장바구니 변경에 대한 사전 동의가 없어 · 자동주문 중지');return false;
@@ -511,6 +513,7 @@ try {
     '\n\n주문 생성 후 취소·변경이 제한될 수 있고 결제는 직접 해야 해. 진행할까?'))return;
   }
   let existing;try{existing=readCart().filter(belongs);}catch(e){message('⚠ 장바구니 읽기 오류');return;}
+  initialCartSignature=cartSignature(existing);
   cartReplaceConsent=existing.length===0;
   if(existing.length){
    cartReplaceConsent=confirm('⚠ 공식 장바구니 상품 '+existing.length+'개가 있어.\n\n첫 재고 발견 시 실제 구매 가능한 감시 상품들로 이 몰의 기존 장바구니를 교체할 수 있어. 반대쪽 몰 상품은 그대로 유지해. 동의할까?');
