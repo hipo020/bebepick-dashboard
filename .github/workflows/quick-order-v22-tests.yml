@@ -1,0 +1,26 @@
+name: Test Quick Order v2.2
+
+on:
+  pull_request:
+    paths:
+      - "bebepick-quick-order-general-v2.js"
+      - "tests/general-fast-order-v2.test.mjs"
+      - "tests/general-fast-order-v22-timing.test.mjs"
+      - ".github/workflows/quick-order-v22-tests.yml"
+  push:
+    branches: [main]
+    paths:
+      - "bebepick-quick-order-general-v2.js"
+      - "tests/general-fast-order-v2.test.mjs"
+      - "tests/general-fast-order-v22-timing.test.mjs"
+      - ".github/workflows/quick-order-v22-tests.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: node --test tests/general-fast-order-v2.test.mjs tests/general-fast-order-v22-timing.test.mjs

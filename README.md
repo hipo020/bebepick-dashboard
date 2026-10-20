@@ -1,5 +1,9 @@
 # Bebepick Dashboard
 
+> 🧸 **베베픽 공식 홈페이지 범용 빠른 주문 v2.2 (재고/주문 창 상태 속도 기록):** [북마크 설치](https://hipo020.github.io/bebepick-dashboard/bebepick-quick-order-v22-install.html) · [구간별 속도 기록 운영 인수인계](docs/QUICK_ORDER_V22_TIMING_RUNBOOK_2026-10-20.md).
+>
+> 이 도우미는 **공식 베베픽 /live·/plus 주문몰**에서만 사용하고, 이 저장소의 개인용 `index.html` 재고판 자체와 주문 로직이 다릅니다. 무전송 시험이 기본값이며 실주문은 별도 명시 동의가 필요합니다.
+
 베베픽 재고를 모바일에서 보기 위한 정적 웹페이지입니다.
 
 - 실제 감시/DB: Supabase `schedule-app`
