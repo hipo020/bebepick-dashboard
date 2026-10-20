@@ -81,11 +81,13 @@ function prepHarness(initial,requested,{consent=true,available=true}={}){
  const factory=between("async function prepare(){","\n function prefill(){");
  const eq=cartMatches(),belongs=x=>(x.store==="china"?"china":"main")==="china";
  const fn=new Function(
-  "armedItems","cartReplaceConsent","STORE","CART_KEY","readCart","belongs","cartMatches","saleableFor","productFor","message","localStorage","window","StorageEvent","expected","prefill",
+  "armedItems","cartReplaceConsent","initialCartSignature","cartSignature","STORE","CART_KEY","readCart","belongs","cartMatches","saleableFor","productFor","message","localStorage","window","StorageEvent","expected","prefill",
   factory+"return prepare;"
  );
  const prepare=fn(
-  requested,consent,"china","bbp_cart_v1",()=>saved,belongs,eq,
+  requested,consent,initial.map(x=>[x.sku,(x.opt==='fullbox'?'fullbox':'single'),Number(x.qty),x.lid||''].join('|')).sort().join(';'),
+  list=>list.map(x=>[x.sku,(x.opt==='fullbox'?'fullbox':'single'),Number(x.qty),x.lid||''].join('|')).sort().join(';'),
+  "china","bbp_cart_v1",()=>saved,belongs,eq,
   ()=>available,()=>({stock:"low"}),message=>messages.push(message),
   {setItem:(key,value)=>{assert.equal(key,"bbp_cart_v1");writes++;saved=JSON.parse(value)}},
   {dispatchEvent:()=>{}},class StorageEvent{constructor(){}},
@@ -113,4 +115,13 @@ test("any item no longer sellable causes cart preparation to stop",async()=>{
  const trial=prepHarness([],[{sku:"D811",option:"single",qty:1}],{available:false});
  assert.equal(await trial.prepare(),false);
  assert.equal(trial.writes(),0);
+});
+
+test("unexpected item added to cart after arming blocks every automatic write",async()=>{
+ const original=[];
+ const trial=prepHarness(original,[{sku:"D811",option:"single",qty:1}]);
+ trial.current().push({sku:"UNRELATED",opt:"single",qty:1,store:"china"});
+ assert.equal(await trial.prepare(),false);
+ assert.equal(trial.writes(),0);
+ assert.equal(trial.current()[0].sku,"UNRELATED");
 });
