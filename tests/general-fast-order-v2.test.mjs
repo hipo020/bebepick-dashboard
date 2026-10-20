@@ -106,7 +106,7 @@ test('sold-out catalog item stays selectable, and missing SKU remains as waiting
  assert.equal(absent.validSku('D796'),true);
  assert.equal(absent.validSku('<script>'),false);
 });
-test('polling waits for missing SKU and never orders on sold-out or closed window',async()=>{
+test('polling keeps sold-out settings without modifying cart until stock and window are ready',async()=>{
  const code=section(' async function poll()', ' function reloadShow()');
  const make=new Function('d',String.raw`
  const STORE='main',sku='D796',cycle=8,document={hidden:false};
@@ -120,7 +120,7 @@ test('polling waits for missing SKU and never orders on sold-out or closed windo
  `+code+'return {run:poll,stats:()=>({cartPrepared,awaitingCatalog,prepareCalls,handoffCalls,scheduleCalls})};');
  for(const [data,prep,hand] of [
   [{products:[]},0,0],
-  [{products:[{sku:'D796',stock:'out'}]},1,0],
+  [{products:[{sku:'D796',stock:'out'}]},0,0],
   [{products:[{sku:'D796',stock:'low'}],window:{open:false,yt_live:false}},1,0],
   [{products:[{sku:'D796',stock:'low'}]},1,1],
   [{products:[],prepared:true},0,0]
