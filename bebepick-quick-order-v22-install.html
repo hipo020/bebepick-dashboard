@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#f9f6ff">
-<title>베베픽 범용 자동주문 v2.2 · 속도 기록 설치</title>
+<title>베베픽 범용 자동주문 v2.2.1 · 속도 기록 설치</title>
 <style>
 *{box-sizing:border-box}:root{font-family:system-ui,-apple-system,"Pretendard",sans-serif;color-scheme:light}
 body{margin:0;background:#f8f5fc;color:#31263e}main{padding:18px 14px 60px;max-width:720px;margin:0 auto}
@@ -14,7 +14,7 @@ textarea{box-sizing:border-box;width:100%;min-height:105px;border:1px solid #d7c
 .muted,small{color:#726881}a{color:#68419c}
 </style></head>
 <body><main><section>
-<h1>⏱️ 베베픽 자동주문 범용 v2.2</h1>
+<h1>⏱️ 베베픽 자동주문 범용 v2.2.1</h1>
 <p class="muted">품절 대기 + 공식 주문창 진입 + 구간별 속도 기록</p>
 <p><strong>v2.1의 자동주문·품절대기 동작은 유지하고,</strong> 재고 처음 확인한 시간부터 주문 확인창으로 넘어가는 데 걸린 시간을 기록하도록 추가했어.</p>
 <h2>설치 방법</h2>
@@ -22,7 +22,7 @@ textarea{box-sizing:border-box;width:100%;min-height:105px;border:1px solid #d7c
 <li>아래 <strong>북마크 코드 복사</strong>를 눌러.</li>
 <li>PC·갤럭시 크롬에서 새 북마크를 만들고 북마크 <strong>주소</strong>를 복사한 코드로 바꿔.</li>
 <li><a href="https://bebepick.me/plus">베베픽 플러스</a> 또는 <a href="https://bebepick.me/live">베베픽</a> 주문 페이지에 로그인해 둬.</li>
-<li>기존 범용 v2.1이 이미 떠 있다면 공식 페이지를 한 번 새로고침하고, 새 v2.2 북마크를 실행해.</li>
+<li>기존 범용 v2.1이 이미 떠 있다면 공식 페이지를 한 번 새로고침하고, 새 v2.2.1 북마크를 실행해.</li>
 <li>구매할 상품·옵션을 고른 뒤 <strong>무전송 시험 체크 유지</strong>, <strong>대기 시작</strong>을 눌러.</li>
 <li>결과는 도우미 아래 <strong>⏱️ 자동주문 구간별 속도 기록</strong>에서 확인해. 복사하거나 JSON으로 저장할 수 있어.</li>
 </ol>
@@ -36,8 +36,8 @@ textarea{box-sizing:border-box;width:100%;min-height:105px;border:1px solid #d7c
 </section></main>
 <script>
 (function(){
- const src="https://hipo020.github.io/bebepick-dashboard/bebepick-quick-order-general-v2.js?v=20261020-v22-timing";
- const code="javascript:(function(){var s=document.createElement('script');s.src="+JSON.stringify(src)+";s.onerror=function(){alert('베베픽 v2.2 로드 실패')};document.documentElement.appendChild(s)})()";
+ const src="https://hipo020.github.io/bebepick-dashboard/bebepick-quick-order-general-v2.js?v=20261020-v221-fast-cart";
+ const code="javascript:(function(){var s=document.createElement('script');s.src="+JSON.stringify(src)+";s.onerror=function(){alert('베베픽 v2.2.1 로드 실패')};document.documentElement.appendChild(s)})()";
  document.getElementById("bookmark").value=code;
  document.getElementById("copy").onclick=async()=>{
   try{await navigator.clipboard.writeText(code);document.getElementById("status").textContent="✅ 복사했어! 북마크 주소에 붙여넣으면 돼.";}
