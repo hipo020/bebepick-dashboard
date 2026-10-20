@@ -7,7 +7,7 @@ function sourceBetween(start,end) {
  assert.ok(a>=0&&b>a,'test extraction markers exist');
  return source.slice(a,b);
 }
-const eligibility=new Function(source.match(/function windowReady\\(w\\)\\{[^\\n]*\\}/)[0]+'return windowReady;')();
+const eligibility=new Function(source.match(/function windowReady\(w\)\{[^\n]*\}/)[0]+'return windowReady;')();
 test('purchase is a LIVE OR manual-open candidate; official UI is still required',()=>{
  for (const [input,expect] of [
  [{open:true},true],[{open:false,yt_live:true},true],
@@ -20,9 +20,9 @@ test('purchase is a LIVE OR manual-open candidate; official UI is still required
 });
 test('dry run is opt-out and direct order RPC calls are absent',()=>{
  assert.match(source,/id="rbDryRun" checked/);
- assert.doesNotMatch(source,/rpcRead\\(['"]create_orders/);
- assert.doesNotMatch(source,/rpcRead\\(['"]payapp_start/);
- assert.doesNotMatch(source,/\\},900\\);/);
+ assert.doesNotMatch(source,/rpcRead\(['"]create_orders/);
+ assert.doesNotMatch(source,/rpcRead\(['"]payapp_start/);
+ assert.doesNotMatch(source,/\},900\);/);
 });
 function wizard(scope={}){
  const body=sourceBetween(' function abortWizard(', ' function refreshRoute(');
