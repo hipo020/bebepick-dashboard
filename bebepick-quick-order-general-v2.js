@@ -4,8 +4,7 @@ try {
  const path=location.pathname, STORE=/^\/plus\/?$/.test(path)?'china':/^\/live\/?$/.test(path)?'main':null;
  if(location.hostname!=='bebepick.me'||!STORE){alert('베베픽 /live 또는 /plus 주문 페이지에서 실행해 줘.');return;}
  if(window.__bbpGeneralQuickV2){window.__bbpGeneralQuickV2.show();return;}
- if(window.__bbpGeneralQuickV1){try{window.__bbpGeneralQuickV1.stop();}catch(e){}const oldV1=document.getElementById('bbpQuickGeneral');if(oldV1)oldV1.remove();window.__bbpGeneralQuickV1=null;}
- if(window.__bbpRabbitFast){try{window.__bbpRabbitFast.stop();}catch(e){}const old=document.getElementById('bbpRabbitFastHelper');if(old)old.remove();}
+ if(window.__bbpGeneralQuickV1||window.__bbpRabbitFast){alert('⚠ 이전 도우미가 열려 있어. 서로 다른 자동화가 충돌하지 않도록 베베픽 페이지를 한 번 새로고침하고 범용 v2 북마크를 실행해 줘.');return;}
  const CART_KEY='bbp_cart_v1',OPTS_KEY='bbp_order_opts',PREF_KEY='bbp_quick_general_v2_'+STORE;
  const allowed=[5,8,10,15,30,60], labels={single:'낱개 1개',fullbox:'풀박스 1세트'};
  let oldPref={};try{oldPref=JSON.parse(localStorage.getItem('bbp_rabbit_d796_v3')||'{}')||{};}catch(e){}
@@ -68,7 +67,12 @@ try {
   function recentSubmit(){try{const prev=JSON.parse(sessionStorage.getItem('bbp_general_v2_submit_'+STORE)||'null');return prev&&Date.now()-prev.at<180000?prev:null;}catch(e){return null;}}
  function config(){const c=window.APP_CONFIG||{};if(!c.supabaseUrl||!c.supabaseAnonKey)throw Error('공식 홈페이지 서버 설정 없음');const base=String(c.supabaseUrl).replace(/\/$/,'');if(base!=='https://eqytdtxemjlygnobhiio.supabase.co')throw Error('공식 서버가 예상한 주소와 다름');return {base:base,key:c.supabaseAnonKey};}
  async function rpc(fn,args){const c=config(),ctl=new AbortController();controllers.add(ctl);const to=setTimeout(()=>ctl.abort(),7500);
-  try{const r=await fetch(c.base+'/rest/v1/rpc/'+fn,{method:'POST',credentials:'omit',cache:'no-store',mode:'cors',signal:ctl.signal,headers:{apikey:c.key,'content-type':'application/json',accept:'application/json'},body:JSON.stringify(args||{})});
+  try{
+    const headers={apikey:c.key,'content-type':'application/json',accept:'application/json'};
+    try{const user=JSON.parse(localStorage.getItem('sb-eqytdtxemjlygnobhiio-auth-token')||'null');
+      if(user&&typeof user.access_token==='string'&&Number(user.expires_at)>Math.floor(Date.now()/1000)+10)headers.authorization='Bearer '+user.access_token;
+    }catch(e){}
+    const r=await fetch(c.base+'/rest/v1/rpc/'+fn,{method:'POST',credentials:'omit',cache:'no-store',mode:'cors',signal:ctl.signal,headers,body:JSON.stringify(args||{})});
    if(!r.ok){const e=new Error('HTTP '+r.status+' '+fn);e.httpStatus=r.status;throw e;}return await r.json();
   }finally{clearTimeout(to);controllers.delete(ctl);}
  }
