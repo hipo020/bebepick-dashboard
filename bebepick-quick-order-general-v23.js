@@ -210,8 +210,40 @@ try {
   message('💾 속도 기록 JSON 저장 완료 · 공유 전 내용을 확인해 줘');
  };
  el('#qChannel',panel).textContent='현재 주문몰: '+(STORE==='main'?'베베픽':'베베픽 플러스');
- function message(t){controls.status.textContent=t;}
- function show(){panel.style.display='block';}
+ const mini=document.createElement('button');
+ mini.type='button';mini.hidden=true;mini.id='bbpQuickGeneralV23Mini';
+ mini.style.cssText='position:fixed;z-index:2147483644;top:118px;right:9px;max-width:205px;padding:8px 10px;background:#69459f;color:white;border:0;border-radius:999px;box-shadow:0 4px 16px #0004;font:700 11px/1.35 system-ui,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
+ mini.textContent='🧸 주문 화면 확인 중 · 펼치기';document.body.appendChild(mini);
+ let folded=false,lastScrolledStage='';
+ mini.onclick=()=>{folded=false;mini.hidden=true;panel.style.display='block';};
+ function message(t){
+  controls.status.textContent=t;
+  if(folded)mini.textContent='🧸 '+String(t).replace(/^[^\w가-힣]+/,'').slice(0,20)+' · 펼치기';
+ }
+ function show(){folded=false;mini.hidden=true;panel.style.display='block';}
+ function foldForOfficial(){
+  if(folded)return;
+  folded=true;panel.style.display='none';mini.hidden=false;
+  message('공식 주문 화면 확인 중');revealOfficialStage();
+ }
+ function revealOfficialStage(){
+  if(!folded||document.hidden)return;
+  let stage='',target=null;
+  const confirm=el('.oc[role="alertdialog"] .oc-box');
+  if(confirm){
+   target=confirm.querySelector('[data-oc="ok"]')||confirm.querySelector('[data-oc="next"]')||confirm;
+   stage=confirm.querySelector('[data-oc="ok"]')?'final':'first';
+  }else{
+   const pay=el('.panel[data-sheet="pay"]');
+   const cart=el('.panel[data-sheet="cart"]');
+   if(pay&&!pay.hidden){target=pay.querySelector('[data-act="pay-card"]')||pay;stage='payment';}
+   else if(cart&&!cart.hidden){target=cart.querySelector('#checkout')||cart;stage='cart';}
+  }
+  if(!target||stage===lastScrolledStage)return;
+  lastScrolledStage=stage;
+  // We only scroll to an official button already shown. No click is added.
+  requestAnimationFrame(()=>{try{if(target.isConnected)target.scrollIntoView({block:'end',inline:'nearest',behavior:'auto'});}catch(e){}});
+ }
  function stop(){timingStop('감시 또는 안전장치 중지');active=false;confirmed=false;if(timer)clearTimeout(timer);timer=null;
    if(cartTimer)clearInterval(cartTimer);cartTimer=null;cartProgress=null;
    if(wizardTimer)clearInterval(wizardTimer);wizardTimer=null;
@@ -427,6 +459,7 @@ try {
    if(Date.now()-confirmedAt>Math.max(10000,cycle*2000)){confirmed=false;message('🔄 구매 직전 공식 서버 재확인');poll();return;}
   timingOnce('official_ui_ready','공식 주문 버튼 활성화');endPolling();completed=true;message('✅ 공식 장바구니·주문창 여는 중…');
   timingOnce('cart_click','버튼 호출 · 주문 생성 아님');btn.click();
+  foldForOfficial();
   // Progress on DOM mutation with a 50ms fallback; no extra server requests.
   const cartWaitUntil=performance.now()+2500;
   let lastCartCheckAt=-Infinity;
@@ -564,7 +597,7 @@ try {
   const pay=sheet.querySelector('[data-act="pay-card"]');
   if(!pay||pay.disabled||!pay.isConnected)return;
   if(/테스트|흉내|결제 끝내기/.test(pay.textContent||'')){payArmed=false;message('⚠ 결제 버튼 확인 필요 · 자동 이동 안 함');return;}
-  timingOnce('pay_panel','공식 사이트의 새 주문번호 표시 (번호 미기록)');payDone=true;payArmed=false;message('✅ 새 주문번호 확인 · 페이앱 결제창 열기 시도');timingOnce('pay_click','결제창 이동 버튼 호출');pay.click();
+  timingOnce('pay_panel','공식 사이트의 새 주문번호 표시 (번호 미기록)');payDone=true;payArmed=false;message('✅ 새 주문번호 확인 · 페이앱 결제창 열기 시도');revealOfficialStage();timingOnce('pay_click','결제창 이동 버튼 호출');pay.click();
  }
  document.addEventListener('click',e=>{
   if(autoOrder||payDone||!autoPay||payArmed||!completed||!e.isTrusted)return;
@@ -580,6 +613,7 @@ try {
   }else message('⚠ 옵션 불일치 · 결제창 자동 이동 중지');
  },true);
  const ob=new MutationObserver(()=>{
+  if(folded)revealOfficialStage();
   if(cartTimer&&cartProgress)cartProgress();
   if(completed&&el('.oc[role="alertdialog"] .oc-box'))timingOnce('confirm_visible','공식 주문 확인창 DOM 표시');
   if(confirmed&&active&&!polling)handoff();
@@ -588,7 +622,7 @@ try {
  });
  ob.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class','hidden','disabled']});
  document.addEventListener('visibilitychange',()=>{if(timingActive)timingMark(document.hidden?'hidden':'resumed');if(active&&!document.hidden&&!polling){if(timer)clearTimeout(timer);schedule(100);}});
- window.addEventListener('pagehide',()=>{stop();ob.disconnect();});
+ window.addEventListener('pagehide',()=>{stop();ob.disconnect();mini.remove();});
  controls.opt.value=option;controls.cycle.value=String(cycle);controls.open.value=open;controls.storage.value=storage;controls.manual.value=sku;
  window.__bbpGeneralQuickV23={show,stop,version:'2.3'};
  loadCatalog(false);
