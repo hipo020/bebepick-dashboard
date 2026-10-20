@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#f8f5fd">
+<title>베베픽 LIVE 신호 비교 기록</title>
+<style>
+:root{color-scheme:light;font-family:system-ui,-apple-system,"Pretendard",sans-serif}
+*{box-sizing:border-box}body{background:#f8f5fd;color:#2a2335;margin:0;font-size:14px;line-height:1.55}
+main{max-width:930px;margin:auto;padding:18px 15px 50px}
+h1{font-size:23px;margin:0 0 8px}h2{font-size:17px;margin:0 0 12px}
+.muted,small{color:#736782}.lead{margin:0 0 20px}
+.panel{background:white;border-radius:16px;border:1px solid #e5ddf1;padding:17px;margin:14px 0;box-shadow:0 3px 14px #5b4b7e0b}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
+.mini{background:#f8f4ff;border-radius:12px;padding:14px;border:1px solid #eee5fa}
+button,.link{border:1px solid #d7c5ef;background:white;color:#5a3884;border-radius:10px;padding:10px 14px;font-weight:700;font:inherit;cursor:pointer}
+button.primary{background:#7753ae;color:white;border-color:#7753ae}
+button:disabled{opacity:.6;cursor:wait}
+.toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.status{border-radius:999px;padding:3px 8px;font-size:12px;font-weight:750;display:inline-block}
+.active{color:#206546;background:#dff4e8}.pending{color:#82621c;background:#fff1cd}.off{color:#9d3844;background:#fae5e9}
+.tableWrap{max-width:100%;overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:650px;font-size:12px}
+th,td{text-align:left;white-space:nowrap;padding:10px;border-bottom:1px solid #eee9f4}
+th{font-weight:750;background:#f9f7fc}td a{color:#6950a0;text-decoration:underline}
+.empty{text-align:center;background:#faf8fc;color:#736782;padding:24px;border-radius:12px}
+.good{color:#1a8052;font-weight:750}.late{color:#ac5934;font-weight:700}
+.note{background:#f4edf9;border-radius:10px;padding:12px;font-size:12px}
+#updated{margin-left:auto}
+@media(max-width:500px){h1{font-size:21px}.panel{padding:13px}main{padding:13px 10px 45px}}
+</style></head>
+<body><main>
+<h1>🐰 LIVE 신호 비교 기록</h1>
+<p class="lead muted">베베픽 · 베베픽 플러스 · WebSub 시험 감시 · 한국시간</p>
+<div class="toolbar">
+<button class="primary" id="refresh" type="button">🔄 최신 기록 확인</button>
+<button id="csv" type="button">비교 CSV 저장</button>
+<small id="updated">아직 읽지 않음</small>
+</div>
+<div class="panel">
+<h2>WebSub 구독 상태</h2><div class="cards" id="cards"><div class="empty">서버 상태 확인 전</div></div>
+</div>
+<div class="panel">
+<h2>방송별 감지 속도 비교</h2>
+<div class="note">WebSub의 단순 영상 변경 수신은 LIVE 시작으로 계산하지 않아. 실제 방송 확인 시각과 기존 30초 서버 감시의 발견 시각을 비교해. <b>양수(+)면 WebSub가 먼저 확인한 거야.</b> 정확한 방송 시작부터의 지연 시간이 아니야.</div>
+<div class="tableWrap"><table>
+<thead><tr><th>채널</th><th>영상 ID</th><th>WebSub 수신</th><th>WebSub LIVE 확인</th><th>30초 감시 LIVE 발견</th><th>시간 차이</th></tr></thead>
+<tbody id="compare"><tr><td colspan="6">데이터 불러오는 중...</td></tr></tbody></table></div>
+</div>
+<div class="panel">
+<h2>최근 신호 상세 기록</h2>
+<div class="tableWrap"><table><thead><tr><th>수신/발견 시각</th><th>채널</th><th>경로</th><th>영상 ID</th><th>결과</th></tr></thead>
+<tbody id="events"><tr><td colspan="5">데이터 불러오는 중...</td></tr></tbody></table></div>
+</div>
+<div class="note">
+<strong>시험판 안내</strong> · 이 페이지는 기록을 읽기만 하고 주문·카카오톡 전송·결제를 실행하지 않아.
+유튜브 앱 알림 도착 시각은 아직 자동 수집하지 않으므로 표에 포함되지 않아. 실제 방송 시작 시점이 아닌 관측 시간 기준이며,
+WebSub가 라이브 시작 이벤트를 반드시 발송하는 건 아니야. 페이지는 자동 새로고침하지 않아.
+</div>
+</main>
+<script>
+(()=>{"use strict";
+const endpoint="https://fergbabqmwnbkkxjvgkj.supabase.co/functions/v1/bebepick-websub-shadow/diagnostics";
+const el=id=>document.getElementById(id);
+let current=null;
+const kst=v=>{if(!v)return "—";const d=new Date(v);if(!Number.isFinite(d.getTime()))return "—";
+ return new Intl.DateTimeFormat("ko-KR",{timeZone:"Asia/Seoul",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit",fractionalSecondDigits:3,hour12:false}).format(d);
+};
+const channel=s=>s==="bebepick_plus"?"베베픽 플러스":s==="bebepick"?"베베픽":s;
+const text=(parent,tag,v,className)=>{const n=document.createElement(tag);n.textContent=String(v??"—");if(className)n.className=className;parent.appendChild(n);return n};
+const row=(body,cells)=>{const tr=document.createElement("tr");cells.forEach(v=>text(tr,"td",v));body.appendChild(tr)};
+function showSubscriptions(list){
+ const host=el("cards");host.replaceChildren();
+ if(!list.length){text(host,"div","구독 상태 정보를 아직 확인할 수 없어","empty");return}
+ list.forEach(s=>{
+  const card=document.createElement("div");card.className="mini";
+  text(card,"strong",channel(s.channel));
+  const state=s.state==="active"?"구독 활성":s.state==="pending"?"승인 대기":"상태 확인 필요";
+  text(card,"div",state,"status "+(s.state==="active"?"active":s.state==="pending"?"pending":"off"));
+  text(card,"div","최종 승인: "+kst(s.verified_at),"muted");
+  text(card,"div","만료 예정: "+kst(s.lease_expires_at),"muted");
+  host.appendChild(card);
+ });
+}
+function videoCell(tr,id){
+ const td=document.createElement("td");
+ if(/^[A-Za-z0-9_-]{11}$/.test(id)){
+  const a=document.createElement("a");a.href="https://www.youtube.com/watch?v="+encodeURIComponent(id);a.target="_blank";a.rel="noopener noreferrer";a.textContent=id;td.appendChild(a);
+ }else td.textContent="—";
+ tr.appendChild(td);
+}
+function showCompare(list){
+ const body=el("compare");body.replaceChildren();
+ if(!list.length){const tr=document.createElement("tr"),td=document.createElement("td");td.colSpan=6;td.className="empty";td.textContent="아직 LIVE 관측 기록이 없어. 첫 방송 감지 후 자동으로 기록돼.";tr.appendChild(td);body.appendChild(tr);return;}
+ list.forEach(x=>{
+  const tr=document.createElement("tr");
+  text(tr,"td",channel(x.channel));videoCell(tr,x.videoId);
+  text(tr,"td",kst(x.websubReceivedAt));
+  text(tr,"td",kst(x.websubLiveVerifiedAt));
+  text(tr,"td",kst(x.serverPollAt));
+  const diff=x.differenceMs;
+  text(tr,"td",typeof diff==="number"?(diff>0?"+":"")+(diff/1000).toFixed(3)+"초":x.note,typeof diff==="number"?(diff>0?"good":diff<0?"late":""):"muted");
+  body.appendChild(tr);
+ });
+}
+function showEvents(list){
+ const body=el("events");body.replaceChildren();
+ if(!list.length){const tr=document.createElement("tr"),td=document.createElement("td");td.colSpan=5;td.className="empty";td.textContent="이제부터 도착하는 유튜브 변경 알림과 30초 감시 결과가 여기에 기록돼.";tr.appendChild(td);body.appendChild(tr);return;}
+ list.forEach(x=>{
+  const tr=document.createElement("tr");
+  text(tr,"td",kst(x.received_at));text(tr,"td",channel(x.channel_slug));
+  text(tr,"td",x.source==="server_poll"?"30초 감시":"WebSub");
+  videoCell(tr,x.video_id);
+  const status=x.source==="server_poll"?"LIVE 발견":
+   x.verified_live===true?"LIVE 확인":
+   x.verified_live===false?"LIVE 미확인 ("+(x.verify_reason||"—")+")":"검증 대기";
+  text(tr,"td",status);
+  body.appendChild(tr);
+ });
+}
+async function load(){
+ const button=el("refresh");button.disabled=true;button.textContent="확인 중…";
+ try{
+  const res=await fetch(endpoint,{headers:{accept:"application/json"},cache:"no-store",signal:AbortSignal.timeout(15000)});
+  if(!res.ok)throw Error("HTTP "+res.status);
+  const data=await res.json();if(data.mode!=="shadow_only")throw Error("진단 모드 응답 불일치");
+  current=data;showSubscriptions(data.subscriptions||[]);showCompare(data.comparison||[]);showEvents(data.recent_events||[]);
+  el("updated").textContent="최근 조회: "+kst(data.time);
+ }catch(e){el("updated").textContent="조회 실패 · 다시 시도해 줘";console.warn("WebSub status read failed",String(e));}
+ finally{button.disabled=false;button.textContent="🔄 최신 기록 확인";}
+}
+function saveCSV(){
+ if(!current){alert("먼저 최신 기록을 확인해 줘");return;}
+ const head=["채널","영상ID","WebSub수신UTC","WebSubLive확인UTC","30초감시발견UTC","차이_밀리초"];
+ const all=[head,...(current.comparison||[]).map(x=>[x.channel,x.videoId,x.websubReceivedAt,x.websubLiveVerifiedAt,x.serverPollAt,x.differenceMs])];
+ const esc=v=>'"'+String(v??"").replaceAll('"','""')+'"';
+ const csv="\uFEFF"+all.map(line=>line.map(esc).join(",")).join("\r\n");
+ const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
+ const url=URL.createObjectURL(blob),a=document.createElement("a");
+ a.href=url;a.download="bebepick-websub-signal-log.csv";a.click();setTimeout(()=>URL.revokeObjectURL(url),2000);
+}
+el("refresh").addEventListener("click",load);el("csv").addEventListener("click",saveCSV);load();
+})();
+</script></body></html>
