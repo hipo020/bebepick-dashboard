@@ -31,6 +31,7 @@ function mock(c={}) {
  var el=s=>s==='.oc[role="alertdialog"] .oc-box'?box:s==='.panel[data-sheet="pay"]'?(c.noPay?null:paySheet):null;
  var expected=()=>!c.badCart,recentSubmit=()=>c.duplicate?{at:Date.now()}:null;
  var matchesStorage=t=>String(t).trim()==='보관',message=t=>messages.push(t),clearInterval=()=>{},setTimeout=()=>{},getComputedStyle=()=>({display:'block'});
+ var timingOnce=()=>{},timingMark=()=>{},timingStart=()=>{},timingStop=()=>{},timingRound=()=>{},timingRpc=()=>{};
  var sessionStorage={setItem(){}},Event=class{constructor(){}};
  `;
  return new Function('c',harness+impl+'return {tick:watchWizard,pay:watchPay,arm:()=>{payArmed=true;payDeadline=Date.now()+30000},clicks,messages};')(c);
@@ -116,6 +117,7 @@ test('polling keeps sold-out settings without modifying cart until stock and win
  const allowedOption=()=>true,saleable=p=>p.stock===null||p.stock==='low';
  const prepare=async()=>{prepareCalls++;return true},fillCatalog=()=>{},updateInfo=()=>{},handoff=()=>{handoffCalls++};
  const serverOpen=w=>w&&(w.open===true||w.yt_live===true),openMode=w=>w.open===true?'주문 접수':w.yt_live?'LIVE 표시':'';
+ const timingOnce=()=>{},timingMark=()=>{},timingRound=()=>{};
  const latestAvailability=p=>saleable(p)?'판매 가능':'품절';
  `+code+'return {run:poll,stats:()=>({cartPrepared,awaitingCatalog,prepareCalls,handoffCalls,scheduleCalls})};');
  for(const [data,prep,hand] of [
