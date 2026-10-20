@@ -73,3 +73,44 @@ test("official checkout scrolled into view while overlay folds and remains reope
  assert.match(src,/if\(folded\)revealOfficialStage\(\)/);
  assert.doesNotMatch(between("function revealOfficialStage(){","\n function stop(){"),/\.click\(/);
 });
+
+
+function prepHarness(initial,requested,{consent=true,available=true}={}){
+ let saved=JSON.parse(JSON.stringify(initial)),writes=0;
+ const messages=[];
+ const factory=between("async function prepare(){","\n function prefill(){");
+ const eq=cartMatches(),belongs=x=>(x.store==="china"?"china":"main")==="china";
+ const fn=new Function(
+  "armedItems","cartReplaceConsent","STORE","CART_KEY","readCart","belongs","cartMatches","saleableFor","productFor","message","localStorage","window","StorageEvent","expected","prefill",
+  factory+"return prepare;"
+ );
+ const prepare=fn(
+  requested,consent,"china","bbp_cart_v1",()=>saved,belongs,eq,
+  ()=>available,()=>({stock:"low"}),message=>messages.push(message),
+  {setItem:(key,value)=>{assert.equal(key,"bbp_cart_v1");writes++;saved=JSON.parse(value)}},
+  {dispatchEvent:()=>{}},class StorageEvent{constructor(){}},
+  ()=>eq(saved.filter(belongs),requested),()=>true
+ );
+ return {prepare,current:()=>saved,writes:()=>writes,messages};
+}
+test("two eligible dolls create exactly one same-store cart and preserve other store",async()=>{
+ const desired=[{sku:"D811",option:"single",qty:1},{sku:"D796",option:"single",qty:1}];
+ const trial=prepHarness([{sku:"MAIN1",opt:"single",qty:1,store:"main"},
+  {sku:"OLD",opt:"single",qty:1,store:"china"}],desired);
+ assert.equal(await trial.prepare(),true);
+ assert.equal(trial.writes(),1);
+ assert.deepEqual(trial.current().filter(x=>x.store==="main").map(x=>x.sku),["MAIN1"]);
+ assert.deepEqual(trial.current().filter(x=>x.store==="china").map(x=>x.sku),["D811","D796"]);
+});
+test("declining cart replacement consent prevents all cart modifications",async()=>{
+ const trial=prepHarness([{sku:"OLD",opt:"single",qty:1,store:"china"}],
+  [{sku:"D811",option:"single",qty:1}],{consent:false});
+ assert.equal(await trial.prepare(),false);
+ assert.equal(trial.writes(),0);
+ assert.equal(trial.current()[0].sku,"OLD");
+});
+test("any item no longer sellable causes cart preparation to stop",async()=>{
+ const trial=prepHarness([],[{sku:"D811",option:"single",qty:1}],{available:false});
+ assert.equal(await trial.prepare(),false);
+ assert.equal(trial.writes(),0);
+});
