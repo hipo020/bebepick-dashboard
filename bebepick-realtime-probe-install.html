@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>베베픽 실시간 신호 무전송 진단</title>
+<style>:root{color-scheme:light;font-family:system-ui,-apple-system,sans-serif}body{background:#faf7ff;color:#342942;margin:0}main{max-width:680px;margin:30px auto;padding:18px}section{border:1px solid #dacde8;background:#fff;border-radius:16px;padding:20px}h1{font-size:22px;margin-top:0}p{line-height:1.65}button{background:#7750af;color:white;border:none;padding:12px 18px;border-radius:12px;font-size:16px;font-weight:bold;cursor:pointer}textarea{box-sizing:border-box;width:100%;min-height:90px;padding:11px;border-radius:10px;border:1px solid #c7b5e1;font:12px ui-monospace,monospace}.muted{color:#6f647e}li{margin:8px 0;line-height:1.55}.note{background:#f4edff;padding:12px;border-radius:10px;font-size:13px}</style>
+</head><body><main><section>
+<h1>🔎 베베픽 공식 사이트 실시간 신호 진단</h1>
+<p>재고·주문 상태를 **더 빠르게 감지할 수 있는지** 확인하는 읽기 전용 시험 도구야. 실제 주문을 만들거나, 장바구니·개봉·보관 설정을 변경하지 않아.</p>
+<h2>설치하기</h2>
+<ol>
+<li>아래 <b>북마크 코드 복사</b>를 눌러.</li>
+<li>갤럭시 크롬 또는 PC 크롬에서 북마크 하나를 만들고 주소 부분을 아래 코드로 바꿔.</li>
+<li><a href="https://bebepick.me/live">베베픽 /live</a> 또는 <a href="https://bebepick.me/plus">플러스 /plus</a>에 접속하고, 그 북마크를 눌러.</li>
+<li>화면 아래 진단창이 뜨면 관찰할 SKU(예: D796)를 선택적으로 입력해. 약 1~2분 정도 사이트가 스스로 갱신되는지 관찰해.</li>
+<li><b>진단 결과 복사</b>를 눌러 이 채팅에 붙여넣어 줘.</li>
+</ol>
+<p><button id="copy">📋 북마크 코드 복사</button> <span id="status" role="status" class="muted"></span></p>
+<textarea id="bookmarklet" readonly></textarea>
+<div class="note">✅ 공식 상품/주문 RPC를 이 도구가 따로 반복 조회하는 횟수: <b>0회</b><br>
+✅ 공식 앱 코드(app.js)는 사용 중인 페이지에서 한 번 읽거나 브라우저 캐시에서 가져올 수 있어.<br>
+✅ 토큰·쿠키·이름·주문번호·알림 원문은 진단 결과에 포함되지 않아.<br>
+⚠️ 분석 결과에 Realtime 코드가 보이더라도 실제 재고 실시간 수신이 가능하다고 단정하지 않아. 실제 재고 변경 이벤트가 있어야 검증 가능해.</div>
+</section></main><script>
+const src="https://hipo020.github.io/bebepick-dashboard/bebepick-official-realtime-readonly-diagnostic-v1.js?v=20261020-readonly1";
+const code="javascript:(function(){var s=document.createElement('script');s.src="+JSON.stringify(src)+";s.onerror=function(){alert('진단 도우미 로드 실패')};document.documentElement.appendChild(s)})()";
+document.getElementById("bookmarklet").value=code;
+document.getElementById("copy").onclick=async()=>{
+ try{await navigator.clipboard.writeText(code);document.getElementById("status").textContent="✅ 복사했어! 북마크 주소에 붙여넣으면 돼.";}
+ catch(e){const t=document.getElementById("bookmarklet");t.focus();t.select();document.getElementById("status").textContent="자동 복사가 안 돼서 코드가 선택됐어. 직접 복사해 줘.";}
+};
+</script></body></html>
