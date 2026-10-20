@@ -416,7 +416,7 @@ try {
   message(target()?'✅ '+label(target())+' · 품절이어도 설정 및 대기 가능':'⏳ '+sku+' 코드 저장 · 공식 상품목록에 나타날 때까지 주문 없이 대기 가능');
  };
  [controls.opt,controls.cycle,controls.open,controls.storage].forEach(e=>e.addEventListener('change',saveSettings));
- function abortWizard(why){if(wizardTimer)clearInterval(wizardTimer);wizardTimer=null;autoOrder=false;payArmed=false;message('⛔ 자동 주문 중단 · '+why);}
+ function abortWizard(why){timingMark('safety_stop',why);if(wizardTimer)clearInterval(wizardTimer);wizardTimer=null;autoOrder=false;payArmed=false;message('⛔ 자동 주문 중단 · '+why);}
  function watchWizard(){
   if(!autoOrder||submitClicked||!wizardTimer)return;
   if(Date.now()-wizardStart>22000){abortWizard('공식 확인창 시간 초과');return;}
@@ -432,12 +432,13 @@ try {
    if(checks.length!==2||checks.some(c=>!['storage','open'].includes(c.getAttribute('data-oc-agree')))){abortWizard('동의 항목이 기존과 달라 수동 확인 필요');return;}
    checks.forEach(c=>{c.checked=true;c.dispatchEvent(new Event('change',{bubbles:true}));});
    if(next.disabled){abortWizard('1단계 계속 버튼 비활성');return;}
-   wizardStage=1;next.click();message('📋 1단계 선택값 확인 · 최종 주문 확인 중');return;
+   wizardStage=1;timingOnce('agree_step1','공식 동의 1단계 클릭');next.click();message('📋 1단계 선택값 확인 · 최종 주문 확인 중');return;
   }
   const fs=box.querySelector('#ocStorage2'),fo=box.querySelector('#ocOpen2'),ok=box.querySelector('[data-oc="ok"]');
   if(!fs||!fo||!ok)return;
+   timingOnce('final_visible','2단계 확인창 DOM 표시');
   if(!matchesStorage(fs.textContent)||fo.textContent.trim()!==open){abortWizard('최종 선택값 불일치');return;}
-  if(dryRun){abortWizard('무전송 시험 성공 · 실제 주문 요청 0회');return;}
+  if(dryRun){timingOnce('dry_run_stop','최종 주문 클릭 0회');abortWizard('무전송 시험 성공 · 실제 주문 요청 0회');return;}
   const all=box.querySelector('#ocAll');
   if(!all){abortWizard('최종 동의 항목 없음');return;}
   if(wizardStage===1){
@@ -457,7 +458,7 @@ try {
   clearInterval(wizardTimer);wizardTimer=null;
   payArmed=autoPay;payDone=false;payDeadline=Date.now()+30000;
   message('📨 공식 주문 버튼 1회 클릭 · 새 주문번호 확인 중');
-  ok.click();
+  timingOnce('submit_click','DOM 클릭 호출 · 서버 접수 미확인');ok.click();
   if(payArmed)setTimeout(watchPay,250);
  }
  function watchPay(){
@@ -470,7 +471,7 @@ try {
   const pay=sheet.querySelector('[data-act="pay-card"]');
   if(!pay||pay.disabled||!pay.isConnected)return;
   if(/테스트|흉내|결제 끝내기/.test(pay.textContent||'')){payArmed=false;message('⚠ 결제 버튼 확인 필요 · 자동 이동 안 함');return;}
-  payDone=true;payArmed=false;message('✅ 새 주문번호 확인 · 페이앱 결제창 열기 시도');pay.click();
+  timingOnce('pay_panel','공식 사이트의 새 주문번호 표시 (번호 미기록)');payDone=true;payArmed=false;message('✅ 새 주문번호 확인 · 페이앱 결제창 열기 시도');timingOnce('pay_click','결제창 이동 버튼 호출');pay.click();
  }
  document.addEventListener('click',e=>{
   if(autoOrder||payDone||!autoPay||payArmed||!completed||!e.isTrusted)return;
@@ -486,12 +487,13 @@ try {
   }else message('⚠ 옵션 불일치 · 결제창 자동 이동 중지');
  },true);
  const ob=new MutationObserver(()=>{
+  if(completed&&el('.oc[role="alertdialog"] .oc-box'))timingOnce('confirm_visible','공식 주문 확인창 DOM 표시');
   if(confirmed&&active&&!polling)handoff();
   if(wizardTimer&&!submitClicked)watchWizard();
   if(payArmed)watchPay();
  });
  ob.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class','hidden','disabled']});
- document.addEventListener('visibilitychange',()=>{if(active&&!document.hidden&&!polling){if(timer)clearTimeout(timer);schedule(100);}});
+ document.addEventListener('visibilitychange',()=>{if(timingActive)timingMark(document.hidden?'hidden':'resumed');if(active&&!document.hidden&&!polling){if(timer)clearTimeout(timer);schedule(100);}});
  window.addEventListener('pagehide',()=>{stop();ob.disconnect();});
  controls.opt.value=option;controls.cycle.value=String(cycle);controls.open.value=open;controls.storage.value=storage;controls.manual.value=sku;
  window.__bbpGeneralQuickV2={show,stop,__v2:true};
