@@ -56,7 +56,7 @@ th{font-weight:750;background:#f9f7fc}td a{color:#6950a0;text-decoration:underli
 </div>
 <div class="panel">
 <h2>방송별 감지 속도 비교</h2>
-<div class="note">WebSub의 단순 영상 변경 수신은 LIVE 시작으로 계산하지 않아. 실제 방송 확인 시각과 기존 30초 서버 감시의 발견 시각을 비교해. <b>양수(+)면 WebSub가 먼저 확인한 거야.</b> 정확한 방송 시작부터의 지연 시간이 아니야.</div>
+<div class="note">WebSub의 단순 영상 변경 수신은 LIVE 시작으로 계산하지 않아. 같은 방송에서 <b>시간차 = 30초 감시 발견 시각 − 각 신호의 확인/수신 시각</b>으로 표시해. <b>양수(+)면 해당 신호가 먼저</b>야. 휴대폰과 서버 시계 차이 및 추정 연결 때문에 실제 방송 시작부터의 지연 시간은 아니야.</div>
 <div class="tableWrap"><table>
 <thead><tr><th>채널</th><th>영상 ID</th><th>WebSub 수신</th><th>WebSub LIVE 확인</th><th>30초 감시 LIVE 발견</th><th>시간 차이</th><th>YouTube 수신 (추정)</th><th>YouTube↔30초 감시 (추정)</th><th>ntfy 수신</th><th>ntfy↔30초 감시</th><th>FCM 수신</th><th>FCM↔30초 감시</th></tr></thead>
 <tbody id="compare"><tr><td colspan="12">데이터 불러오는 중...</td></tr></tbody></table></div>
@@ -126,10 +126,10 @@ function showCompare(list){
    const found=matchTransportSignal(x,phoneEvents,source);
    const marker=found?(found.matchKind==="exact_video_id"?" (영상 일치)":" (추정)"):"";
    text(tr,"td",found?kst(found.event.receivedAt)+marker:"—");
-   // Phone transport receive time minus server polling observation.
-   const delta=found&&x.serverPollAt?Date.parse(found.event.receivedAt)-Date.parse(x.serverPollAt):null;
+   // Positive means the phone transport was received before the poll observation.
+   const delta=found&&x.serverPollAt?Date.parse(x.serverPollAt)-Date.parse(found.event.receivedAt):null;
    text(tr,"td",delta===null?"—":(delta>0?"+":"")+(delta/1000).toFixed(3)+"초"+marker,
-     delta===null?"muted":delta<=0?"good":"late");
+     delta===null?"muted":delta>=0?"good":"late");
   }
   body.appendChild(tr);
  });
@@ -201,10 +201,10 @@ async function load(){
 function saveCSV(){
  if(!current){alert("먼저 최신 기록을 확인해 줘");return;}
  const head=["채널","영상ID","WebSub수신UTC","WebSubLive확인UTC","30초감시발견UTC","WebSub_minus_30초_밀리초",
- "YouTube_폰수신UTC_추정","ntfy_폰수신UTC","ntfy_연결방식","FCM_폰수신UTC","FCM_연결방식","ntfy_폰수신_minus_30초_밀리초","FCM_폰수신_minus_30초_밀리초"];
+ "YouTube_폰수신UTC_추정","ntfy_폰수신UTC","ntfy_연결방식","FCM_폰수신UTC","FCM_연결방식","30초_minus_ntfy_폰수신_밀리초","30초_minus_FCM_폰수신_밀리초"];
  const all=[head,...(current.comparison||[]).map(x=>{
   const yt=approximateGalaxyMatch(x,phoneEvents),ntfy=matchTransportSignal(x,phoneEvents,"ntfy"),fcm=matchTransportSignal(x,phoneEvents,"fcm");
-  const delay=e=>e&&x.serverPollAt?Date.parse(e.event.receivedAt)-Date.parse(x.serverPollAt):null;
+  const delay=e=>e&&x.serverPollAt?Date.parse(x.serverPollAt)-Date.parse(e.event.receivedAt):null;
   return [x.channel,x.videoId,x.websubReceivedAt,x.websubLiveVerifiedAt,x.serverPollAt,x.differenceMs,
    yt?.event.receivedAt,ntfy?.event.receivedAt,ntfy?.matchKind,fcm?.event.receivedAt,fcm?.matchKind,delay(ntfy),delay(fcm)];
  })];
