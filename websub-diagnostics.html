@@ -31,7 +31,7 @@ th{font-weight:750;background:#f9f7fc}td a{color:#6950a0;text-decoration:underli
 </style></head>
 <body><main>
 <h1>🐰 LIVE 신호 비교 기록</h1>
-<p class="lead muted">베베픽 · 베베픽 플러스 · WebSub 시험 감시 · 한국시간</p>
+<p class="lead muted">베베픽 · 베베픽 플러스 · YouTube/ntfy/FCM/WebSub/30초 감시 · 한국시간</p>
 <div class="toolbar">
 <button class="primary" id="refresh" type="button">🔄 최신 기록 확인</button>
 <button id="csv" type="button">비교 CSV 저장</button>
@@ -41,25 +41,25 @@ th{font-weight:750;background:#f9f7fc}td a{color:#6950a0;text-decoration:underli
 <h2>WebSub 구독 상태</h2><div class="cards" id="cards"><div class="empty">서버 상태 확인 전</div></div>
 </div>
 <div class="panel">
-<h2>갤럭시 유튜브 알림 시각 추가하기</h2>
-<p class="muted">베베픽 Android 주문 도우미 <b>beta.31 이상</b>에서 <b>전체 실행 기록 → 모든 누적 기록 TXT 내보내기</b>로 저장한 파일을 선택해 줘.
-알림 도착 시각은 스마트폰 내부에 자동 기록되고, 여기서는 <b>파일을 서버에 보내지 않고 브라우저에서만 읽어</b> 비교해.</p>
+<h2>갤럭시 유튜브·ntfy·FCM LIVE 수신 기록 불러오기</h2>
+<p class="muted">베베픽 Android 주문 도우미 <b>beta.32 이상</b>에서 <b>전체 실행 기록 → 모든 누적 기록 TXT 내보내기</b>로 저장한 파일을 선택해 줘.
+유튜브 알림은 beta.31부터, ntfy·FCM LIVE는 beta.32부터 기기에 기록돼. <b>TXT 파일은 서버에 전송하지 않고 브라우저에서만 읽어</b> 비교해.</p>
 <div class="toolbar">
 <label for="phoneTxt" class="link" style="display:inline-block;cursor:pointer">📁 갤럭시 실행 기록 TXT 선택</label>
 <input id="phoneTxt" type="file" accept=".txt,text/plain" style="max-width:100%;font-size:12px" aria-label="갤럭시 실행 기록 TXT 파일">
 <button id="clearPhone" type="button">기기 기록 지우기 (이 페이지에서만)</button>
 </div>
 <p id="phoneStatus" class="muted">갤럭시 기록을 아직 선택하지 않았어.</p>
-<p class="note">갤럭시 알림에는 영상 ID가 없을 수 있어서, 서버 방송과 연결할 때는 <b>동일 채널·가까운 시간(15분 이내)만 보고 추정</b>해. 다른 방송과 혼동될 수 있고, 기기·서버 시계 차이도 있어. 정확한 방송별 일치라고 보지 마.</p>
-<div class="tableWrap"><table><thead><tr><th>갤럭시 리스너 수신 시각</th><th>Android 알림 게시 시각</th><th>채널</th><th>LIVE 형식 후보</th></tr></thead>
-<tbody id="phoneEvents"><tr><td colspan="4" class="empty">TXT를 선택하면 여기에 표시돼.</td></tr></tbody></table></div>
+<p class="note">유튜브 알림은 영상 ID가 없어 <b>같은 채널·가까운 시간(15분 이내)으로 추정</b>해. ntfy는 영상 ID가 있으면 정확히 연결하고 없으면 추정 연결해. <b>FCM은 영상 ID 일치가 필수</b>야. 휴대폰과 서버 시계 오차에 주의해.</p>
+<div class="tableWrap"><table><thead><tr><th>신호</th><th>갤럭시 수신</th><th>Android 게시</th><th>채널</th><th>영상 ID</th><th>분류</th></tr></thead>
+<tbody id="phoneEvents"><tr><td colspan="6" class="empty">TXT를 선택하면 여기에 표시돼.</td></tr></tbody></table></div>
 </div>
 <div class="panel">
 <h2>방송별 감지 속도 비교</h2>
 <div class="note">WebSub의 단순 영상 변경 수신은 LIVE 시작으로 계산하지 않아. 실제 방송 확인 시각과 기존 30초 서버 감시의 발견 시각을 비교해. <b>양수(+)면 WebSub가 먼저 확인한 거야.</b> 정확한 방송 시작부터의 지연 시간이 아니야.</div>
 <div class="tableWrap"><table>
-<thead><tr><th>채널</th><th>영상 ID</th><th>WebSub 수신</th><th>WebSub LIVE 확인</th><th>30초 감시 LIVE 발견</th><th>시간 차이</th><th>갤럭시 알림 (추정)</th><th>갤럭시↔30초 감시 (추정)</th></tr></thead>
-<tbody id="compare"><tr><td colspan="8">데이터 불러오는 중...</td></tr></tbody></table></div>
+<thead><tr><th>채널</th><th>영상 ID</th><th>WebSub 수신</th><th>WebSub LIVE 확인</th><th>30초 감시 LIVE 발견</th><th>시간 차이</th><th>YouTube 수신 (추정)</th><th>YouTube↔30초 감시 (추정)</th><th>ntfy 수신</th><th>ntfy↔30초 감시</th><th>FCM 수신</th><th>FCM↔30초 감시</th></tr></thead>
+<tbody id="compare"><tr><td colspan="12">데이터 불러오는 중...</td></tr></tbody></table></div>
 </div>
 <div class="panel">
 <h2>최근 신호 상세 기록</h2>
@@ -68,14 +68,14 @@ th{font-weight:750;background:#f9f7fc}td a{color:#6950a0;text-decoration:underli
 </div>
 <div class="note">
 <strong>시험판 안내</strong> · 이 페이지는 기록을 읽기만 하고 주문·카카오톡 전송·결제를 실행하지 않아.
-갤럭시 알림은 beta.31부터 기기에 자동 기록되고 이 페이지에서 TXT를 선택한 경우에만 비교돼. 실제 방송 시작 시점이 아닌 관측 시간 기준이며,
+YouTube 알림은 beta.31부터, ntfy·FCM LIVE 수신은 beta.32부터 휴대폰에 기록돼. TXT를 선택한 경우에만 비교돼. 실제 방송 시작 시점이 아닌 관측 시간 기준이며,
 WebSub가 라이브 시작 이벤트를 반드시 발송하는 건 아니야. 페이지는 자동 새로고침하지 않아.
 <strong>30초 감시를 나중에 끄고 싶다면</strong>
 <a href="https://github.com/hipo020/bebepick-watcher/blob/main/docs/LIVE_SIGNAL_MONITORS_RUNBOOK_2026-10-20.md" target="_blank" rel="noopener noreferrer">LIVE 감시 운영·중지·복구 인수인계 문서</a>에서 정확한 작업명과 SQL을 확인하면 돼.
 </div>
 </main>
 <script type="module">
-import {parseGalaxyLog,approximateGalaxyMatch} from "./websub-phone-compare.mjs";
+import {parseGalaxyLog,approximateGalaxyMatch,matchTransportSignal} from "./websub-phone-compare.mjs";
 (()=>{"use strict";
 const endpoint="https://fergbabqmwnbkkxjvgkj.supabase.co/functions/v1/bebepick-websub-shadow/diagnostics";
 const el=id=>document.getElementById(id);
@@ -109,7 +109,7 @@ function videoCell(tr,id){
 }
 function showCompare(list){
  const body=el("compare");body.replaceChildren();
- if(!list.length){const tr=document.createElement("tr"),td=document.createElement("td");td.colSpan=8;td.className="empty";td.textContent="아직 LIVE 관측 기록이 없어. 첫 방송 감지 후 자동으로 기록돼.";tr.appendChild(td);body.appendChild(tr);return;}
+ if(!list.length){const tr=document.createElement("tr"),td=document.createElement("td");td.colSpan=12;td.className="empty";td.textContent="아직 LIVE 관측 기록이 없어. 첫 방송 감지 후 자동으로 기록돼.";tr.appendChild(td);body.appendChild(tr);return;}
  list.forEach(x=>{
   const tr=document.createElement("tr");
   text(tr,"td",channel(x.channel));videoCell(tr,x.videoId);
@@ -122,6 +122,15 @@ function showCompare(list){
   text(tr,"td",galaxy?kst(galaxy.event.receivedAt)+" (추정)":"—");
   const phoneDelta=galaxy&&x.serverPollAt?Date.parse(x.serverPollAt)-Date.parse(galaxy.event.receivedAt):null;
   text(tr,"td",phoneDelta===null?"—":(phoneDelta>0?"+":"")+(phoneDelta/1000).toFixed(3)+"초 (추정)",phoneDelta===null?"muted":phoneDelta>0?"good":"late");
+  for(const source of ["ntfy","fcm"]){
+   const found=matchTransportSignal(x,phoneEvents,source);
+   const marker=found?(found.matchKind==="exact_video_id"?" (영상 일치)":" (추정)"):"";
+   text(tr,"td",found?kst(found.event.receivedAt)+marker:"—");
+   // Phone transport receive time minus server polling observation.
+   const delta=found&&x.serverPollAt?Date.parse(found.event.receivedAt)-Date.parse(x.serverPollAt):null;
+   text(tr,"td",delta===null?"—":(delta>0?"+":"")+(delta/1000).toFixed(3)+"초"+marker,
+     delta===null?"muted":delta<=0?"good":"late");
+  }
   body.appendChild(tr);
  });
 }
@@ -143,13 +152,15 @@ function showEvents(list){
 function showPhoneEvents(){
  const body=el("phoneEvents");body.replaceChildren();
  if(!phoneEvents.length){
-  const tr=document.createElement("tr"),td=document.createElement("td");td.colSpan=4;td.className="empty";
+  const tr=document.createElement("tr"),td=document.createElement("td");td.colSpan=6;td.className="empty";
   td.textContent="아직 가져온 갤럭시 알림 시각이 없어.";tr.appendChild(td);body.appendChild(tr);return;
  }
  phoneEvents.slice(0,150).forEach(x=>{
   const tr=document.createElement("tr");
+  text(tr,"td",x.source==="youtube"?"YouTube 앱":x.source==="ntfy"?"ntfy LIVE":"FCM LIVE");
   text(tr,"td",kst(x.receivedAt));text(tr,"td",kst(x.androidPostedAt));
-  text(tr,"td",channel(x.channel));text(tr,"td",x.liveHint?"LIVE 형태의 알림":"일반·모호한 알림");
+  text(tr,"td",channel(x.channel));text(tr,"td",x.videoId||"—");
+  text(tr,"td",x.source==="youtube"?(x.liveHint?"LIVE 형태 후보":"일반·모호한 알림"):"LIVE 신호 확인");
   body.appendChild(tr);
  });
 }
@@ -162,8 +173,8 @@ async function importPhoneLog(event){
   const parsed=parseGalaxyLog(raw);
   phoneEvents=parsed;
   el("phoneStatus").textContent=parsed.length?
-   "✅ 갤럭시 유튜브 알림 "+parsed.length+"건 가져왔어 · 다른 로그 내용은 사용하지 않았고 업로드하지 않았어.":
-   "해당 TXT에서 새 YT_NOTIFICATION_RECEIVED 기록을 찾지 못했어. beta.31 이상인지 확인해 줘.";
+   "✅ 갤럭시 LIVE 신호 "+parsed.length+"건 가져왔어 · 수신 시각만 읽고 파일은 업로드하지 않았어.":
+   "TXT에서 비교 대상 수신기록을 찾지 못했어. ntfy·FCM은 beta.32 이상부터 남아.";
   showPhoneEvents();
   if(current)showCompare(current.comparison||[]);
  }catch(err){
@@ -189,8 +200,14 @@ async function load(){
 }
 function saveCSV(){
  if(!current){alert("먼저 최신 기록을 확인해 줘");return;}
- const head=["채널","영상ID","WebSub수신UTC","WebSubLive확인UTC","30초감시발견UTC","차이_밀리초"];
- const all=[head,...(current.comparison||[]).map(x=>[x.channel,x.videoId,x.websubReceivedAt,x.websubLiveVerifiedAt,x.serverPollAt,x.differenceMs])];
+ const head=["채널","영상ID","WebSub수신UTC","WebSubLive확인UTC","30초감시발견UTC","WebSub_minus_30초_밀리초",
+ "YouTube_폰수신UTC_추정","ntfy_폰수신UTC","ntfy_연결방식","FCM_폰수신UTC","FCM_연결방식","ntfy_폰수신_minus_30초_밀리초","FCM_폰수신_minus_30초_밀리초"];
+ const all=[head,...(current.comparison||[]).map(x=>{
+  const yt=approximateGalaxyMatch(x,phoneEvents),ntfy=matchTransportSignal(x,phoneEvents,"ntfy"),fcm=matchTransportSignal(x,phoneEvents,"fcm");
+  const delay=e=>e&&x.serverPollAt?Date.parse(e.event.receivedAt)-Date.parse(x.serverPollAt):null;
+  return [x.channel,x.videoId,x.websubReceivedAt,x.websubLiveVerifiedAt,x.serverPollAt,x.differenceMs,
+   yt?.event.receivedAt,ntfy?.event.receivedAt,ntfy?.matchKind,fcm?.event.receivedAt,fcm?.matchKind,delay(ntfy),delay(fcm)];
+ })];
  const esc=v=>'"'+String(v??"").replaceAll('"','""')+'"';
  const csv="\uFEFF"+all.map(line=>line.map(esc).join(",")).join("\r\n");
  const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
