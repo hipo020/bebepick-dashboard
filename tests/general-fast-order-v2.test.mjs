@@ -83,3 +83,50 @@ test('new order confirmation is required before PayApp opens once',()=>{
   [{payText:'주문서를 만들었습니다 BP261019TEST',noPay:true},0]
  ]){const x=mock(c);x.arm();x.pay();x.pay();assert.equal(x.clicks.pay,expected);}
 });
+
+test('sold-out catalog item stays selectable, and missing SKU remains as waiting choice',()=>{
+ const code=section(' function validSku(', ' async function loadCatalog(');
+ const make=new Function('d',String.raw`
+ const STORE='main',sku=d.sku,option='single',catalog=d.products;
+ const labels={single:'낱개',fullbox:'풀박스'};
+ const controls={search:{value:d.search||''},sku:{children:[],_v:'',replaceChildren(){this.children=[];this._v=''},append(x){this.children.push(x)},get value(){return this._v},set value(v){this._v=this.children.some(x=>x.value===v)?v:''}},
+  opt:{querySelector(){return {disabled:false}}},product:{textContent:''}};
+ const document={createElement(){return {value:'',textContent:''}}};
+ const availableHere=p=>!p.only||p.only==='main',target=()=>catalog.find(p=>p.sku===sku),allowedOption=()=>true,
+ saleable=p=>p&&(p.stock==='low'||p.stock===null),label=p=>p.name+' · '+p.sku,money=n=>String(n),savePref=()=>{};
+ `+code+'fillCatalog();return {value:controls.sku.value,options:controls.sku.children,validSku};');
+ const sold=make({products:[{sku:'D796',name:'밤토끼',stock:'out'}],sku:'D796'});
+ assert.equal(sold.value,'D796');
+ assert.ok(sold.options.some(o=>o.value==='D796'&&o.textContent.includes('품절')));
+ const absent=make({products:[],sku:'D796'});
+ assert.equal(absent.value,'D796');
+ assert.ok(absent.options.some(o=>o.value==='D796'&&o.textContent.includes('코드 대기')));
+ const spaced=make({products:[{sku:'D796',name:'밤토끼',stock:'out'}],sku:'D796',search:'밤 토 끼'});
+ assert.equal(spaced.value,'D796');
+ assert.equal(absent.validSku('D796'),true);
+ assert.equal(absent.validSku('<script>'),false);
+});
+test('polling waits for missing SKU and never orders on sold-out or closed window',async()=>{
+ const code=section(' async function poll()', ' function reloadShow()');
+ const make=new Function('d',String.raw`
+ const STORE='main',sku='D796',cycle=8,document={hidden:false};
+ let cartPrepared=!!d.prepared,awaitingCatalog=!cartPrepared,active=true,polling=false,confirmed=false,tries=0,triggerMode='',confirmedAt=0,catalog=[],messages=[],prepareCalls=0,handoffCalls=0,scheduleCalls=[];
+ const rpc=async name=>name==='order_windows'?{main:d.window||{open:true,yt_live:false}}:d.products;
+ const target=()=>catalog.find(p=>p.sku===sku),expected=()=>true,stop=()=>{active=false},message=s=>messages.push(s),schedule=n=>scheduleCalls.push(n);
+ const allowedOption=()=>true,saleable=p=>p.stock===null||p.stock==='low';
+ const prepare=async()=>{prepareCalls++;return true},fillCatalog=()=>{},updateInfo=()=>{},handoff=()=>{handoffCalls++};
+ const serverOpen=w=>w&&(w.open===true||w.yt_live===true),openMode=w=>w.open===true?'주문 접수':w.yt_live?'LIVE 표시':'';
+ const latestAvailability=p=>saleable(p)?'판매 가능':'품절';
+ `+code+'return {run:poll,stats:()=>({cartPrepared,awaitingCatalog,prepareCalls,handoffCalls,scheduleCalls})};');
+ for(const [data,prep,hand] of [
+  [{products:[]},0,0],
+  [{products:[{sku:'D796',stock:'out'}]},1,0],
+  [{products:[{sku:'D796',stock:'low'}],window:{open:false,yt_live:false}},1,0],
+  [{products:[{sku:'D796',stock:'low'}]},1,1],
+  [{products:[],prepared:true},0,0]
+ ]){
+  const x=make(data);await x.run();const s=x.stats();
+  assert.equal(s.prepareCalls,prep);assert.equal(s.handoffCalls,hand);
+  if(!s.handoffCalls)assert.ok(s.scheduleCalls.length>0);
+ }
+});
