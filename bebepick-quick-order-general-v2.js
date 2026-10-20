@@ -74,7 +74,7 @@ try {
  }
  function visibleProducts(){return catalog.filter(availableHere);}
  function fillCatalog(){const q=controls.search.value.toLocaleLowerCase('ko-KR').replace(/\s+/g,'');
-  const list=visibleProducts().filter(p=>(String(p.name||'')+' '+p.sku).toLocaleLowerCase('ko-KR').replace(/\s+/g,'').includes(q)).slice(0,80);
+  const list=visibleProducts().filter(p=>(String(p.name||'')+' '+p.sku).toLocaleLowerCase('ko-KR').replace(/\s+/g,'').includes(q)).sort((a,b)=>Number(saleable(b))-Number(saleable(a))).slice(0,80);
   controls.sku.replaceChildren();
   if(!list.length){let z=document.createElement('option');z.value='';z.textContent='검색 결과 없음';controls.sku.append(z);}
   list.forEach(p=>{const o=document.createElement('option');o.value=p.sku;o.textContent=label(p);controls.sku.append(o);});
@@ -121,7 +121,9 @@ try {
  function prefill(){try{let v={};try{v=JSON.parse(sessionStorage.getItem(OPTS_KEY)||'{}')||{};}catch(e){}
   v.open=open;v.storage=storage;sessionStorage.setItem(OPTS_KEY,JSON.stringify(v));return true;
  }catch(e){message('⚠ 개봉·보관 옵션을 미리 저장하지 못했어');return false;}}
- function serverOpen(w){return !!(w&&w.open===true&&w.enabled!==false&&w.closed!==true&&w.reason!=='paused');}
+ function serverOpen(w){return !!(w&&w.reason!=='paused'&&((w.open===true&&w.enabled!==false&&w.closed!==true)||w.yt_live===true));}
+  function openMode(w){return w&&w.open===true&&w.enabled!==false&&w.closed!==true?'주문 접수':w&&w.yt_live===true&&w.reason!=='paused'?'LIVE 표시':'';}
+  function matchesStorage(value){const v=String(value||'').trim();return storage==='발송'?(v==='발송'||v==='바로 배송'):(v==='보관');}
  function latestAvailability(p){return p? (saleable(p)?'판매 가능':option==='fullbox'?'세트 품절':'품절'):'확인 실패';}
  function schedule(delay){if(timer)clearTimeout(timer);if(active&&!confirmed)timer=setTimeout(poll,delay);}
  async function poll(){
@@ -132,12 +134,12 @@ try {
   try{const res=await Promise.allSettled([rpc('order_windows',{}),rpc('list_products',{p_brand:STORE})]);
    if(!active)return;
    let windowOk=null,productOk=null,failed=[],p=null;
-   if(res[0].status==='fulfilled'){const w=res[0].value&&res[0].value[STORE];if(w&&typeof w.open==='boolean')windowOk=serverOpen(w);else failed.push(new Error('주문 응답 형식 오류'));}
+   if(res[0].status==='fulfilled'){const w=res[0].value&&res[0].value[STORE];if(w&&(typeof w.open==='boolean'||typeof w.yt_live==='boolean')){windowOk=serverOpen(w);triggerMode=openMode(w);}else failed.push(new Error('주문 응답 형식 오류'));}
    else failed.push(res[0].reason);
    if(res[1].status==='fulfilled'&&Array.isArray(res[1].value)){catalog=res[1].value;p=target();if(p&&Object.prototype.hasOwnProperty.call(p,'stock'))productOk=saleable(p);else failed.push(new Error('선택 상품을 찾지 못함'));}
    else failed.push(res[1].status==='rejected'?res[1].reason:new Error('재고 응답 형식 오류'));
    const when=new Date().toLocaleTimeString('ko-KR',{hour12:false});
-   const nowStatus='📡 주문 '+(windowOk===null?'조회 실패':windowOk?'열림':'닫힘')+' · '+(p?p.name:sku)+' '+(productOk===null?'재고 조회 실패':latestAvailability(p))+' · '+when;
+   const nowStatus='📡 구매 조건 '+(windowOk===null?'조회 실패':windowOk?(triggerMode||'충족'):'미충족')+' · '+(p?p.name:sku)+' '+(productOk===null?'재고 조회 실패':latestAvailability(p))+' · '+when;
    if(failed.length){
     tries++;
     if(failed.some(e=>e&&[401,403].includes(e.httpStatus))){stop();message('⚠ 서버 조회 거절 · 감시 중지');return;}
@@ -145,12 +147,25 @@ try {
     message(nowStatus+' · '+Math.round(delayed/1000)+'초 후 재확인');schedule(delayed);return;
    }
    tries=0;
-   if(windowOk&&productOk){confirmed=true;message('✅ 공식 서버 주문·재고 모두 열림! 주문창 진입 시도');handoff();return;}
+   if(windowOk&&productOk){confirmed=true;confirmedAt=Date.now();message('✅ '+triggerMode+' + 선택 상품 재고 표시 · 공식 주문 UI 확인 중');handoff();return;}
    message(nowStatus);schedule(cycle*1000);
   }catch(e){tries++;message('⚠ 감시 오류 · 잠시 뒤 다시 시도');schedule(Math.min(120000,cycle*2000*Math.pow(2,Math.min(tries,4))));}
   finally{polling=false;}
  }
- function reloadShow(){stop();completed=true;controls.reload.style.display='block';controls.reload.hidden=false;message('🎉 서버에서 판매 가능 확인! 공식 화면이 아직 갱신되지 않았어. 아래 버튼으로 새로고침하고 주문해 줘.');}
+ function reloadShow(){controls.reload.style.display='block';controls.reload.hidden=false;message('🔄 서버 판매 가능 후보 확인 · 공식 상품 화면 갱신 대기');if(!routeBusy&&Date.now()-lastRouteAt>5500)refreshRoute();}
+  function refreshRoute(){
+   if(routeBusy||!active||document.hidden)return;
+   if(location.hash&&location.hash!=='#'){endPolling();message('⚠ 다른 경로 이동 감지 · 수동 확인 필요');return;}
+   routeBusy=true;lastRouteAt=Date.now();
+   history.replaceState(history.state,'',location.pathname+location.search+'#terms');
+   window.dispatchEvent(new Event('hashchange'));
+   setTimeout(()=>{
+    if(!active){routeBusy=false;return;}
+    history.replaceState(history.state,'',location.pathname+location.search);
+    window.dispatchEvent(new Event('hashchange'));
+    setTimeout(()=>{routeBusy=false;if(active)handoff();},1200);
+   },250);
+  }
  function correctOrderControls(cartPanel){
   const chosenStore=el('[data-storage="'+storage+'"]',cartPanel),chosenOpen=el('[data-open="'+open+'"]',cartPanel);
   if(!chosenStore||!chosenOpen)return false;
@@ -163,19 +178,24 @@ try {
   if(!expected()){stop();message('⚠ 장바구니 내용 변경 · 주문 진행 중지');return;}
   const pcard=el('[data-ctl="'+sku+'"]'),card=pcard&&pcard.closest('.prod');
   const w=el('#storeBar .sb-order.open'),shopFresh=card&&!card.classList.contains('soldout')&&(option==='single'||!card.classList.contains('fbout'));
-  if(!w||!shopFresh){reloadShow();return;}
-  const btn=el('#cartBar .cb-submit');
+  if((!w&&triggerMode!=='LIVE 표시')||!shopFresh){reloadShow();return;}
+  const btn=el('#cartBar .cb-submit')||el('#btnTopCart:not([hidden])');
   if(!btn||btn.disabled){reloadShow();return;}
-  stop();completed=true;message('✅ 공식 장바구니·주문창 여는 중…');
+   if(Date.now()-confirmedAt>Math.max(10000,cycle*2000)){confirmed=false;message('🔄 구매 직전 공식 서버 재확인');poll();return;}
+  endPolling();completed=true;message('✅ 공식 장바구니·주문창 여는 중…');
   btn.click();
   let n=0;
-  const openCartTimer=setInterval(()=>{
+  cartTimer=setInterval(()=>{
    const cartPanel=el('.panel[data-sheet="cart"]');
-   if(!cartPanel){if(++n>16){clearInterval(openCartTimer);message('⚠ 장바구니를 열지 못했어. 수동으로 확인해 줘.');}return;}
-   if(!correctOrderControls(cartPanel)){clearInterval(openCartTimer);message('⚠ 주문 옵션 '+open+'·'+storage+'을 확인하지 못했어. 직접 설정해 줘.');return;}
+   if(!cartPanel){if(++n>16){clearInterval(cartTimer);message('⚠ 장바구니를 열지 못했어. 수동으로 확인해 줘.');}return;}
+   if(!correctOrderControls(cartPanel)){clearInterval(cartTimer);message('⚠ 주문 옵션 '+open+'·'+storage+'을 확인하지 못했어. 직접 설정해 줘.');return;}
    const next=el('#checkout',cartPanel);
-   if(!next||next.disabled){if(++n>16){clearInterval(openCartTimer);message('⚠ 주문 버튼이 비활성화돼 있어. 직접 확인해 줘.');}return;}
-   clearInterval(openCartTimer);waitingForPay=controls.pay.checked;message('📋 공식 확인창에서 '+open+' + '+storage+' 확인하고, 동의와 주문 확정은 직접 해 줘.');next.click();
+   if(!next||next.disabled){if(++n>16){clearInterval(cartTimer);message('⚠ 주문 버튼이 비활성화돼 있어. 직접 확인해 줘.');}return;}
+   clearInterval(cartTimer);cartTimer=null;
+    if(!expected()){message('⚠ 장바구니가 바뀌어 자동 진행 중단');return;}
+    if(autoOrder){wizardStage=0;wizardStart=Date.now();submitClicked=false;wizardTimer=setInterval(watchWizard,50);}
+    next.click();
+    message(autoOrder?'📋 공식 주문 확인 2단계 · 선택값과 동의 확인 중':'📋 공식 확인창 · 최종 동의와 주문 확정은 직접 해 줘');
   },250);
  }
  controls.reload.onclick=()=>{if(!expected()){message('⚠ 장바구니 내용을 확인해 줘');return;}location.assign(STORE==='main'?'https://bebepick.me/live':'https://bebepick.me/plus');};
