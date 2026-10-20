@@ -342,45 +342,55 @@ try {
  function schedule(delay){if(timer)clearTimeout(timer);if(active&&!confirmed)timer=setTimeout(poll,delay);}
  async function poll(){
   if(!active||polling||confirmed)return;
-  if(document.hidden){message('📱 브라우저를 다시 열면 감시 재개');schedule(cycle*1000);return;}
-  if(cartPrepared&&!expected()){stop();message('⚠ 장바구니 상품·옵션·수량이 바뀌어 감시 중지');return;}
-  polling=true;
-  const pollStartedAt=performance.now();timingOnce('first_poll');
-  try{const res=await Promise.allSettled([rpc('order_windows',{}),rpc('list_products',{p_brand:STORE})]);
-   timingRound(performance.now()-pollStartedAt,res.some(x=>x.status==='rejected'));
+  if(document.hidden){message('📱 화면이 다시 보이면 감시 재개');schedule(cycle*1000);return;}
+  if(cartPrepared&&!expected()){stop();message('⚠ 주문 대상 장바구니가 바뀌어 감시 중지');return;}
+  polling=true;const started=performance.now();timingOnce('first_poll');
+  try{
+   // One pair of RPC calls regardless of the number of dolls monitored.
+   const res=await Promise.allSettled([rpc('order_windows',{}),rpc('list_products',{p_brand:STORE})]);
+   timingRound(performance.now()-started,res.some(x=>x.status==='rejected'));
    if(!active)return;
-   let windowOk=null,productOk=null,failed=[],p=null;
-   if(res[0].status==='fulfilled'){const w=res[0].value&&res[0].value[STORE];if(w&&(typeof w.open==='boolean'||typeof w.yt_live==='boolean')){windowOk=serverOpen(w);triggerMode=openMode(w);if(windowOk)timingOnce('window_open',triggerMode);}else failed.push(new Error('주문 응답 형식 오류'));}
-   else failed.push(res[0].reason);
+   let windowOk=null,failed=[],eligible=[];
+   if(res[0].status==='fulfilled'){
+    const w=res[0].value&&res[0].value[STORE];
+    if(w&&(typeof w.open==='boolean'||typeof w.yt_live==='boolean')){
+     windowOk=serverOpen(w);triggerMode=openMode(w);
+     if(windowOk)timingOnce('window_open',triggerMode);
+    }else failed.push(new Error('주문 접수 응답 형식 오류'));
+   }else failed.push(res[0].reason);
    if(res[1].status==='fulfilled'&&Array.isArray(res[1].value)){
-   catalog=res[1].value;p=target();
-   if(!p){productOk=false;awaitingCatalog=true;}
-   else if(Object.prototype.hasOwnProperty.call(p,'stock')){
-    awaitingCatalog=false;
-    if(!allowedOption(p)){stop();message('⚠ 선택한 '+(option==='fullbox'?'풀박스':'상품')+'을 공식 상품 정보에서 지원하지 않아 · 수동 확인');return;}
-    if(saleable(p))timingOnce('sellable','공식 list_products 새 응답');
-     // 품절인 동안에는 설정값만 보존해 사이트가 장바구니를 지우지 않게 한다.
-    if(!cartPrepared&&saleable(p)){
-     if(!await prepare()){stop();message('⚠ 판매 가능 확인 후 장바구니 준비 실패 · 수동 확인');return;}
-     cartPrepared=true;timingOnce('cart_ready','서버 재고 확인 후');fillCatalog();updateInfo();
-    }
-    productOk=!!cartPrepared&&saleable(p);
-   }else failed.push(new Error('선택 상품 재고 응답 형식 오류'));
-  }
-   else failed.push(res[1].status==='rejected'?res[1].reason:new Error('재고 응답 형식 오류'));
-   const when=new Date().toLocaleTimeString('ko-KR',{hour12:false});
-   const nowStatus='📡 구매 조건 '+(windowOk===null?'조회 실패':windowOk?(triggerMode||'충족'):'미충족')+' · '+(p?p.name:sku)+' '+(productOk===null?'재고 조회 실패':p?latestAvailability(p):'⏳ 공식 목록 재등장 대기')+' · '+when;
+    catalog=res[1].value;eligible=eligibleNow();renderWatchList();
+    if(eligible.length)timingOnce('sellable','판매 가능 '+eligible.map(x=>x.sku).join(','));
+   }else failed.push(res[1].status==='rejected'?res[1].reason:new Error('상품 응답 형식 오류'));
    if(failed.length){
     tries++;
     if(failed.some(e=>e&&[401,403].includes(e.httpStatus))){stop();message('⚠ 서버 조회 거절 · 감시 중지');return;}
-    const delayed=failed.some(e=>e&&e.httpStatus===429)?60000:Math.min(120000,cycle*1000*Math.pow(2,Math.min(tries,4)));
-    message(nowStatus+' · '+Math.round(delayed/1000)+'초 후 재확인');schedule(delayed);return;
+    const delay=failed.some(e=>e&&e.httpStatus===429)?60000:Math.min(120000,cycle*1000*Math.pow(2,Math.min(tries,4)));
+    message('⚠ 조회 오류 · '+Math.round(delay/1000)+'초 후 재시도');schedule(delay);return;
    }
    tries=0;
-   if(windowOk&&productOk){confirmed=true;confirmedAt=Date.now();timingOnce('both_ready','재고+접수 조건 충족');message('✅ '+triggerMode+' + 선택 상품 재고 표시 · 공식 주문 UI 확인 중');handoff();return;}
-   message(nowStatus);schedule(cycle*1000);
-  }catch(e){tries++;timingMark('poll_error','조회 처리 오류');message('⚠ 감시 오류 · 잠시 뒤 다시 시도');schedule(Math.min(120000,cycle*2000*Math.pow(2,Math.min(tries,4))));}
-  finally{polling=false;}
+   if(windowOk&&eligible.length){
+    // Frozen one-time subset. Unavailable dolls are not added to this order.
+    armedItems=eligible.map(x=>({...x}));
+    sku=armedItems[0].sku;option=armedItems[0].option;
+    timingMark('batch_selected','주문 '+armedItems.map(x=>x.sku).join(',')+' · 품절 제외 '+(watchItems.length-armedItems.length));
+    if(!await prepare()){
+     stop();message('⚠ 구매 가능한 인형을 공식 장바구니로 준비하지 못했어 · 주문 중지');return;
+    }
+    cartPrepared=true;timingOnce('cart_ready','판매 가능한 상품 '+armedItems.length+'개 준비');
+    if(!expected()){stop();message('⚠ 장바구니 재검증 실패 · 주문 중지');return;}
+    confirmed=true;confirmedAt=Date.now();
+    timingOnce('both_ready',armedItems.length+'개 · '+triggerMode);
+    message('✅ '+armedItems.map(x=>x.sku).join(', ')+' · '+armedItems.length+'개 구매 준비 · 공식 주문창 이동');
+    handoff();return;
+   }
+   message('⏳ '+watchItems.length+'개 감시 · 재고 '+eligible.length+'개 · '+(windowOk?'주문 접수':'공식 주문 접수 대기')+' · '+new Date().toLocaleTimeString('ko-KR',{hour12:false}));
+   schedule(cycle*1000);
+  }catch(e){
+   tries++;timingMark('poll_error','감시 처리 예외');
+   message('⚠ 감시 처리 오류 · 지연 후 재시도');
+   schedule(Math.min(120000,cycle*2000*Math.pow(2,Math.min(tries,4))));
+  }finally{polling=false;}
  }
  function reloadShow(){timingOnce('official_ui_wait','공식 DOM 주문상태 반영 대기');controls.reload.style.display='block';controls.reload.hidden=false;message('🔄 서버 판매 가능 후보 확인 · 공식 상품 화면 갱신 대기');if(!routeBusy&&Date.now()-lastRouteAt>5500)refreshRoute();}
   function refreshRoute(){
