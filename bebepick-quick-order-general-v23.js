@@ -74,7 +74,7 @@ function basketSummary(){const c=chosenItems();return c.length+'줄 · '+c.reduc
  '<pre id="qTimingLog" style="white-space:pre-wrap;word-break:break-word;max-height:176px;overflow:auto;font:11px/1.5 ui-monospace,monospace;color:#3e3452">아직 기록이 없어.</pre>'+
  '<div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" id="qTimingCopy" style="border:1px solid #c2afd6;background:#fff;padding:8px;border-radius:7px">📋 기록 복사</button><button type="button" id="qTimingDownload" style="border:1px solid #c2afd6;background:#fff;padding:8px;border-radius:7px">💾 JSON 저장</button></div>'+
  '<small style="display:block;color:#756b80;margin-top:7px">자동 측정 · 0.1ms 정밀도 기록 · 세션 내 저장. 실제 재입고 시각은 알 수 없으므로 최초 판매 가능 응답부터 측정해. 주문 성공과 서버 접수를 의미하지 않아.</small></details>'+
- '<small style="display:block;color:#766d7f;margin-top:9px">품절이어도 설정하고 대기할 수 있어. 품절 또는 목록에 없는 코드일 때는 재고가 공식 서버에서 확인될 때까지 주문이나 장바구니 변경 없이 기다려. 주문 접수 또는 사이트 LIVE 표시와 선택 상품 재고를 확인해. LIVE 표시는 실제 구매 보장이 아니야. 공식 주문 UI 활성화가 필요하고 무전송 시험에서 최종 주문을 생성하지 않아. 5초 감시는 요청 제한 위험이 있어.</small>';
+ '<small style="display:block;color:#766d7f;margin-top:9px">품절이어도 설정하고 대기할 수 있어. 품절 또는 목록에 없는 코드일 때는 재고가 공식 서버에서 확인될 때까지 주문이나 장바구니 변경 없이 기다려. 주문 접수 ON 상태와 선택한 모든 상품 재고를 확인해. 홈페이지 LIVE 표시만으로 주문을 시작하지 않아. 공식 주문 UI 활성화가 필요하고 무전송 시험에서 최종 주문을 생성하지 않아. 5초 감시는 요청 제한 위험이 있어.</small>';
  document.body.appendChild(panel);
  const controls={search:el('#qSearch',panel),manual:el('#qManualSku',panel),sku:el('#qSku',panel),opt:el('#qOpt',panel),cycle:el('#qCycle',panel),open:el('#qOpen',panel),storage:el('#qStorage',panel),pay:null,qty:el('#qQty',panel),add:el('#qAdd',panel),basket:el('#qBasket',panel),autoOrder:el('#qAutoOrder',panel),dryRun:el('#qDryRun',panel),status:el('#qStatus',panel),product:el('#qProduct',panel),reload:el('#qReload',panel),
  timingSummary:el('#qTimingSummary',panel),timingLog:el('#qTimingLog',panel)};
@@ -341,8 +341,8 @@ function basketSummary(){const c=chosenItems();return c.length+'줄 · '+c.reduc
  function prefill(){try{let v={};try{v=JSON.parse(sessionStorage.getItem(OPTS_KEY)||'{}')||{};}catch(e){}
   v.open=open;v.storage=storage;v.use_credit=0;v.use_prize=0;v.use_free_ship=false;v.use_priority=false;v.store=STORE;sessionStorage.setItem(OPTS_KEY,JSON.stringify(v));return true;
  }catch(e){message('⚠ 개봉·보관 옵션을 미리 저장하지 못했어');return false;}}
- function serverOpen(w){return !!(w&&w.reason!=='paused'&&((w.open===true&&w.enabled!==false&&w.closed!==true)||w.yt_live===true));}
-  function openMode(w){return w&&w.open===true&&w.enabled!==false&&w.closed!==true?'주문 접수':w&&w.yt_live===true&&w.reason!=='paused'?'LIVE 표시':'';}
+ function serverOpen(w){return !!(w&&w.reason!=='paused'&&w.open===true&&w.enabled!==false&&w.closed!==true);}
+  function openMode(w){return serverOpen(w)?'주문 접수':'';}
   function matchesStorage(value){const v=String(value||'').trim();return storage==='발송'?(v==='발송'||v==='바로 배송'):(v==='보관');}
  function latestAvailability(p){return allSaleable()?'선택한 상품 모두 판매 가능':p?'일부 상품 품절/재고 부족':'목록 대기';}
  function schedule(delay){if(timer)clearTimeout(timer);if(active&&!confirmed)timer=setTimeout(poll,delay);}
@@ -447,7 +447,7 @@ function basketSummary(){const c=chosenItems();return c.length+'줄 · '+c.reduc
    const pcard=el('[data-ctl="'+x.sku+'"]'),card=pcard&&pcard.closest('.prod');
    return card&&!card.classList.contains('soldout')&&(x.option==='single'||!card.classList.contains('fbout'));
   });
-  if((!w&&triggerMode!=='LIVE 표시')||!shopFresh){staleOfficialUi('공식 판매 화면 갱신 지연');return;}
+  if(!w||!shopFresh){staleOfficialUi('공식 판매 화면 갱신 지연');return;}
   const btn=el('#cartBar .cb-submit')||el('#btnTopCart:not([hidden])');
   if(!btn||btn.disabled){staleOfficialUi('공식 주문 버튼 비활성');return;}
   if(Date.now()-confirmedAt>Math.max(10000,cycle*2000)){confirmed=false;message('🔄 구매 직전 공식 서버 재확인');poll();return;}
