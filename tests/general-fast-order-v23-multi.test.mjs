@@ -69,3 +69,39 @@ test('no forced payment, guards and official pre-payment scrolling retained',()=
  assert.match(source,/reason!=='paused'/);
  assert.match(source,/other-store|다른 보관 상품|다른 주문의 보관\/발송 변경 경고/);
 });
+
+function prepHarness(initial,requested,{consent=true,saleable=true}={}){
+ let saved=JSON.parse(JSON.stringify(initial)),writes=0;const messages=[];
+ const prepSource=part('async function prepare(){','function prefill(){');
+ const current=()=>saved.filter(x=>(x.store==='china'?'china':'main')==='china');
+ const expected=()=>current().length===requested.length&&current().every(x=>requested.some(y=>y.sku===x.sku&&y.option===(x.opt==='fullbox'?'fullbox':'single')&&y.qty===x.qty));
+ const create=new Function('chosenItems','itemTarget','availableHere','allowedOption','saleableFor','readCart','belongs','normalized','sameItems','prefill','confirm','message','localStorage','window','StorageEvent','expected','STORE','CART_KEY','summaryItems',prepSource+'return prepare;');
+ const same=(a,b)=>a.length===b.length&&a.map(x=>[x.sku,x.option,x.qty].join(':')).sort().join(';')===b.map(x=>[x.sku,x.option,x.qty].join(':')).sort().join(';');
+ const fn=create(()=>requested,()=>({stock:'low'}),()=>true,()=>true,()=>saleable,()=>saved,
+  x=>(x.store==='china'?'china':'main')==='china',x=>x.opt==='fullbox'?'fullbox':'single',
+  same,()=>true,()=>consent,x=>messages.push(x),
+  {setItem:(k,v)=>{assert.equal(k,'bbp_cart_v1');writes++;saved=JSON.parse(v)}},
+  {dispatchEvent:()=>{}},class StorageEvent{},expected,'china','bbp_cart_v1',()=>requested.map(x=>x.sku).join(','));
+ return {run:fn,saved:()=>saved,writes:()=>writes,messages};
+}
+test('multi-doll prepayment cart writes once, preserves other store, and refuses unexpected replacement',async()=>{
+ const selected=[{sku:'D101',option:'single',qty:2},{sku:'D102',option:'fullbox',qty:1}];
+ const first=prepHarness([{sku:'MAIN',opt:'single',qty:1,store:'main'}],selected);
+ assert.equal(await first.run(),true);
+ assert.equal(first.writes(),1);
+ assert.deepEqual(first.saved().filter(x=>x.store==='main').map(x=>x.sku),['MAIN']);
+ assert.deepEqual(first.saved().filter(x=>x.store==='china').map(x=>x.sku),['D101','D102']);
+ const declined=prepHarness([{sku:'UNRELATED',opt:'single',qty:1,store:'china'}],selected,{consent:false});
+ assert.equal(await declined.run(),false);
+ assert.equal(declined.writes(),0);
+ const unavailable=prepHarness([],selected,{saleable:false});
+ assert.equal(await unavailable.run(),false);
+ assert.equal(unavailable.writes(),0);
+});
+test('official payment-ready watcher never presses the payment button',()=>{
+ const payment=part('function watchPrePayment(){','const ob=new MutationObserver');
+ assert.match(payment,/pay_panel/);
+ assert.match(payment,/if\(!submitClicked\|\|payDone\)/);
+ assert.match(payment,/mini\.textContent=/);
+ assert.doesNotMatch(payment,/\.click\(/);
+});
