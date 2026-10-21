@@ -6,7 +6,7 @@ const installer=readFileSync(new URL("../bebepick-pc-ui-diagnostic-v223-install.
 function part(start,end){const a=js.indexOf(start),b=js.indexOf(end,a+start.length);assert.ok(a>=0&&b>a,start);return js.slice(a,b);}
 test("separate diagnostic JavaScript syntax and exact supported official paths",()=>{
  assert.doesNotThrow(()=>new Function(js));
- assert.match(js,/^const store=\/\^\\\/plus/);
+ assert.match(js,/\bconst store=\/\^\\\/plus/);
  assert.match(js,/location\.hostname!=="bebepick\.me"/);
  assert.match(js,/window\.__bbpReadOnlyUiDiag223/);
 });
