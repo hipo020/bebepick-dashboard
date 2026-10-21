@@ -349,12 +349,28 @@ try {
     message(nowStatus+' · '+Math.round(delayed/1000)+'초 후 재확인');schedule(delayed);return;
    }
    tries=0;
-   if(windowOk&&productOk){confirmed=true;confirmedAt=Date.now();timingOnce('both_ready','재고+접수 조건 충족');message('✅ '+triggerMode+' + 선택 상품 재고 표시 · 공식 주문 UI 확인 중');handoff();return;}
+   if(windowOk&&productOk){
+    confirmed=true;confirmedAt=Date.now();
+    timingOnce('both_ready','재고+접수 조건 충족');
+    message('✅ '+triggerMode+' + 선택 상품 재고 표시 · 공식 주문 UI 확인 중');
+    // The official page may not mutate its DOM until AFTER the server
+    // turns ON. Recheck its own UI at bounded intervals, with no new RPC.
+    if(!uiTimer)uiTimer=setInterval(()=>{if(confirmed&&active&&!polling&&!document.hidden)handoff();},250);
+    handoff();return;
+   }
    message(nowStatus);schedule(cycle*1000);
   }catch(e){tries++;timingMark('poll_error','조회 처리 오류');message('⚠ 감시 오류 · 잠시 뒤 다시 시도');schedule(Math.min(120000,cycle*2000*Math.pow(2,Math.min(tries,4))));}
   finally{polling=false;}
  }
- function reloadShow(){timingOnce('official_ui_wait','공식 DOM 주문상태 반영 대기');controls.reload.style.display='block';controls.reload.hidden=false;message('🔄 서버 판매 가능 후보 확인 · 공식 상품 화면 갱신 대기');if(!routeBusy&&Date.now()-lastRouteAt>5500)refreshRoute();}
+ function reloadShow(){
+  timingOnce('official_ui_wait','공식 DOM 주문상태 반영 대기');
+  controls.reload.style.display='block';controls.reload.hidden=false;
+  if(Date.now()-lastUiNotice>1200){
+   lastUiNotice=Date.now();
+   message('🔄 서버에서는 주문 가능 · 공식 홈페이지의 닫힌 화면 갱신 대기 (최대 5초)');
+  }
+  if(!routeBusy&&Date.now()-lastRouteAt>5500)refreshRoute();
+ }
   function refreshRoute(){
    if(routeBusy||!active||document.hidden)return;
    if(location.hash&&location.hash!=='#'){endPolling();message('⚠ 다른 경로 이동 감지 · 수동 확인 필요');return;}
@@ -380,7 +396,20 @@ try {
   if(!expected()){stop();message('⚠ 장바구니 내용 변경 · 주문 진행 중지');return;}
   const pcard=el('[data-ctl="'+sku+'"]'),card=pcard&&pcard.closest('.prod');
   const w=el('#storeBar .sb-order.open'),shopFresh=card&&!card.classList.contains('soldout')&&(option==='single'||!card.classList.contains('fbout'));
-  if((!w&&triggerMode!=='LIVE 표시')||!shopFresh){reloadShow();return;}
+  if((!w&&triggerMode!=='LIVE 표시')||!shopFresh){
+   // The trusted server state can open while the site's DOM remains closed.
+   // Do NOT click a stale/disabled official button or navigate the page away.
+   if(Date.now()-confirmedAt>=5000){
+    timingMark('ui_stale','서버 접수 ON · 공식 DOM 미반영 5초');
+    if(uiTimer)clearInterval(uiTimer);uiTimer=null;
+    confirmed=false;
+    controls.reload.hidden=false;controls.reload.style.display='block';
+    message('⚠ 서버에서는 구매 가능하지만 공식 화면이 5초간 닫혀 있어. 새로고침 후 북마크를 재실행해야 할 수 있어 · 서버 감시는 계속됨');
+    schedule(cycle*1000);
+    return;
+   }
+   reloadShow();return;
+  }
   const btn=el('#cartBar .cb-submit')||el('#btnTopCart:not([hidden])');
   if(!btn||btn.disabled){reloadShow();return;}
    if(Date.now()-confirmedAt>Math.max(10000,cycle*2000)){confirmed=false;message('🔄 구매 직전 공식 서버 재확인');poll();return;}
@@ -418,7 +447,11 @@ try {
   cartTimer=setInterval(progressCart,50);
   queueMicrotask(progressCart);
  }
- controls.reload.onclick=()=>{if(!expected()){message('⚠ 장바구니 내용을 확인해 줘');return;}location.assign(STORE==='main'?'https://bebepick.me/live':'https://bebepick.me/plus');};
+ controls.reload.onclick=()=>{
+   if(!expected()){message('⚠ 장바구니 내용을 확인해 줘');return;}
+   if(!confirm('공식 홈페이지를 새로고침할까? 진행 중인 도우미는 종료돼. 새로고침 뒤 북마크를 다시 실행해야 해.'))return;
+   location.assign(STORE==='main'?'https://bebepick.me/live':'https://bebepick.me/plus');
+  };
  el('#qStart',panel).onclick=async()=>{
   if(completed){message('⚠ 이전 주문 시도가 있어 · 새로고침 후 다시 시도해 줘');return;}
   if(active){message('⏳ 이미 감시 중이야');return;}
