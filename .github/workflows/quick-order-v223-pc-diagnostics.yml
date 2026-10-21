@@ -1,0 +1,27 @@
+name: Bebepick PC Read-only Diagnostics v2.2.3
+
+on:
+  pull_request:
+    paths:
+      - "bebepick-pc-readonly-ui-diagnostic-v223.js"
+      - "bebepick-pc-ui-diagnostic-v223-install.html"
+      - "tests/quick-order-v223-pc-readonly.test.mjs"
+      - ".github/workflows/quick-order-v223-pc-diagnostics.yml"
+  push:
+    branches: [main]
+    paths:
+      - "bebepick-pc-readonly-ui-diagnostic-v223.js"
+      - "bebepick-pc-ui-diagnostic-v223-install.html"
+      - "tests/quick-order-v223-pc-readonly.test.mjs"
+      - ".github/workflows/quick-order-v223-pc-diagnostics.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify diagnosis is read-only and order-safe
+        run: node --test tests/quick-order-v223-pc-readonly.test.mjs
