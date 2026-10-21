@@ -1,0 +1,42 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>베베픽 PC 주문 화면 진단 v2.2.3</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f5f0fc;color:#30273a;font:15px/1.55 system-ui,-apple-system,sans-serif}
+main{max-width:680px;margin:28px auto;padding:16px}section{background:#fff;padding:20px;border:1px solid #e5dbf0;border-radius:16px}
+h1{font-size:24px;line-height:1.4;margin-top:0}h2{font-size:18px}li{margin:8px 0}
+button{background:#7654ac;color:white;border:0;border-radius:10px;padding:12px 18px;font-weight:750;font:inherit;cursor:pointer}
+textarea{width:100%;min-height:95px;margin-top:10px;border:1px solid #cbb8df;border-radius:9px;resize:none;padding:9px;font:12px/1.5 monospace}
+a{color:#604290}.muted{font-size:13px;color:#6f627b}.note{background:#f2eaf9;border-radius:10px;padding:13px;margin:14px 0;font-size:13px}
+</style></head><body><main><section>
+<h1>🧪 베베픽 PC 주문창 갱신 진단 v2.2.3</h1>
+<p>공식 홈페이지가 <strong>닫힘 → 열림</strong> 상태로 바뀔 때 서버와 화면의 시간이 다른지 비교하는 <strong>읽기 전용</strong> 도우미야.</p>
+<div class="note"><strong>안전:</strong> 주문 버튼, 장바구니, 동의/결제 단계를 누르지 않아. 서버의 주문 상태와 상품 목록은 조회만 해. 기존 실주문용 v2.2.2 도우미와 동시에 실행하지 마.</div>
+<h2>PC 크롬에서 설치하기 (처음 한 번)</h2>
+<ol>
+<li>아래 <strong>진단 북마크 코드 복사</strong>를 눌러.</li>
+<li>크롬에서 <a href="https://bebepick.me/plus" target="_blank" rel="noopener">베베픽 플러스 공식 페이지</a>를 열고 <strong>Ctrl + D</strong>로 북마크를 하나 만들어.</li>
+<li><strong>Ctrl + Shift + O</strong>로 북마크 관리자를 열어 방금 만든 북마크의 <strong>수정</strong>을 선택해.</li>
+<li>북마크 <strong>이름</strong>은 <code>베베픽 PC 진단</code>으로, <strong>URL(주소)</strong>은 복사한 코드를 통째로 붙여넣고 저장해.</li>
+<li>다시 베베픽 공식 홈페이지 탭으로 돌아와서 북마크바의 <strong>베베픽 PC 진단</strong>을 클릭하면 진단 창이 나타나.</li>
+</ol>
+<button type="button" id="copy">📋 진단 북마크 코드 복사</button>
+<p class="muted" id="msg" aria-live="polite">북마크 주소(URL)에 넣는 코드야. 주소창에서 실행하지 않아도 돼.</p>
+<textarea id="code" readonly aria-label="진단 북마크용 코드"></textarea>
+<h2>진단할 때</h2>
+<ol>
+<li>원하면 상품 코드(예: D706)를 입력하고 조회 간격은 8초 권장으로 둬.</li>
+<li>주문 접수가 <strong>닫혀 있는 상태</strong>에서 <strong>진단 시작</strong>을 눌러.</li>
+<li>나중에 서버가 열리면 서버 ON, 상단 LIVE/주문 표시, 버튼 enabled의 변화 시간이 각각 기록돼.</li>
+<li><strong>중지 → JSON 저장</strong>을 눌러 나온 파일을 이 채팅에 보내줘.</li>
+</ol>
+<p class="muted">Chrome에서 팝업/코드 실행이 막히면 복사한 북마크 URL이 <code>javascript:</code>로 시작하는지 확인해. 사이트 새로고침 시 진단은 종료돼.</p>
+<p class="muted">기존 실주문판은 별도: <a href="https://hipo020.github.io/bebepick-dashboard/bebepick-quick-order-v222-install.html">v2.2.2 자동주문 설치</a>. 이 페이지의 v2.2.3은 실주문판이 아니라 PC 진단 전용이야.</p>
+</section></main>
+<script>(function(){
+const src="https://hipo020.github.io/bebepick-dashboard/bebepick-pc-readonly-ui-diagnostic-v223.js?v=20261021-v223-pc-readonly";
+const code="javascript:(function(){var s=document.createElement('script');s.src="+JSON.stringify(src)+";s.onerror=function(){alert('진단 로드 실패')};document.documentElement.appendChild(s)})()";
+document.getElementById("code").value=code;
+document.getElementById("copy").onclick=async()=>{
+try{await navigator.clipboard.writeText(code);document.getElementById("msg").textContent="✅ 코드 복사 완료! Ctrl+D로 만든 북마크의 URL에 넣어줘.";}
+catch(e){document.getElementById("code").focus();document.getElementById("code").select();document.getElementById("msg").textContent="자동 복사가 막혀 코드를 선택했어. Ctrl+C로 복사해 줘.";}
+};
+})();</script></body></html>
