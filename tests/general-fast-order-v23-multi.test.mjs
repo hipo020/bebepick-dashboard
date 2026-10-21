@@ -105,3 +105,14 @@ test('official payment-ready watcher never presses the payment button',()=>{
  assert.match(payment,/mini\.textContent=/);
  assert.doesNotMatch(payment,/\.click\(/);
 });
+
+test('site LIVE marker alone cannot begin a real checkout when ordering is closed',()=>{
+ const fn=new Function(part('function serverOpen(w){','function matchesStorage(')+'return serverOpen;')();
+ assert.equal(fn({open:false,closed:true,enabled:true,yt_live:true}),false);
+ assert.equal(fn({open:true,closed:false,enabled:true,yt_live:false}),true);
+ assert.equal(fn({open:true,closed:false,enabled:true,reason:'paused',yt_live:true}),false);
+ assert.equal(fn({open:true,closed:false,enabled:false,yt_live:true}),false);
+ const handoff=part('function handoff(){','controls.add.onclick');
+ assert.match(handoff,/if\(!w\|\|!shopFresh\)/);
+ assert.doesNotMatch(handoff,/LIVE 표시/);
+});
