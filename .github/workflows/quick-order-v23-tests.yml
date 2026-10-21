@@ -1,0 +1,27 @@
+name: Quick Order v2.3 Multi Item Safety
+
+on:
+  pull_request:
+    paths:
+      - "bebepick-quick-order-general-v23.js"
+      - "bebepick-quick-order-v23-install.html"
+      - "tests/general-fast-order-v23-multi.test.mjs"
+      - ".github/workflows/quick-order-v23-tests.yml"
+  push:
+    branches: [main]
+    paths:
+      - "bebepick-quick-order-general-v23.js"
+      - "bebepick-quick-order-v23-install.html"
+      - "tests/general-fast-order-v23-multi.test.mjs"
+      - ".github/workflows/quick-order-v23-tests.yml"
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Run v2.3 and legacy v2.2.2 regression tests
+        run: node --test tests/general-fast-order-v23-multi.test.mjs tests/general-fast-order-v222-refresh.test.mjs
