@@ -358,23 +358,27 @@ function basketSummary(){const c=chosenItems();return c.length+'줄 · '+c.reduc
    if(res[0].status==='fulfilled'){const w=res[0].value&&res[0].value[STORE];if(w&&(typeof w.open==='boolean'||typeof w.yt_live==='boolean')){windowOk=serverOpen(w);triggerMode=openMode(w);if(windowOk){timingOnce('window_open',triggerMode);if(lastWindowOk===false)timingOnce('window_transition','공식 주문 상태 닫힘 → '+triggerMode);}else if(lastWindowOk===null)timingOnce('window_closed','공식 주문 상태 닫힘');lastWindowOk=windowOk;}else failed.push(new Error('주문 응답 형식 오류'));}
    else failed.push(res[0].reason);
    if(res[1].status==='fulfilled'&&Array.isArray(res[1].value)){
-   catalog=res[1].value;p=target();
-   if(!p){productOk=false;awaitingCatalog=true;}
-   else if(Object.prototype.hasOwnProperty.call(p,'stock')){
-    awaitingCatalog=false;
-    if(!allowedOption(p)){stop();message('⚠ 선택한 '+(option==='fullbox'?'풀박스':'상품')+'을 공식 상품 정보에서 지원하지 않아 · 수동 확인');return;}
-    if(saleable(p))timingOnce('sellable','공식 list_products 새 응답');
-     // 품절인 동안에는 설정값만 보존해 사이트가 장바구니를 지우지 않게 한다.
-    if(!cartPrepared&&saleable(p)){
-     if(!await prepare()){stop();message('⚠ 판매 가능 확인 후 장바구니 준비 실패 · 수동 확인');return;}
-     cartPrepared=true;timingOnce('cart_ready','서버 재고 확인 후');fillCatalog();updateInfo();
+   catalog=res[1].value;
+   const chosen=chosenItems(),targets=chosen.map(itemTarget);
+   p=targets.find(x=>x)||null;
+   const missing=targets.some(x=>!x);
+   awaitingCatalog=missing;
+   if(chosen.length===0){productOk=false;}
+   else if(missing){productOk=false;}
+   else if(targets.every(x=>Object.prototype.hasOwnProperty.call(x,'stock'))){
+    if(!chosen.every((x,i)=>allowedOption(targets[i],x.option))){stop();message('⚠ 선택한 상품 중 지원하지 않는 옵션이 있어 · 수동 확인');return;}
+    if(allSaleable())timingOnce('sellable','선택한 모든 인형의 판매 가능 상태 확인');
+    // Never mutate cart while any item is out of stock.
+    if(!cartPrepared&&allSaleable()){
+     if(!await prepare()){stop();message('⚠ 전체 상품 판매 가능 확인 후 장바구니 준비 실패 · 수동 확인');return;}
+     cartPrepared=true;timingOnce('cart_ready','전체 상품 재고 확인 후');fillCatalog();updateInfo();
     }
-    productOk=!!cartPrepared&&saleable(p);
+    productOk=!!cartPrepared&&allSaleable();
    }else failed.push(new Error('선택 상품 재고 응답 형식 오류'));
   }
    else failed.push(res[1].status==='rejected'?res[1].reason:new Error('재고 응답 형식 오류'));
    const when=new Date().toLocaleTimeString('ko-KR',{hour12:false});
-   const nowStatus='📡 구매 조건 '+(windowOk===null?'조회 실패':windowOk?(triggerMode||'충족'):'미충족')+' · '+(p?p.name:sku)+' '+(productOk===null?'재고 조회 실패':p?latestAvailability(p):'⏳ 공식 목록 재등장 대기')+' · '+when;
+   const nowStatus='📡 구매 조건 '+(windowOk===null?'조회 실패':windowOk?(triggerMode||'충족'):'미충족')+' · '+chosenItems().length+'줄 '+(productOk===null?'재고 조회 실패':awaitingCatalog?'⏳ 공식 목록 재등장 대기':latestAvailability(p))+' · '+when;
    if(failed.length){
     tries++;
     if(failed.some(e=>e&&[401,403].includes(e.httpStatus))){stop();message('⚠ 서버 조회 거절 · 감시 중지');return;}
@@ -437,8 +441,11 @@ function basketSummary(){const c=chosenItems();return c.length+'줄 · '+c.reduc
  function handoff(){
   if(!confirmed||!active)return;
   if(!expected()){stop();message('⚠ 장바구니 내용 변경 · 주문 진행 중지');return;}
-  const pcard=el('[data-ctl="'+sku+'"]'),card=pcard&&pcard.closest('.prod');
-  const w=el('#storeBar .sb-order.open'),shopFresh=card&&!card.classList.contains('soldout')&&(option==='single'||!card.classList.contains('fbout'));
+  const w=el('#storeBar .sb-order.open');
+  const shopFresh=chosenItems().every(x=>{
+   const pcard=el('[data-ctl="'+x.sku+'"]'),card=pcard&&pcard.closest('.prod');
+   return card&&!card.classList.contains('soldout')&&(x.option==='single'||!card.classList.contains('fbout'));
+  });
   if((!w&&triggerMode!=='LIVE 표시')||!shopFresh){staleOfficialUi('공식 판매 화면 갱신 지연');return;}
   const btn=el('#cartBar .cb-submit')||el('#btnTopCart:not([hidden])');
   if(!btn||btn.disabled){staleOfficialUi('공식 주문 버튼 비활성');return;}
