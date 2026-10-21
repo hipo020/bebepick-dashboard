@@ -611,6 +611,19 @@ function basketSummary(){const c=chosenItems();return c.length+'줄 · '+c.reduc
   message('📨 공식 주문 버튼 1회 클릭 · 결제 직전 화면 확인해 줘 (페이앱 자동 실행 OFF)');
   timingOnce('submit_click','DOM 클릭 호출 · 서버 접수 미확인');ok.click();
  }
+ // Display pre-payment readiness without clicking PayApp/payment controls.
+ function watchPrePayment(){
+  if(!submitClicked||payDone)return;
+  const sheet=el('.panel[data-sheet="pay"]');
+  if(!sheet||!sheet.isConnected||sheet.hidden||getComputedStyle(sheet).display==='none')return;
+  const txt=sheet.textContent||'',m=txt.match(/\bBP[A-Z0-9]{8,}\b/);
+  if(!m||m[0]===oldPayOrder||!/주문서를?\s*만들었습니다|주문\s*완료|주문번호/.test(txt))return;
+  payDone=true;
+  timingOnce('pay_panel','공식 화면에 새 주문번호 표시 · 결제 버튼 클릭 0회');
+  mini.textContent='✅ 결제 직전 화면 · 도우미 펼치기';
+  message('✅ 새 주문번호가 공식 화면에 표시됐어 · 결제는 직접 눌러줘!');
+  if(folded)revealOfficial();
+ }
  const ob=new MutationObserver(records=>{
   // Own floating panel status/trace mutations must NOT cause reentrant
   // handoff checks or stale-refresh loops.
@@ -620,6 +633,7 @@ function basketSummary(){const c=chosenItems();return c.length+'줄 · '+c.reduc
   if(completed&&el('.oc[role="alertdialog"] .oc-box'))timingOnce('confirm_visible','공식 주문 확인창 DOM 표시');
   if(confirmed&&active&&!polling)handoff();
   if(wizardTimer&&!submitClicked)watchWizard();
+  if(submitClicked&&!payDone)watchPrePayment();
  });
  ob.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class','hidden','disabled']});
  document.addEventListener('visibilitychange',()=>{if(timingActive)timingMark(document.hidden?'hidden':'resumed');if(active&&!document.hidden&&!polling){if(timer)clearTimeout(timer);schedule(100);}});
