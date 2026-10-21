@@ -381,7 +381,7 @@ try {
     if(!active){routeBusy=false;return;}
     history.replaceState(history.state,'',location.pathname+location.search);
     window.dispatchEvent(new Event('hashchange'));
-    setTimeout(()=>{routeBusy=false;if(active)handoff();},1200);
+    setTimeout(()=>{routeBusy=false;if(active&&confirmed)handoff();},1200);
    },250);
   }
  function correctOrderControls(cartPanel){
@@ -393,6 +393,7 @@ try {
   return chosen(chosenStore)&&chosen(chosenOpen);
  }
  function handoff(){
+  if(!confirmed||!active)return;
   if(!expected()){stop();message('⚠ 장바구니 내용 변경 · 주문 진행 중지');return;}
   const pcard=el('[data-ctl="'+sku+'"]'),card=pcard&&pcard.closest('.prod');
   const w=el('#storeBar .sb-order.open'),shopFresh=card&&!card.classList.contains('soldout')&&(option==='single'||!card.classList.contains('fbout'));
