@@ -392,28 +392,24 @@ try {
   if(!chosen(chosenOpen))chosenOpen.click();
   return chosen(chosenStore)&&chosen(chosenOpen);
  }
+ function staleOfficialUi(reason){
+  if(Date.now()-confirmedAt<5000){reloadShow();return;}
+  timingMark('ui_stale',reason+' · 서버 구매 가능 확인 후 5초');
+  if(uiTimer)clearInterval(uiTimer);uiTimer=null;
+  confirmed=false;
+  controls.reload.hidden=false;controls.reload.style.display='block';
+  message('⚠ 서버에는 구매 가능 상태지만 공식 화면이 갱신되지 않았어 ('+reason+'). 감시는 계속해. 새로고침할 때는 북마크를 다시 실행해야 해.');
+  schedule(cycle*1000);
+ }
  function handoff(){
   if(!confirmed||!active)return;
   if(!expected()){stop();message('⚠ 장바구니 내용 변경 · 주문 진행 중지');return;}
   const pcard=el('[data-ctl="'+sku+'"]'),card=pcard&&pcard.closest('.prod');
   const w=el('#storeBar .sb-order.open'),shopFresh=card&&!card.classList.contains('soldout')&&(option==='single'||!card.classList.contains('fbout'));
-  if((!w&&triggerMode!=='LIVE 표시')||!shopFresh){
-   // The trusted server state can open while the site's DOM remains closed.
-   // Do NOT click a stale/disabled official button or navigate the page away.
-   if(Date.now()-confirmedAt>=5000){
-    timingMark('ui_stale','서버 접수 ON · 공식 DOM 미반영 5초');
-    if(uiTimer)clearInterval(uiTimer);uiTimer=null;
-    confirmed=false;
-    controls.reload.hidden=false;controls.reload.style.display='block';
-    message('⚠ 서버에서는 구매 가능하지만 공식 화면이 5초간 닫혀 있어. 새로고침 후 북마크를 재실행해야 할 수 있어 · 서버 감시는 계속됨');
-    schedule(cycle*1000);
-    return;
-   }
-   reloadShow();return;
-  }
+  if((!w&&triggerMode!=='LIVE 표시')||!shopFresh){staleOfficialUi('공식 판매 화면 갱신 지연');return;}
   const btn=el('#cartBar .cb-submit')||el('#btnTopCart:not([hidden])');
-  if(!btn||btn.disabled){reloadShow();return;}
-   if(Date.now()-confirmedAt>Math.max(10000,cycle*2000)){confirmed=false;message('🔄 구매 직전 공식 서버 재확인');poll();return;}
+  if(!btn||btn.disabled){staleOfficialUi('공식 주문 버튼 비활성');return;}
+  if(Date.now()-confirmedAt>Math.max(10000,cycle*2000)){confirmed=false;message('🔄 구매 직전 공식 서버 재확인');poll();return;}
   timingOnce('official_ui_ready','공식 주문 버튼 활성화');endPolling();completed=true;message('✅ 공식 장바구니·주문창 여는 중…');
   timingOnce('cart_click','버튼 호출 · 주문 생성 아님');btn.click();
   foldOfficial();
