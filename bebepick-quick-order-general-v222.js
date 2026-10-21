@@ -187,14 +187,45 @@ try {
   message('💾 속도 기록 JSON 저장 완료 · 공유 전 내용을 확인해 줘');
  };
  el('#qChannel',panel).textContent='현재 주문몰: '+(STORE==='main'?'베베픽':'베베픽 플러스');
- function message(t){controls.status.textContent=t;}
- function show(){panel.style.display='block';}
- function stop(){timingStop('감시 또는 안전장치 중지');active=false;confirmed=false;if(timer)clearTimeout(timer);timer=null;
+ const mini=document.createElement('button');
+ mini.id='bbpV222Mini';mini.hidden=true;mini.type='button';
+ mini.style.cssText='position:fixed;z-index:2147483646;right:9px;top:90px;max-width:225px;background:#704aac;color:#fff;border:0;border-radius:999px;padding:8px 10px;box-shadow:0 4px 16px #0004;font:700 12px/1.3 system-ui,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
+ mini.textContent='🧸 주문 화면 확인 중 · 펼치기';
+ document.body.append(mini);
+ let folded=false,lastScrollStage='',lastUiNotice=0;
+ mini.onclick=()=>{folded=false;mini.hidden=true;panel.style.display='block';};
+ function message(t){if(controls.status.textContent!==t)controls.status.textContent=t;}
+ function show(){folded=false;mini.hidden=true;panel.style.display='block';}
+ function foldOfficial(){
+  if(folded)return;
+  folded=true;panel.style.display='none';mini.hidden=false;
+  revealOfficial();
+ }
+ function revealOfficial(){
+  if(!folded||document.hidden)return;
+  let target=null,stage='';
+  const confirm=el('.oc[role="alertdialog"] .oc-box');
+  if(confirm&&confirm.isConnected){
+   target=confirm.querySelector('[data-oc="ok"]')||confirm.querySelector('[data-oc="next"]')||confirm;
+   stage=confirm.querySelector('[data-oc="ok"]')?'final-confirm':'first-confirm';
+  }else{
+   const pay=el('.panel[data-sheet="pay"]'),cart=el('.panel[data-sheet="cart"]');
+   if(pay&&pay.isConnected&&!pay.hidden&&getComputedStyle(pay).display!=='none'){
+    target=pay.querySelector('[data-act="pay-card"]')||pay;stage='pay';
+   }else if(cart&&cart.isConnected&&!cart.hidden&&getComputedStyle(cart).display!=='none'){
+    target=cart.querySelector('#checkout')||cart;stage='cart';
+   }
+  }
+  if(!target||lastScrollStage===stage)return;
+  lastScrollStage=stage;
+  requestAnimationFrame(()=>{try{if(target.isConnected)target.scrollIntoView({block:'end',inline:'nearest',behavior:'auto'});}catch(e){}});
+ }
+ function stop(){if(uiTimer)clearInterval(uiTimer);uiTimer=null;timingStop('감시 또는 안전장치 중지');active=false;confirmed=false;if(timer)clearTimeout(timer);timer=null;
    if(cartTimer)clearInterval(cartTimer);cartTimer=null;cartProgress=null;
    if(wizardTimer)clearInterval(wizardTimer);wizardTimer=null;
    controllers.forEach(c=>c.abort());controllers.clear();polling=false;payArmed=false;autoOrder=false;
   }
-  function endPolling(){active=false;if(timer)clearTimeout(timer);timer=null;controllers.forEach(c=>c.abort());controllers.clear();polling=false;}
+  function endPolling(){if(uiTimer)clearInterval(uiTimer);uiTimer=null;active=false;if(timer)clearTimeout(timer);timer=null;controllers.forEach(c=>c.abort());controllers.clear();polling=false;}
   function recentSubmit(){try{const prev=JSON.parse(sessionStorage.getItem('bbp_general_v2_submit_'+STORE)||'null');return prev&&Date.now()-prev.at<180000?prev:null;}catch(e){return null;}}
  function config(){const c=window.APP_CONFIG||{};if(!c.supabaseUrl||!c.supabaseAnonKey)throw Error('공식 홈페이지 서버 설정 없음');const base=String(c.supabaseUrl).replace(/\/$/,'');if(base!=='https://eqytdtxemjlygnobhiio.supabase.co')throw Error('공식 서버가 예상한 주소와 다름');return {base:base,key:c.supabaseAnonKey};}
  async function rpc(fn,args){const rpcAt=performance.now(),c=config(),ctl=new AbortController();controllers.add(ctl);const to=setTimeout(()=>ctl.abort(),7500);
@@ -355,6 +386,7 @@ try {
    if(Date.now()-confirmedAt>Math.max(10000,cycle*2000)){confirmed=false;message('🔄 구매 직전 공식 서버 재확인');poll();return;}
   timingOnce('official_ui_ready','공식 주문 버튼 활성화');endPolling();completed=true;message('✅ 공식 장바구니·주문창 여는 중…');
   timingOnce('cart_click','버튼 호출 · 주문 생성 아님');btn.click();
+  foldOfficial();
   // Progress on DOM mutation with a 50ms fallback; no extra server requests.
   const cartWaitUntil=performance.now()+2500;
   let lastCartCheckAt=-Infinity;
@@ -413,7 +445,7 @@ try {
   }
   autoOrder=!!controls.autoOrder.checked;dryRun=!!controls.dryRun.checked;autoPay=!!controls.pay.checked;
   if(autoOrder&&dryRun&&autoPay)autoPay=false;
-  active=true;confirmed=false;completed=false;tries=0;triggerMode='';routeBusy=false;
+  active=true;confirmed=false;completed=false;tries=0;triggerMode='';routeBusy=false;lastWindowOk=null;
   controls.reload.hidden=true;controls.reload.style.display='none';
   message('⏳ '+label(target())+' · '+labels[option]+' · '+open+' + '+storage+' · '+cycle+'초 감시 · '+(awaitingCatalog?'공식 목록 재등장 대기 · ':cartPrepared?'장바구니 준비 완료 · ':'품절 · 재고 입고 대기 · ')+(autoOrder?(dryRun?'무전송 시험':'실제 자동 주문'):'수동 확정')+' 모드');
   poll();
@@ -502,7 +534,11 @@ try {
    message('✅ 수동 최종 클릭 감지 · 주문번호 확인 후 페이앱 대기');
   }else message('⚠ 옵션 불일치 · 결제창 자동 이동 중지');
  },true);
- const ob=new MutationObserver(()=>{
+ const ob=new MutationObserver(records=>{
+  // Own floating panel status/trace mutations must NOT cause reentrant
+  // handoff checks or stale-refresh loops.
+  if(!records.some(r=>!panel.contains(r.target)&&!mini.contains(r.target)&&r.target!==panel&&r.target!==mini))return;
+  if(folded)revealOfficial();
   if(cartTimer&&cartProgress)cartProgress();
   if(completed&&el('.oc[role="alertdialog"] .oc-box'))timingOnce('confirm_visible','공식 주문 확인창 DOM 표시');
   if(confirmed&&active&&!polling)handoff();
@@ -511,7 +547,7 @@ try {
  });
  ob.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class','hidden','disabled']});
  document.addEventListener('visibilitychange',()=>{if(timingActive)timingMark(document.hidden?'hidden':'resumed');if(active&&!document.hidden&&!polling){if(timer)clearTimeout(timer);schedule(100);}});
- window.addEventListener('pagehide',()=>{stop();ob.disconnect();});
+ window.addEventListener('pagehide',()=>{stop();ob.disconnect();mini.remove();});
  controls.opt.value=option;controls.cycle.value=String(cycle);controls.open.value=open;controls.storage.value=storage;controls.manual.value=sku;
  window.__bbpGeneralQuickV2={show,stop,__v2:true,version:'2.2.2'};
  loadCatalog(false);
