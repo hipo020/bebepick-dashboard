@@ -1,0 +1,27 @@
+name: Quick Order v2.2.2 UI Recovery and Safety
+
+on:
+  pull_request:
+    paths:
+      - "bebepick-quick-order-general-v222.js"
+      - "bebepick-quick-order-v222-install.html"
+      - "tests/general-fast-order-v222-refresh.test.mjs"
+      - ".github/workflows/quick-order-v222-tests.yml"
+  push:
+    branches: [main]
+    paths:
+      - "bebepick-quick-order-general-v222.js"
+      - "bebepick-quick-order-v222-install.html"
+      - "tests/general-fast-order-v222-refresh.test.mjs"
+      - ".github/workflows/quick-order-v222-tests.yml"
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Prior stable v2.2.1 test suite and v2.2.2 UI regression tests
+        run: node --test tests/general-fast-order-v2.test.mjs tests/general-fast-order-v22-timing.test.mjs tests/general-fast-order-v221-dom.test.mjs tests/general-fast-order-v222-refresh.test.mjs
