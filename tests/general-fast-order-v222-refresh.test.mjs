@@ -21,10 +21,13 @@ test("closed-to-open transition is separately recorded from already-open at star
 });
 test("stale official UI waits bounded 5s and resumes original server polling",()=>{
  const handoff=part("function handoff(){","controls.reload.onclick");
- assert.match(handoff,/Date\.now\(\)-confirmedAt>=5000/);
- assert.match(handoff,/timingMark\('ui_stale'/);
- assert.match(handoff,/confirmed=false/);
- assert.match(handoff,/schedule\(cycle\*1000\)/);
+ const stale=part("function staleOfficialUi(","function handoff(){");
+ assert.match(stale,/Date\.now\(\)-confirmedAt<5000/);
+ assert.match(stale,/timingMark\('ui_stale'/);
+ assert.match(stale,/confirmed=false/);
+ assert.match(stale,/schedule\(cycle\*1000\)/);
+ assert.match(handoff,/staleOfficialUi\('공식 판매 화면 갱신 지연'\)/);
+ assert.match(handoff,/staleOfficialUi\('공식 주문 버튼 비활성'\)/);
  assert.match(source,/uiTimer=setInterval\(\(\)=>\{if\(confirmed&&active&&!polling&&!document\.hidden\)handoff\(\);\},250\)/);
  assert.match(source,/if\(uiTimer\)clearInterval\(uiTimer\)/);
  assert.doesNotMatch(handoff,/location\.reload\(|location\.assign\(/);
