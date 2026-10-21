@@ -1,5 +1,9 @@
 # Bebepick Dashboard
 
+> 🔧 **범용 빠른 주문 v2.2.2 — 닫힘→열림 감지·공식 화면 지연 복구·자동 스크롤:** [설치](https://hipo020.github.io/bebepick-dashboard/bebepick-quick-order-v222-install.html) · [인수인계](docs/QUICK_ORDER_V222_UI_FRESHNESS_RUNBOOK_2026-10-21.md). 기존 v2.2.1은 별도 파일로 보존.
+>
+> 공식 페이지의 DOM이 갱신되지 않으면 주문 버튼을 강제로 누르지 않음. 감시는 이어가지만 **진짜 자동 새로고침은 보장하지 않으며** 수동 새로고침과 북마크 재실행이 필요할 수 있음.
+
 > 🧸 **베베픽 공식 홈페이지 범용 빠른 주문 v2.2 (재고/주문 창 상태 속도 기록):** [북마크 설치](https://hipo020.github.io/bebepick-dashboard/bebepick-quick-order-v22-install.html) · [구간별 속도 기록 운영 인수인계](docs/QUICK_ORDER_V22_TIMING_RUNBOOK_2026-10-20.md).
 >
 > 이 도우미는 **공식 베베픽 /live·/plus 주문몰**에서만 사용하고, 이 저장소의 개인용 `index.html` 재고판 자체와 주문 로직이 다릅니다. 무전송 시험이 기본값이며 실주문은 별도 명시 동의가 필요합니다.
