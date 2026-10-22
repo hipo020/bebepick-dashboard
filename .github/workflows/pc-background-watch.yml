@@ -8,6 +8,7 @@ on:
       - 'tests/general-v24-mobile-mode-visibility.test.cjs'
       - 'tests/general-v24-quantity-total.test.cjs'
       - 'tests/general-v24-mixed-order.test.cjs'
+      - 'tests/general-v24-panel-render.test.cjs'
       - '.github/workflows/pc-background-watch.yml'
   pull_request:
     paths:
@@ -17,6 +18,7 @@ on:
       - 'tests/general-v24-mobile-mode-visibility.test.cjs'
       - 'tests/general-v24-quantity-total.test.cjs'
       - 'tests/general-v24-mixed-order.test.cjs'
+      - 'tests/general-v24-panel-render.test.cjs'
       - '.github/workflows/pc-background-watch.yml'
 permissions:
   contents: read
@@ -38,6 +40,8 @@ jobs:
         run: node --test tests/general-v24-quantity-total.test.cjs
       - name: Baseline plus one new candidate regression
         run: node --test tests/general-v24-mixed-order.test.cjs
+      - name: Render and validate actual bookmarklet panel DOM markup
+        run: node --test tests/general-v24-panel-render.test.cjs
       - name: Package Chrome extension
         run: cd chrome-background-watch && zip -q -9 ../bebepick-pc-background-watch-v01.zip manifest.json background.js bridge.js checks.js README.md
       - uses: actions/upload-artifact@v4
