@@ -776,16 +776,17 @@ function basketSummary(){
   if(autoOrder&&!dryRun){
    if(recentSubmit()){message('⚠ 최근 주문 요청 이력이 있어 · 주문내역 확인 후 새로고침해 줘');return;}
    const realConsent=armedMode==='names'?
-    '⚠ 실제 주문번호 자동 생성 허용\n\n이름 후보 '+nameCandidates.length+'종 중 판매 가능으로 확인된 1종을 자동 선택해 주문할 수 있어. 어느 후보가 선택될지는 아직 확정되지 않았어.\n\n'+nameCandidates.map((c,i)=>(i+1)+'. '+c.name+' · '+(c.option==='fullbox'?'풀박스':'낱개')+' ×'+c.qty).join('\n')+'\n\n개봉 '+open+' · 받는 방법 '+storage+'\n\n공식 주문 확인 2단계를 거쳐 최종 주문번호 생성 버튼을 최대 1번 누를 수 있어. 결제는 자동 실행하지 않아. 미결제·취소 제재가 생길 수 있으므로 후보 모두 실제로 구매할 의사가 있는지 확인해 줘. 동의할까?':
-    '⚠ 여러 인형 실제 주문 자동 생성 확인\n\n'+summaryItems()+'\n\n개봉 '+open+' · 받는 방법 '+storage+'\n공식 주문 확인 2단계를 거쳐 최종 주문을 최대 1번 생성해. 결제 버튼은 직접 눌러야 해. 진행할까?';
-   const exactConsent=realConsent+'\\n\\n'+(autoPay?
+    '⚠ 실제 주문번호 자동 생성 허용\n\n이름 후보 '+nameCandidates.length+'종 중 판매 가능으로 확인된 1종을 자동 선택해 주문할 수 있어. 어느 후보가 선택될지는 아직 확정되지 않았어.\n\n'+nameCandidates.map((c,i)=>(i+1)+'. '+c.name+' · '+(c.option==='fullbox'?'풀박스':'낱개')+' ×'+c.qty).join('\n')+'\n\n개봉 '+open+' · 받는 방법 '+storage+'\n\n공식 주문 확인 2단계를 거쳐 최종 주문번호 생성 버튼을 최대 1번 누를 수 있어. 결제 승인은 자동으로 하지 않아. 미결제·취소 제재가 생길 수 있으므로 후보 모두 실제로 구매할 의사가 있는지 확인해 줘. 동의할까?':
+    '⚠ 여러 인형 실제 주문 자동 생성 확인\n\n'+summaryItems()+'\n\n개봉 '+open+' · 받는 방법 '+storage+'\n공식 주문 확인 2단계를 거쳐 최종 주문을 최대 1번 생성해. 결제 승인은 직접 진행해야 해. 진행할까?';
+   const exactConsent=realConsent+String.fromCharCode(10,10)+(autoPay?
     '⚡ PAYAPP 페이지 자동 이동: 공식 주문번호가 실제로 생성된 뒤 새 주문번호가 확인되는 경우에만, 공식 결제하기 버튼을 최대 한 번 눌러 PAYAPP 페이지 열기를 시도해. 결제수단 선택·최종 결제 승인·PAYAPP 다음 버튼은 클릭하지 않아. 팝업 차단 시 수동 진행이 필요해. 미결제 주문 제재 위험을 이해하고 진행할까?':
     '실제 주문번호 생성 후 결제하기 및 결제 승인은 직접 해 줘.');
    if(!confirm(exactConsent))return;
   }
   // Starting this explicitly selected mixed watch is the non-submitting preparation consent.
   // Do not display another blocking confirm when Android's opted-in ready alert auto-starts.
-  // The original cart must still match the baseline, and mixed forces dry-run true.
+  // The original cart must still match the baseline; mixed defaults to dry-run unless
+  // the user explicitly opts into actual order creation and PayApp-page handoff.
   if(backgroundWatch&&!confirm('PC 백그라운드 보조 감시를 켤까?\n\nChrome 확장 프로그램이 설치되어 있으면 약 30초 이상 간격으로 공식 공개 주문 상태를 확인하고, 조건이 맞을 때 이 크롬 창/탭을 앞으로 가져올 수 있어.\n\n앞으로 가져온 후에도 기존 도우미가 공식 서버·화면·재고를 다시 검사해. PC가 절전/종료되면 감시하지 못하고 모바일에서는 작동하지 않아.'))return;
   timingStart();
   if(armedMode==='sku'&&allSaleable()){
