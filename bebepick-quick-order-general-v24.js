@@ -352,9 +352,9 @@ function basketSummary(){
   const heading=document.createElement('div');heading.style.cssText='font-weight:750;margin-bottom:6px';
   heading.textContent=list.length?'🧸 도우미에 저장된 기존 SKU '+list.length+'줄 · 총 '+list.reduce((n,x)=>n+x.qty,0)+'개':'🧸 도우미 SKU 저장 목록 없음';
   controls.basket.appendChild(heading);
-  if(names){
+  if(names||((active?armedMode:watchMode)==='mixed')){
    const warning=document.createElement('div');warning.style.cssText='background:#fff0db;color:#69421a;padding:7px;border-radius:7px;margin-bottom:7px';
-   warning.textContent='⚠ 지금은 이름 후보 주문 모드야. 아래 SKU 인형은 보관돼 있지만 이번 주문에는 포함되지 않아. 이 인형들을 주문하려면 위 감시 방식을 “기존 SKU 모두”로 바꿔 줘.';
+   warning.textContent=names?'⚠ 지금은 이름 후보만 주문하는 모드야. 기존 SKU 목록은 이번 주문에 포함되지 않아.':'✅ 통합 모드야. 기존 SKU 수량을 유지한 채, 새로 열리는 이름 후보 1종을 더해 주문 준비해.';
    controls.basket.append(warning);
   }
   list.forEach((x,i)=>{
