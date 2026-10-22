@@ -46,8 +46,9 @@ test('baseline cart never silently replaced and dry-run gate is forced on',()=>{
  const p=js.slice(js.indexOf('async function prepare(){'),js.indexOf('function prefill()'));
  assert.match(p,/armedMode==='mixed'/);
  assert.match(p,/!sameItems\(cur,items\)/);
- assert.match(js,/dryRun=armedMode==='mixed'\?true/);
- assert.match(js,/controls\.autoOrder\.checked=true;controls\.dryRun\.checked=true/);
+ assert.match(js,/dryRun=armedMode==='mixed'&&!autoPay\?true/);
+ assert.match(js,/if\(!autoPay&&armedMode==='mixed'\)\{controls\.autoOrder\.checked=true;controls\.dryRun\.checked=true;\}/);
+ assert.match(js,/if\(autoPay&&\(!autoOrder\|\|dryRun\)\)/);
  assert.match(js,/if\(dryRun\)/);
 });
 test('mixed auto-start is nonblocking after user intentionally selected it',()=>{
