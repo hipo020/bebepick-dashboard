@@ -484,7 +484,12 @@ function basketSummary(){
   let c;try{c=readCart();}catch(e){message('⚠ 장바구니 읽기 오류');return false;}
   const sameStore=c.filter(belongs),cur=sameStore.map(x=>({sku:x.sku,option:normalized(x),qty:Number(x.qty)}));
   if(sameItems(cur,list))return prefill();
-  if(sameStore.length){
+  if(armedMode==='mixed'){
+   if(sameStore.length&&!sameItems(cur,items)){
+    message('⛔ 기존 장바구니가 등록 SKU 목록과 달라. 인형 수량을 보호하기 위해 자동 변경하지 않아. 목록을 확인해 줘.');
+    return false;
+   }
+  }else if(sameStore.length){
    const yes=confirm('현재 '+(STORE==='main'?'베베픽':'베플+')+' 장바구니 '+sameStore.length+'줄을 선택한 '+list.length+'줄로 교체할까?\n\n'+summaryItems()+'\n\n기존 장바구니는 이 몰에 한해 교체돼.');
    if(!yes)return false;
   }
