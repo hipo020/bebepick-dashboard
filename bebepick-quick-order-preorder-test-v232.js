@@ -325,6 +325,26 @@ function basketSummary(){if(nameWatchActive&&!lockedCandidate)return '이름 후
   }
   return {states,selected:eligible[0]||null};
  }
+ function renderNames(){
+  controls.names.replaceChildren();
+  if(!nameCandidates.length){controls.names.textContent='이름 후보 없음 · 기존 SKU 선택 사용';renderBasket();return;}
+  const heading=document.createElement('div');heading.textContent='등록 '+nameCandidates.length+'종 · 먼저 판매 가능해진 1종만 선택';heading.style.fontWeight='700';controls.names.append(heading);
+  nameCandidates.forEach((c,i)=>{
+   const line=document.createElement('div');line.style.cssText='display:flex;gap:5px;align-items:center;border-top:1px solid #e2d4ee;padding:6px 0;flex-wrap:wrap';
+   const name=document.createElement('span');name.style.cssText='flex:1;min-width:140px;overflow-wrap:anywhere';
+   const state=candidateStates.get(nameKey(c.name));
+   name.textContent=(i+1)+'. '+c.name+' · '+(c.option==='fullbox'?'풀박스':'낱개')+' ×'+c.qty+(lockedCandidate?.name===c.name?' ✅ 선택':state?' · '+state:'');
+   line.append(name);
+   for(const [cmd,label] of [['up','↑'],['down','↓'],['remove','삭제']]){
+    const b=document.createElement('button');b.type='button';b.textContent=label;b.dataset.nameCmd=cmd;b.dataset.nameIndex=String(i);
+    b.disabled=active||completed||(cmd==='up'&&i===0)||(cmd==='down'&&i===nameCandidates.length-1);
+    b.style.cssText='border:1px solid #d8c9e5;background:#fff;border-radius:6px;padding:5px';
+    line.append(b);
+   }
+   controls.names.append(line);
+  });
+  renderBasket();
+ }
  function fillCatalog(){
   const q=controls.search.value.toLocaleLowerCase('ko-KR').replace(/\s+/g,'');
   const list=visibleProducts().filter(p=>(String(p.name||'')+' '+p.sku).toLocaleLowerCase('ko-KR').replace(/\s+/g,'').includes(q))
