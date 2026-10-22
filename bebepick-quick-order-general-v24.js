@@ -34,7 +34,12 @@ const MAX_LINES=20,MAX_QTY=99,MAX_NAMES=20;
   }
  }
 let items=(Array.isArray(pref.items)?pref.items:[]).filter(x=>x&&/^[A-Z0-9-]{2,24}$/.test(String(x.sku||''))&&['single','fullbox'].includes(x.option)&&Number.isInteger(+x.qty)&&+x.qty>=1&&+x.qty<=MAX_QTY).slice(0,MAX_LINES).map(x=>({sku:String(x.sku),option:x.option,qty:+x.qty}));
-function chosenItems(){return armedMode==='names'?(lockedCandidate?[{...lockedCandidate.item}]:[]):items.length?items.map(x=>({...x})):(validSku(sku)?[{sku,option,qty:1}]:[]);}
+function chosenItems(){
+ if(armedMode==='names')return lockedCandidate?[{...lockedCandidate.item}]:[];
+ if(armedMode==='mixed')return lockedCandidate?[...items.map(x=>({...x})),{...lockedCandidate.item}]:[];
+ return items.length?items.map(x=>({...x})):(validSku(sku)?[{sku,option,qty:1}]:[]);
+}
+function namedMode(){return armedMode==='names'||armedMode==='mixed';}
 function itemKey(x){return x.sku+'|'+x.option;}
 function sameItems(a,b){const canon=list=>list.map(x=>itemKey(x)+'|'+Number(x.qty)).sort().join(';;');return a.length===b.length&&canon(a)===canon(b);}
 function itemTarget(x){return catalog.find(p=>p&&p.sku===x.sku&&availableHere(p));}
