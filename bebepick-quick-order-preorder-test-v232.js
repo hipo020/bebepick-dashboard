@@ -570,6 +570,26 @@ function basketSummary(){if(nameWatchActive&&!lockedCandidate)return '이름 후
   cartTimer=setInterval(progressCart,50);
   queueMicrotask(progressCart);
  }
+ controls.addName.onclick=()=>{
+  if(active||completed){message('⚠ 감시 시작 전 이름 후보를 수정해 줘');return;}
+  const name=controls.name.value.trim(),qty=Number(controls.nameQty.value),opt=controls.opt.value==='fullbox'?'fullbox':'single';
+  if(!validName(name)){message('⚠ 정확한 인형 이름 2~90자를 입력해 줘');return;}
+  if(!Number.isInteger(qty)||qty<1||qty>MAX_QTY){message('⚠ 수량 1~99개를 확인해 줘');return;}
+  if(nameCandidates.some(c=>nameKey(c.name)===nameKey(name))){message('⚠ 같은 이름이 이미 등록됐어. 삭제한 뒤 다시 등록해 줘');return;}
+  if(nameCandidates.length>=MAX_NAMES){message('⚠ 최대 '+MAX_NAMES+'종까지 등록 가능');return;}
+  nameCandidates.push({name,qty,option:opt});controls.name.value='';savePref();renderNames();
+  message('✅ 이름 후보 '+nameCandidates.length+'종 등록 · 위쪽 후보가 우선이야');
+ };
+ controls.name.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();controls.addName.click();}});
+ controls.names.addEventListener('click',e=>{
+  const b=e.target.closest('[data-name-cmd]');if(!b||active||completed)return;
+  const i=Number(b.dataset.nameIndex),cmd=b.dataset.nameCmd;
+  if(!Number.isInteger(i)||i<0||i>=nameCandidates.length)return;
+  if(cmd==='remove')nameCandidates.splice(i,1);
+  else if(cmd==='up'&&i>0)[nameCandidates[i],nameCandidates[i-1]]=[nameCandidates[i-1],nameCandidates[i]];
+  else if(cmd==='down'&&i<nameCandidates.length-1)[nameCandidates[i],nameCandidates[i+1]]=[nameCandidates[i+1],nameCandidates[i]];
+  savePref();renderNames();message('🧸 이름 후보 저장됨');
+ });
  controls.add.onclick=()=>{
   if(active||completed){message('⚠ 먼저 감시를 중지하거나 새로고침해 줘');return;}
   const code=(controls.sku.value||controls.manual.value||sku).trim().toUpperCase();
