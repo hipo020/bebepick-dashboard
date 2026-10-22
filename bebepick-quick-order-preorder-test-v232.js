@@ -5,7 +5,7 @@ try {
  if(location.hostname!=='bebepick.me'||!STORE){alert('베베픽 /live 또는 /plus 주문 페이지에서 실행해 줘.');return;}
  if(window.__bbpPreSubmitTestV232){window.__bbpPreSubmitTestV232.show();return;}
  if(window.__bbpPreSubmitTestV231){alert('이전 무주문 진단 v2.3.1이 켜져 있어. 새로고침 후 v2.3.2만 실행해 줘.');return;}
- if(window.__bbpGeneralQuickV23){alert('실주문 v2.3이 켜져 있어. 페이지를 새로고침하고 진단 v2.3.1만 실행해 줘.');return;}
+ if(window.__bbpGeneralQuickV23){alert('실주문 v2.3이 켜져 있어. 페이지를 새로고침하고 진단 v2.3.2만 실행해 줘.');return;}
  if(window.__bbpGeneralQuickV2){alert('기존 v2.2.2 도우미가 실행 중이야. 새로고침한 뒤 v2.3 북마크를 실행해 줘.');return;}
  if(window.__bbpGeneralQuickV1||window.__bbpRabbitFast){alert('⚠ 이전 도우미가 열려 있어. 서로 다른 자동화가 충돌하지 않도록 베베픽 페이지를 한 번 새로고침하고 범용 v2 북마크를 실행해 줘.');return;}
  const CART_KEY='bbp_cart_v1',OPTS_KEY='bbp_order_opts',PREF_KEY='bbp_preorder_test_v232_'+STORE;
@@ -481,7 +481,7 @@ function basketSummary(){if(nameWatchActive&&!lockedCandidate)return '이름 후
   }
    else failed.push(res[1].status==='rejected'?res[1].reason:new Error('재고 응답 형식 오류'));
    const when=new Date().toLocaleTimeString('ko-KR',{hour12:false});
-   const nowStatus='📡 구매 조건 '+(windowOk===null?'조회 실패':windowOk?(triggerMode||'충족'):'미충족')+' · '+chosenItems().length+'줄 '+(productOk===null?'재고 조회 실패':awaitingCatalog?'⏳ 공식 목록 재등장 대기':latestAvailability(p))+' · '+when;
+   const nowStatus='📡 구매 조건 '+(windowOk===null?'조회 실패':windowOk?(triggerMode||'충족'):'미충족')+' · '+(nameWatchActive&&!lockedCandidate?'이름 후보 '+nameCandidates.length+'종':chosenItems().length+'줄')+' '+(productOk===null?'재고 조회 실패':awaitingCatalog?'⏳ 공식 목록 재등장 대기':latestAvailability(p))+' · '+when;
    if(failed.length){
     tries++;
     if(failed.some(e=>e&&[401,403].includes(e.httpStatus))){stop();message('⚠ 서버 조회 거절 · 감시 중지');return;}
