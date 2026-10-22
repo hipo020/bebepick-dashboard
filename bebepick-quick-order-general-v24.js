@@ -558,6 +558,34 @@ function basketSummary(){if(armedMode==='names'&&!lockedCandidate)return '미공
   cartTimer=setInterval(progressCart,50);
   queueMicrotask(progressCart);
  }
+ controls.watchMode.addEventListener('change',()=>{
+  if(active||completed){controls.watchMode.value=watchMode;message('⚠ 감시 중에는 감시 방식을 변경할 수 없어');return;}
+  watchMode=controls.watchMode.value==='names'?'names':'sku';
+  savePref();renderNames();message(watchMode==='names'?'🧸 여러 이름 후보 중 한 종류를 선택하는 감시로 설정했어':'🛒 기존 선택 SKU 전체 주문 모드로 설정했어');
+ });
+ controls.addName.onclick=()=>{
+  if(active||completed){message('⚠ 감시를 시작하기 전에 후보를 등록해 줘');return;}
+  const name=controls.name.value.trim(),qty=Number(controls.nameQty.value);
+  const opt=controls.opt.value==='fullbox'?'fullbox':'single';
+  if(!validName(name)){message('⚠ 인형 이름은 2~90글자로 입력해 줘');return;}
+  if(!Number.isInteger(qty)||qty<1||qty>MAX_QTY){message('⚠ 수량 1~99개를 확인해 줘');return;}
+  if(nameCandidates.some(x=>nameKey(x.name)===nameKey(name))){message('⚠ 같은 이름이 이미 등록됐어 · 삭제한 뒤 다시 추가해 줘');return;}
+  if(nameCandidates.length>=MAX_NAMES){message('⚠ 후보는 최대 '+MAX_NAMES+'종까지 등록 가능해');return;}
+  nameCandidates.push({name,qty,option:opt});
+  watchMode='names';controls.watchMode.value='names';
+  controls.name.value='';savePref();renderNames();
+  message('✅ 이름 후보 '+nameCandidates.length+'종 저장됨 · 순서대로 우선 감시');
+ };
+ controls.name.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();controls.addName.click();}});
+ controls.names.addEventListener('click',e=>{
+  const b=e.target.closest('[data-name-action]');if(!b||active||completed)return;
+  const i=Number(b.dataset.nameIndex),cmd=b.dataset.nameAction;
+  if(!Number.isInteger(i)||i<0||i>=nameCandidates.length)return;
+  if(cmd==='remove')nameCandidates.splice(i,1);
+  else if(cmd==='up'&&i>0)[nameCandidates[i],nameCandidates[i-1]]=[nameCandidates[i-1],nameCandidates[i]];
+  else if(cmd==='down'&&i<nameCandidates.length-1)[nameCandidates[i],nameCandidates[i+1]]=[nameCandidates[i+1],nameCandidates[i]];
+  savePref();renderNames();message('🧸 후보·우선순위 저장됨');
+ });
  controls.add.onclick=()=>{
   if(active||completed){message('⚠ 먼저 감시를 중지하거나 새로고침해 줘');return;}
   const code=(controls.sku.value||controls.manual.value||sku).trim().toUpperCase();
@@ -713,6 +741,6 @@ function basketSummary(){if(armedMode==='names'&&!lockedCandidate)return '미공
  window.addEventListener('pagehide',()=>{stop();ob.disconnect();mini.remove();});
  controls.watchMode.value=watchMode;controls.opt.value=option;controls.cycle.value=String(cycle);controls.open.value=open;controls.storage.value=storage;controls.manual.value=sku;
  window.__bbpGeneralQuickV24={show,stop,__v2:true,version:'2.4.0'};
- renderBasket();loadCatalog(false);
+ renderNames();renderBasket();loadCatalog(false);
 }catch(e){alert('범용 v2 도우미 오류: '+String(e.message||e));}
 })();
