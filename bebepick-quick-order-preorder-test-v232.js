@@ -289,6 +289,7 @@ function basketSummary(){if(nameWatchActive&&!lockedCandidate)return '이름 후
   return '⚪ 판매 상태 확인 필요';
  }
  function renderBasket(){
+  if(nameCandidates.length){controls.basket.textContent='🧸 이름 후보 우선 감시 · 기존 SKU 선택은 무시해';return;}
   const list=items.length?items:[];
   controls.basket.replaceChildren();
   const head=document.createElement('div');head.style.cssText='font-weight:750;margin-bottom:6px';
