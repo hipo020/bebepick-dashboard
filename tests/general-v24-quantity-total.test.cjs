@@ -9,7 +9,7 @@ function section(a,b) {
  assert.ok(i>=0&&j>i,'missing '+a);
  return src.slice(i,j);
 }
-const qty = new Function(section('function countQuantities(', 'function expected()')+
+const qty = new Function(section('function normalized(', 'function expected()')+
   '\nreturn {countQuantities,quantityText,normalized};')();
 test('new bookmarklet syntax remains valid',()=>{
  assert.doesNotThrow(()=>new Function(src));
