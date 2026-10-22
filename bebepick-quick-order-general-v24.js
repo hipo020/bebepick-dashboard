@@ -300,28 +300,62 @@ function basketSummary(){if(armedMode==='names'&&!lockedCandidate)return '미공
   if(p.stock==='low'||p.stock===null)return '🟢 판매 재고 표시';
   return '⚪ 판매 상태 확인 필요';
  }
+ function renderModeSections(forceOpen){
+  const current=active?armedMode:watchMode,names=current==='names';
+  let browserCart=[];
+  try{browserCart=readCart().filter(belongs);}catch(e){}
+  const q=items.reduce((n,x)=>n+x.qty,0);
+  controls.nameSummary.textContent='① 신상 이름 후보 '+nameCandidates.length+'종'+(names?' · 현재 주문 방식':' · 저장됨, 현재 주문 제외');
+  controls.skuSummary.textContent='② 기존 SKU '+items.length+'줄 · '+q+'개 / 이 브라우저 장바구니 '+browserCart.length+'줄';
+  controls.modeStatus.textContent=names?
+   '🟣 현재: 이름 후보 중 1종만 주문 · 기존 SKU '+items.length+'줄은 따로 저장돼 있지만 이번 주문에는 포함되지 않아. 두 목록은 합쳐지지 않아.':
+   '🟢 현재: 등록 SKU '+items.length+'줄 전체 주문 · 신상 이름 후보 '+nameCandidates.length+'종은 따로 저장돼 있지만 이번 주문에는 포함되지 않아.';
+  if(forceOpen){controls.nameEditor.open=names;controls.skuEditor.open=!names;}
+ }
  function renderBasket(){
-  if(armedMode==='names'||(!active&&watchMode==='names')){
-   controls.basket.textContent=lockedCandidate?'🧸 실제 선택 후보: '+lockedCandidate.name+' · '+lockedCandidate.item.sku+' · '+(lockedCandidate.item.option==='fullbox'?'풀박스':'낱개')+' ×'+lockedCandidate.item.qty:
-    '🧸 여러 이름 후보 모드 · 이 SKU 목록은 주문 대상이 아니야. 후보 목록에서 한 종류가 선정되면 표시돼.';
-   return;
-  }
-  const list=items.length?items:[];
+  const names=(active?armedMode:watchMode)==='names';
+  let browserCart=null;
+  try{browserCart=readCart().filter(belongs);}catch(e){}
+  const list=items.slice();
   controls.basket.replaceChildren();
-  const head=document.createElement('div');head.style.cssText='font-weight:750;margin-bottom:6px';
-  head.textContent=list.length?'🧸 선택된 인형 '+list.length+'줄 · 총 '+list.reduce((n,x)=>n+x.qty,0)+'개':'선택 목록 없음 · 현재 선택 상품 1개로 진행';
-  controls.basket.appendChild(head);
+  const heading=document.createElement('div');heading.style.cssText='font-weight:750;margin-bottom:6px';
+  heading.textContent=list.length?'🧸 도우미에 저장된 기존 SKU '+list.length+'줄 · 총 '+list.reduce((n,x)=>n+x.qty,0)+'개':'🧸 도우미 SKU 저장 목록 없음';
+  controls.basket.appendChild(heading);
+  if(names){
+   const warning=document.createElement('div');warning.style.cssText='background:#fff0db;color:#69421a;padding:7px;border-radius:7px;margin-bottom:7px';
+   warning.textContent='⚠ 지금은 이름 후보 주문 모드야. 아래 SKU 인형은 보관돼 있지만 이번 주문에는 포함되지 않아. 이 인형들을 주문하려면 위 감시 방식을 “기존 SKU 모두”로 바꿔 줘.';
+   controls.basket.append(warning);
+  }
   list.forEach((x,i)=>{
-    const r=document.createElement('div');r.style.cssText='display:flex;align-items:center;gap:5px;flex-wrap:wrap;padding:5px 0;border-top:1px solid #f0eaf5';
-    const name=document.createElement('span');name.style.cssText='flex:1;min-width:110px;overflow-wrap:anywhere';
-    const p=itemTarget(x);name.textContent=(p?.name||x.sku)+' · '+(x.option==='fullbox'?'풀박스':'낱개')+' ×'+x.qty;
-    r.append(name);
+   const row=document.createElement('div');row.style.cssText='display:flex;align-items:center;gap:5px;flex-wrap:wrap;padding:6px 0;border-top:1px solid #f0eaf5';
+   const name=document.createElement('span');name.style.cssText='flex:1;min-width:110px;overflow-wrap:anywhere';
+   const p=itemTarget(x);
+   name.textContent=(i+1)+'. '+(p?.name||x.sku)+' · '+x.sku+' · '+(x.option==='fullbox'?'풀박스':'낱개')+' ×'+x.qty;
+   row.append(name);
+   if(!names){
     for(const [cmd,txt] of [['less','−'],['more','＋'],['remove','삭제']]){
-      const b=document.createElement('button');b.type='button';b.textContent=txt;b.dataset.itemAction=cmd;b.dataset.itemIndex=String(i);
-      b.style.cssText='border:1px solid #d4c8e0;border-radius:6px;background:#fff;padding:4px 7px';r.append(b);
+     const b=document.createElement('button');b.type='button';b.textContent=txt;
+     b.dataset.itemAction=cmd;b.dataset.itemIndex=String(i);
+     b.style.cssText='border:1px solid #d4c8e0;border-radius:6px;background:#fff;padding:4px 7px';row.append(b);
     }
-    controls.basket.append(r);
+   }
+   controls.basket.append(row);
   });
+  const cartTitle=document.createElement('div');cartTitle.style.cssText='font-weight:750;margin-top:12px;padding-top:9px;border-top:2px solid #e8deef';
+  cartTitle.textContent=browserCart===null?'🛒 이 브라우저 장바구니 조회 실패':'🛒 이 브라우저에 저장된 장바구니 '+browserCart.length+'줄 · 도우미 SKU 목록과 별개';
+  controls.basket.appendChild(cartTitle);
+  if(browserCart&&browserCart.length){
+   for(const [i,x] of browserCart.entries()){
+    const p=catalog.find(p=>p&&p.sku===x.sku&&availableHere(p));
+    const line=document.createElement('div');line.style.cssText='padding:4px 0;border-bottom:1px solid #f0eaf5;overflow-wrap:anywhere';
+    line.textContent=(i+1)+'. '+(p?.name||x.sku)+' · '+x.sku+' · '+(normalized(x)==='fullbox'?'풀박스':'낱개')+' ×'+Number(x.qty);
+    controls.basket.append(line);
+   }
+   const info=document.createElement('div');info.style.cssText='font-size:11px;color:#806b86;margin-top:5px';
+   info.textContent='이 장바구니는 현재 브라우저 저장 정보야. 도우미가 상품을 준비할 때 차이가 있으면 먼저 교체 확인을 요청해.';
+   controls.basket.append(info);
+  }
+  renderModeSections(false);
  }
  function inspectNameCandidates(rows,candidates){
   const states=[],eligible=[];
