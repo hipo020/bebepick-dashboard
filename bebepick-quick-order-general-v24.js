@@ -448,7 +448,7 @@ function basketSummary(){if(armedMode==='names'&&!lockedCandidate)return '미공
     }
     if(!lockedCandidate&&windowOk===true&&scan.selected){
      lockedCandidate=scan.selected;
-     sku=lockedCandidate.item.sku;
+     sku=lockedCandidate.item.sku;option=lockedCandidate.item.option;controls.opt.value=option;
      timingMark('candidate_selected',lockedCandidate.name+' → '+sku+' ×'+lockedCandidate.item.qty);
      changed=true;
     }
@@ -535,6 +535,7 @@ function basketSummary(){if(armedMode==='names'&&!lockedCandidate)return '미공
  }
  function handoff(){
   if(!confirmed||!active)return;
+  if(armedMode==='names'&&!lockedCandidateValid()){stop();message('⛔ 이름 후보·공식 SKU 정보가 맞지 않아 주문 진행 중단');return;}
   if(!expected()){stop();message('⚠ 장바구니 내용 변경 · 주문 진행 중지');return;}
   const w=el('#storeBar .sb-order.open');
   const shopFresh=chosenItems().every(x=>{
@@ -697,6 +698,7 @@ function basketSummary(){if(armedMode==='names'&&!lockedCandidate)return '미공
  function abortWizard(why){timingMark('safety_stop',why);if(wizardTimer)clearInterval(wizardTimer);wizardTimer=null;autoOrder=false;payArmed=false;message('⛔ 자동 주문 중단 · '+why);}
  function watchWizard(){
   if(!autoOrder||submitClicked||!wizardTimer)return;
+  if(armedMode==='names'&&!lockedCandidateValid()){abortWizard('이름 후보와 상품코드 불일치');return;}
   if(Date.now()-wizardStart>22000){abortWizard('공식 확인창 시간 초과');return;}
   if(document.hidden){abortWizard('브라우저 백그라운드 전환');return;}
   if(!expected()){abortWizard('장바구니가 변경됨');return;}
@@ -727,6 +729,7 @@ function basketSummary(){if(armedMode==='names'&&!lockedCandidate)return '미공
   if(Date.now()-finalAgreeAt>4000){abortWizard('최종 주문 버튼 활성화 시간 초과');return;}
   if(ok.disabled||!all.checked||!box.isConnected)return;
   if(recentSubmit()){abortWizard('중복 주문 요청 방지');return;}
+  if(armedMode==='names'&&!lockedCandidateValid()){abortWizard('최종 주문 전에 상품명·SKU가 변경됨');return;}
   if(!expected()){abortWizard('제출 직전 장바구니 옵션 불일치');return;}
   const prior=el('.panel[data-sheet="pay"]');
   const m=(prior&&prior.textContent||'').match(/\bBP[A-Z0-9]{8,}\b/);
