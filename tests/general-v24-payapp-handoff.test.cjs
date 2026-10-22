@@ -22,7 +22,7 @@ function scenario({
  };
  const c={
   submitClicked:true,payDone:false,payArmed:auto,payDeadline:Date.now()+15000-ageMs,
-  oldPayOrder:before,document:{hidden},mini:{textContent:''},folded:false,
+  oldPayOrder:before,payLastObservation:'',document:{hidden},mini:{textContent:''},folded:false,
   el:(selector)=>selector==='.panel[data-sheet="pay"]'?sheet:null,
   getComputedStyle:()=>({display:'block'}),
   timingOnce:(...x)=>timings.push(x),
@@ -75,4 +75,32 @@ test('background/cart action does not interact with external PayApp approval int
  assert.match(isolated,/\[data-act="pay-card"\]/);
  assert.doesNotMatch(isolated,/payApp\.submit|window\.open\(/i);
  assert.doesNotMatch(isolated,/checkout\.submit|payapp.*?\.click/ig);
+});
+
+test('timing report explicitly snapshots PayApp-page opt-in at start',()=>{
+ assert.match(src,/payAppAutoOpenRequested:timingPayAppRequested/);
+ assert.match(src,/timingPayAppRequested=autoPay&&!dryRun/);
+ assert.match(src,/timingOnce\('pay_handoff_state',payArmed\?/);
+});
+test('bounded 250ms pay-page heartbeat runs independently of DOM mutations',()=>{
+ assert.match(src,/payWatchTimer=setInterval\(\(\)=>\{/);
+ assert.match(src,/watchPrePayment\(\);/);
+ assert.match(src,/\},250\);/);
+ assert.match(src,/if\(payWatchTimer\)clearInterval\(payWatchTimer\)/);
+});
+test('when official order does not appear, diagnostic preserves reason and no click occurs',()=>{
+ const p=scenario({text:'no order',auto:true});
+ p.run();
+ assert.equal(p.c.payLastObservation,'결제 패널 표시 · 새 주문번호 미확인');
+ assert.deepEqual(p.clicks,[]);
+ assert.ok(p.timings.some(x=>x[0]==='pay_order_pending'));
+});
+test('fifteen-second timeout records reason even without a site mutation',()=>{
+ const p=scenario({ageMs:35000,auto:true});
+ p.c.payLastObservation='공식 결제 패널 아직 표시되지 않음';
+ p.run();
+ assert.equal(p.c.payArmed,false);
+ assert.equal(p.c.payDone,true);
+ assert.deepEqual(p.clicks,[]);
+ assert.ok(p.timings.some(x=>x[0]==='pay_handoff_timeout'));
 });
