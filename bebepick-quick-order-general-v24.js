@@ -125,6 +125,8 @@ function basketSummary(){
  '<div style="background:#f6f0ff;padding:10px;border-radius:10px;margin:9px 0">'+
   '<label style="display:flex;gap:7px;align-items:start;margin:5px 0;font-weight:700"><input type="checkbox" id="qAutoOrder"> 공식 동의 2단계 및 최종 주문 자동 클릭</label>'+
   '<label style="display:flex;gap:7px;align-items:start;margin:5px 0"><input type="checkbox" id="qDryRun" checked> 무전송 시험 (최종 주문 생성 안 함 · 기본)</label>'+
+  '<label style="display:flex;gap:7px;align-items:start;margin:8px 0;padding:9px;border:1px solid #c5a6e7;border-radius:9px;background:#fff"><input type="checkbox" id="qPayAppPage"> ⚡ 영상처럼 PAYAPP 결제 페이지까지 자동 이동 (실제 주문번호 생성 + 공식 결제하기 1회 클릭 · 결제 승인 수동)</label>'+
+  '<small style="display:block;color:#8a2343;font-weight:750">⚠ 선택 시 무전송 시험이 해제되고 실제 주문이 생성될 수 있어. 미결제·취소 제재 가능성 있음. 시작 시 별도 확인을 받아. 기본 OFF · 이 선택은 저장하지 않아.</small>'+
   '<small style="color:#514163;display:block;margin:5px 0">✅ 결제창 자동 이동 OFF 고정 · 주문번호와 결제 버튼까지만 보여줘.</small>'+
   '<small style="color:#65566c">실제 주문은 자동 클릭 ON + 무전송 시험 OFF + 명시 동의가 모두 필요해. 결제 승인은 직접 진행해.</small></div>'+
  '<label style="display:block;margin:9px 0;padding:10px;border:1px solid #dbcce8;border-radius:10px"><input type="checkbox" id="qBackgroundWatch"> 🖥️ PC 백그라운드 보조 감시 · 확장 프로그램 필요 (최소 30초, 창 자동 활성화)</label>'+
@@ -139,7 +141,7 @@ function basketSummary(){
  '<small style="display:block;color:#756b80;margin-top:7px">자동 측정 · 0.1ms 정밀도 기록 · 세션 내 저장. 실제 재입고 시각은 알 수 없으므로 최초 판매 가능 응답부터 측정해. 주문 성공과 서버 접수를 의미하지 않아.</small></details>'+
  '<small style="display:block;color:#766d7f;margin-top:9px">품절이어도 설정하고 대기할 수 있어. 품절 또는 목록에 없는 코드일 때는 재고가 공식 서버에서 확인될 때까지 주문이나 장바구니 변경 없이 기다려. 주문 접수 ON 상태와 선택한 모든 상품 재고를 확인해. 홈페이지 LIVE 표시만으로 주문을 시작하지 않아. 공식 주문 UI 활성화가 필요하고 무전송 시험에서 최종 주문을 생성하지 않아. 5초 감시는 요청 제한 위험이 있어.</small>';
  document.body.appendChild(panel);
- const controls={search:el('#qSearch',panel),manual:el('#qManualSku',panel),sku:el('#qSku',panel),opt:el('#qOpt',panel),cycle:el('#qCycle',panel),open:el('#qOpen',panel),storage:el('#qStorage',panel),pay:null,qty:el('#qQty',panel),add:el('#qAdd',panel),basket:el('#qBasket',panel),importCart:el('#qImportCart',panel),watchMode:el('#qWatchMode',panel),name:el('#qName',panel),nameQty:el('#qNameQty',panel),nameOpt:el('#qNameOpt',panel),addName:el('#qAddName',panel),names:el('#qNames',panel),autoOrder:el('#qAutoOrder',panel),dryRun:el('#qDryRun',panel),backgroundWatch:el('#qBackgroundWatch',panel),bgStatus:el('#qBackgroundStatus',panel),status:el('#qStatus',panel),product:el('#qProduct',panel),reload:el('#qReload',panel),
+ const controls={search:el('#qSearch',panel),manual:el('#qManualSku',panel),sku:el('#qSku',panel),opt:el('#qOpt',panel),cycle:el('#qCycle',panel),open:el('#qOpen',panel),storage:el('#qStorage',panel),pay:null,qty:el('#qQty',panel),add:el('#qAdd',panel),basket:el('#qBasket',panel),importCart:el('#qImportCart',panel),watchMode:el('#qWatchMode',panel),name:el('#qName',panel),nameQty:el('#qNameQty',panel),nameOpt:el('#qNameOpt',panel),addName:el('#qAddName',panel),names:el('#qNames',panel),autoOrder:el('#qAutoOrder',panel),dryRun:el('#qDryRun',panel),payAppPage:el('#qPayAppPage',panel),backgroundWatch:el('#qBackgroundWatch',panel),bgStatus:el('#qBackgroundStatus',panel),status:el('#qStatus',panel),product:el('#qProduct',panel),reload:el('#qReload',panel),
  timingSummary:el('#qTimingSummary',panel),timingLog:el('#qTimingLog',panel),modeStatus:el('#qModeStatus',panel),quantitySummary:el('#qQuantitySummary',panel),nameEditor:el('#qNameEditor',panel),skuEditor:el('#qSkuEditor',panel),nameSummary:el('#qNameSummary',panel),skuSummary:el('#qSkuSummary',panel)};
  // Instrumentation only. No extra site requests, no order submission,
  // no recording of auth cookies, customer details, or generated order numbers.
@@ -763,18 +765,35 @@ function basketSummary(){
   cycle=allowed.includes(+controls.cycle.value)?+controls.cycle.value:8;
   open=controls.open.value;storage=controls.storage.value;savePref();
   if(chosen.some(x=>!validSku(x.sku)||x.qty<1||x.qty>MAX_QTY||itemTarget(x)&&!allowedOption(itemTarget(x),x.option))){message('⚠ 상품코드·수량·풀박스 지원 여부를 확인해 줘');return;}
-  if(armedMode==='mixed'){controls.autoOrder.checked=true;controls.dryRun.checked=true;}
-  autoOrder=!!controls.autoOrder.checked;dryRun=armedMode==='mixed'?true:!!controls.dryRun.checked;controls.dryRun.checked=dryRun;autoPay=false;
+  // The PayApp-page handoff is separate, explicit, and not persisted.
+  autoPay=controls.payAppPage.checked===true;
+  if(autoPay&&(controls.dryRun.checked||!controls.autoOrder.checked)){
+   message('⚠ PAYAPP 옵션은 실제 주문 동의 ON · 무전송 시험 OFF 상태에서만 진행할 수 있어. 선택값을 확인해 줘.');return;
+  }
+  if(!autoPay&&armedMode==='mixed'){controls.autoOrder.checked=true;controls.dryRun.checked=true;}
+  autoOrder=!!controls.autoOrder.checked;
+  dryRun=armedMode==='mixed'&&!autoPay?true:!!controls.dryRun.checked;
+  controls.dryRun.checked=dryRun;
+  if(autoPay&&(!autoOrder||dryRun)){message('⚠ PAYAPP 자동 진입 설정 불일치 · 시작 중지');return;}
   if(autoOrder&&!dryRun){
    if(recentSubmit()){message('⚠ 최근 주문 요청 이력이 있어 · 주문내역 확인 후 새로고침해 줘');return;}
    const realConsent=armedMode==='names'?
-    '⚠ 실제 주문번호 자동 생성 허용\n\n이름 후보 '+nameCandidates.length+'종 중 판매 가능으로 확인된 1종을 자동 선택해 주문할 수 있어. 어느 후보가 선택될지는 아직 확정되지 않았어.\n\n'+nameCandidates.map((c,i)=>(i+1)+'. '+c.name+' · '+(c.option==='fullbox'?'풀박스':'낱개')+' ×'+c.qty).join('\n')+'\n\n개봉 '+open+' · 받는 방법 '+storage+'\n\n공식 주문 확인 2단계를 거쳐 최종 주문번호 생성 버튼을 최대 1번 누를 수 있어. 결제는 자동 실행하지 않아. 미결제·취소 제재가 생길 수 있으므로 후보 모두 실제로 구매할 의사가 있는지 확인해 줘. 동의할까?':
-    '⚠ 여러 인형 실제 주문 자동 생성 확인\n\n'+summaryItems()+'\n\n개봉 '+open+' · 받는 방법 '+storage+'\n공식 주문 확인 2단계를 거쳐 최종 주문을 최대 1번 생성해. 결제 버튼은 직접 눌러야 해. 진행할까?';
-   if(!confirm(realConsent))return;
+    '⚠ 실제 주문번호 자동 생성 허용\n\n이름 후보 '+nameCandidates.length+'종 중 판매 가능으로 확인된 1종을 자동 선택해 주문할 수 있어. 어느 후보가 선택될지는 아직 확정되지 않았어.\n\n'+nameCandidates.map((c,i)=>(i+1)+'. '+c.name+' · '+(c.option==='fullbox'?'풀박스':'낱개')+' ×'+c.qty).join('\n')+'\n\n개봉 '+open+' · 받는 방법 '+storage+'\n\n공식 주문 확인 2단계를 거쳐 최종 주문번호 생성 버튼을 최대 1번 누를 수 있어. 결제 승인은 자동으로 하지 않아. 미결제·취소 제재가 생길 수 있으므로 후보 모두 실제로 구매할 의사가 있는지 확인해 줘. 동의할까?':
+    '⚠ 여러 인형 실제 주문 자동 생성 확인\n\n'+summaryItems()+'\n\n개봉 '+open+' · 받는 방법 '+storage+'\n공식 주문 확인 2단계를 거쳐 최종 주문을 최대 1번 생성해. 결제 승인은 직접 진행해야 해. 진행할까?';
+   const planDetail=armedMode==='mixed'?
+    '통합 주문: 기존 SKU '+items.length+'줄 ('+quantityText(countQuantities(items,x=>x.option))+') 전체 + 신상 후보 중 1종'+String.fromCharCode(10)+
+    '기존 목록: '+items.map(x=>x.sku+' ×'+x.qty).join(', ')+String.fromCharCode(10)+
+    '신상 후보: '+nameCandidates.map((x,i)=>(i+1)+'. '+x.name+' ×'+x.qty).join(', '):
+    summaryItems();
+   const exactConsent=realConsent+String.fromCharCode(10,10)+planDetail+String.fromCharCode(10,10)+(autoPay?
+    '⚡ PAYAPP 페이지 자동 이동: 공식 주문번호가 실제로 생성된 뒤 새 주문번호가 확인되는 경우에만, 공식 결제하기 버튼을 최대 한 번 눌러 PAYAPP 페이지 열기를 시도해. 결제수단 선택·최종 결제 승인·PAYAPP 다음 버튼은 클릭하지 않아. 팝업 차단 시 수동 진행이 필요해. 미결제 주문 제재 위험을 이해하고 진행할까?':
+    '실제 주문번호 생성 후 결제하기 및 결제 승인은 직접 해 줘.');
+   if(!confirm(exactConsent))return;
   }
   // Starting this explicitly selected mixed watch is the non-submitting preparation consent.
   // Do not display another blocking confirm when Android's opted-in ready alert auto-starts.
-  // The original cart must still match the baseline, and mixed forces dry-run true.
+  // The original cart must still match the baseline; mixed defaults to dry-run unless
+  // the user explicitly opts into actual order creation and PayApp-page handoff.
   if(backgroundWatch&&!confirm('PC 백그라운드 보조 감시를 켤까?\n\nChrome 확장 프로그램이 설치되어 있으면 약 30초 이상 간격으로 공식 공개 주문 상태를 확인하고, 조건이 맞을 때 이 크롬 창/탭을 앞으로 가져올 수 있어.\n\n앞으로 가져온 후에도 기존 도우미가 공식 서버·화면·재고를 다시 검사해. PC가 절전/종료되면 감시하지 못하고 모바일에서는 작동하지 않아.'))return;
   timingStart();
   if(armedMode==='sku'&&allSaleable()){
@@ -785,7 +804,12 @@ function basketSummary(){
    // Never edit cart while a selected SKU is missing/out.
    cartPrepared=false;awaitingCatalog=namedMode()||chosenItems().some(x=>!itemTarget(x));
   }
-  autoOrder=!!controls.autoOrder.checked;dryRun=armedMode==='mixed'?true:!!controls.dryRun.checked;controls.dryRun.checked=dryRun;autoPay=false;
+  // Freeze start-time permissions; controls cannot escalate privileges mid-watch.
+  controls.payAppPage.checked=autoPay;
+  autoOrder=!!controls.autoOrder.checked;
+  dryRun=armedMode==='mixed'&&!autoPay?true:!!controls.dryRun.checked;
+  controls.dryRun.checked=dryRun;
+  payArmed=false;payDone=false;payDeadline=0;
   active=true;confirmed=false;completed=false;tries=0;triggerMode='';routeBusy=false;lastWindowOk=null;
   if(backgroundWatch){
    controls.bgStatus.hidden=false;controls.bgStatus.dataset.connected='';
@@ -794,7 +818,7 @@ function basketSummary(){
    setTimeout(()=>{if(active&&controls.bgStatus.dataset.connected!=='yes'&&controls.bgStatus.dataset.connected!=='no')controls.bgStatus.textContent='⚠ PC 확장 응답 없음 · 탭을 화면에 둔 경우에만 기존 감시 작동';},2500);
   }else controls.bgStatus.hidden=true;
   controls.reload.hidden=true;controls.reload.style.display='none';
-  renderNames();message('⏳ '+basketSummary()+' · '+open+' + '+storage+' · '+cycle+'초 감시 · '+(awaitingCatalog?'목록·재고 대기 · ':cartPrepared?'장바구니 준비 완료 · ':'일부 재고 대기 · ')+(autoOrder?(dryRun?'무전송 시험':'실제 주문 생성 가능 · 결제 자동진행 없음'):'수동 확정')+' 모드');
+  renderNames();message('⏳ '+basketSummary()+' · '+open+' + '+storage+' · '+cycle+'초 감시 · '+(awaitingCatalog?'목록·재고 대기 · ':cartPrepared?'장바구니 준비 완료 · ':'일부 재고 대기 · ')+(autoOrder?(dryRun?'무전송 시험':autoPay?'실제 주문 생성 + PAYAPP 이동 시도 · 결제 승인 수동':'실제 주문 생성 가능 · 결제하기 수동'):'수동 확정')+' 모드');
   poll();
  };
  el('#qStop',panel).onclick=()=>{const sent=submitClicked;stop();message(sent?'⚠ 주문 요청을 이미 보냈을 수 있어 · 주문내역 확인':'⏸ 감시/확인 중지');};
@@ -853,22 +877,46 @@ function basketSummary(){
   submitClicked=true;
   try{sessionStorage.setItem('bbp_general_v2_submit_'+STORE,JSON.stringify({at:Date.now(),items:chosenItems(),store:STORE}));}catch(e){}
   clearInterval(wizardTimer);wizardTimer=null;
-  payArmed=false;payDone=false;payDeadline=0;
-  message('📨 공식 주문 버튼 1회 클릭 · 결제 직전 화면 확인해 줘 (페이앱 자동 실행 OFF)');
+  // Arm ONLY a previously opted-in, non-dry-run handoff after final order click.
+  payArmed=autoPay&&!dryRun;payDone=false;payDeadline=payArmed?Date.now()+15000:0;
+  message(payArmed?
+   '📨 공식 주문 요청 버튼 1회 클릭 · 주문번호 확인 시 결제하기 1회 자동 이동 시도 (결제 승인 수동)':
+   '📨 공식 주문 버튼 1회 클릭 · 결제 직전 화면 확인해 줘 (페이앱 자동 실행 OFF)');
   timingOnce('submit_click','DOM 클릭 호출 · 서버 접수 미확인');ok.click();
  }
- // Display pre-payment readiness without clicking PayApp/payment controls.
+ // Only the official payment button may be clicked once, after a newly created
+ // order is visibly confirmed in the official pay sheet. Never interact with PAYAPP itself.
  function watchPrePayment(){
   if(!submitClicked||payDone)return;
+  if(payArmed&&Date.now()>payDeadline){
+   payArmed=false;payDone=true;
+   timingMark('pay_handoff_timeout','PAYAPP 버튼 자동 진입 제한시간 초과 · 수동 진행');
+   message('⚠ 새 주문 화면 또는 결제 버튼 확인이 늦어 PAYAPP 자동 이동 중지 · 직접 확인해 줘.');
+   return;
+  }
   const sheet=el('.panel[data-sheet="pay"]');
   if(!sheet||!sheet.isConnected||sheet.hidden||getComputedStyle(sheet).display==='none')return;
   const txt=sheet.textContent||'',m=txt.match(/\bBP[A-Z0-9]{8,}\b/);
   if(!m||m[0]===oldPayOrder||!/주문서를?\s*만들었습니다|주문\s*완료|주문번호/.test(txt))return;
-  payDone=true;
-  timingOnce('pay_panel','공식 화면에 새 주문번호 표시 · 결제 버튼 클릭 0회');
-  mini.textContent='✅ 결제 직전 화면 · 도우미 펼치기';
-  message('✅ 새 주문번호가 공식 화면에 표시됐어 · 결제는 직접 눌러줘!');
-  if(folded)revealOfficial();
+  timingOnce('pay_panel','공식 화면에 새 주문번호 표시');
+  if(!payArmed){
+   payDone=true;
+   mini.textContent='✅ 결제 직전 화면 · 도우미 펼치기';
+   message('✅ 새 주문번호가 공식 화면에 표시됐어 · 결제는 직접 눌러줘!');
+   if(folded)revealOfficial();
+   return;
+  }
+  // Backgrounded Chrome/unknown order/invalid button: do not attempt navigation.
+  if(document.hidden){payArmed=false;payDone=true;message('⚠ 브라우저가 백그라운드로 바뀌어 PAYAPP 자동 이동 중지 · 직접 진행해 줘');return;}
+  const btn=sheet.querySelector('[data-act="pay-card"]');
+  if(!btn||!btn.isConnected||btn.disabled||btn.getAttribute('aria-disabled')==='true')return;
+  // Idempotency gate BEFORE .click: MutationObserver can re-enter synchronously.
+  payArmed=false;payDone=true;
+  timingOnce('pay_card_click','공식 결제하기 버튼 클릭 1회 · PAYAPP 도착 및 결제 승인은 별도');
+  message('⚡ 공식 결제하기 버튼 1회 클릭 · PAYAPP 화면 열기 시도 · 실제 결제 승인은 직접 해 줘');
+  mini.textContent='⚡ PAYAPP 열기 시도 · 결제 승인 수동';
+  try{btn.click();}
+  catch(e){message('⚠ PAYAPP 열기 실패 · 팝업 차단 또는 공식 화면 확인 후 결제하기를 직접 눌러줘');}
  }
  const ob=new MutationObserver(records=>{
   // Own floating panel status/trace mutations must NOT cause reentrant
@@ -898,6 +946,22 @@ function basketSummary(){
  });
  document.addEventListener('visibilitychange',()=>{if(timingActive)timingMark(document.hidden?'hidden':'resumed');if(active&&!document.hidden&&!polling){if(timer)clearTimeout(timer);schedule(100);}});
  window.addEventListener('pagehide',()=>{stop();ob.disconnect();mini.remove();});
+ // Keep visible intent unambiguous; never escalate privileges mid-watch.
+ controls.payAppPage.addEventListener('change',()=>{
+  if(active){controls.payAppPage.checked=autoPay;message('⚠ 감시 중 PAYAPP 설정 변경 불가 · 중지 후 설정해 줘');return;}
+  if(controls.payAppPage.checked){
+   controls.autoOrder.checked=true;controls.dryRun.checked=false;
+   message('⚠ 실제 주문번호 생성 + PAYAPP 페이지 열기 시도 · 결제 승인은 수동 · 시작 시 추가 동의 필요');
+  }else{controls.dryRun.checked=true;message('✅ 무전송 시험으로 돌아왔어.');}
+ });
+ controls.dryRun.addEventListener('change',()=>{
+  if(active){controls.dryRun.checked=dryRun;return;}
+  if(controls.dryRun.checked)controls.payAppPage.checked=false;
+ });
+ controls.autoOrder.addEventListener('change',()=>{
+  if(active){controls.autoOrder.checked=autoOrder;return;}
+  if(!controls.autoOrder.checked)controls.payAppPage.checked=false;
+ });
  controls.backgroundWatch.checked=backgroundWatch;
  controls.backgroundWatch.addEventListener('change',()=>{if(active){controls.backgroundWatch.checked=backgroundWatch;message('⚠ 감시 중 변경 불가 · 중지 후 설정해 줘');return;}backgroundWatch=controls.backgroundWatch.checked;savePref();});
  controls.watchMode.value=watchMode;renderModeSections(true);controls.opt.value=option;controls.cycle.value=String(cycle);controls.open.value=open;controls.storage.value=storage;controls.manual.value=sku;
