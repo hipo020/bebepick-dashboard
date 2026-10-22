@@ -765,14 +765,23 @@ function basketSummary(){
   cycle=allowed.includes(+controls.cycle.value)?+controls.cycle.value:8;
   open=controls.open.value;storage=controls.storage.value;savePref();
   if(chosen.some(x=>!validSku(x.sku)||x.qty<1||x.qty>MAX_QTY||itemTarget(x)&&!allowedOption(itemTarget(x),x.option))){message('⚠ 상품코드·수량·풀박스 지원 여부를 확인해 줘');return;}
-  if(armedMode==='mixed'){controls.autoOrder.checked=true;controls.dryRun.checked=true;}
-  autoOrder=!!controls.autoOrder.checked;dryRun=armedMode==='mixed'?true:!!controls.dryRun.checked;controls.dryRun.checked=dryRun;autoPay=false;
+  // The PayApp-page handoff is separate, explicit, and not persisted.
+  autoPay=controls.payAppPage.checked===true;
+  if(autoPay){controls.autoOrder.checked=true;controls.dryRun.checked=false;}
+  else if(armedMode==='mixed'){controls.autoOrder.checked=true;controls.dryRun.checked=true;}
+  autoOrder=!!controls.autoOrder.checked;
+  dryRun=armedMode==='mixed'&&!autoPay?true:!!controls.dryRun.checked;
+  controls.dryRun.checked=dryRun;
+  if(autoPay&&(!autoOrder||dryRun)){message('⚠ PAYAPP 자동 진입 설정 불일치 · 시작 중지');return;}
   if(autoOrder&&!dryRun){
    if(recentSubmit()){message('⚠ 최근 주문 요청 이력이 있어 · 주문내역 확인 후 새로고침해 줘');return;}
    const realConsent=armedMode==='names'?
     '⚠ 실제 주문번호 자동 생성 허용\n\n이름 후보 '+nameCandidates.length+'종 중 판매 가능으로 확인된 1종을 자동 선택해 주문할 수 있어. 어느 후보가 선택될지는 아직 확정되지 않았어.\n\n'+nameCandidates.map((c,i)=>(i+1)+'. '+c.name+' · '+(c.option==='fullbox'?'풀박스':'낱개')+' ×'+c.qty).join('\n')+'\n\n개봉 '+open+' · 받는 방법 '+storage+'\n\n공식 주문 확인 2단계를 거쳐 최종 주문번호 생성 버튼을 최대 1번 누를 수 있어. 결제는 자동 실행하지 않아. 미결제·취소 제재가 생길 수 있으므로 후보 모두 실제로 구매할 의사가 있는지 확인해 줘. 동의할까?':
     '⚠ 여러 인형 실제 주문 자동 생성 확인\n\n'+summaryItems()+'\n\n개봉 '+open+' · 받는 방법 '+storage+'\n공식 주문 확인 2단계를 거쳐 최종 주문을 최대 1번 생성해. 결제 버튼은 직접 눌러야 해. 진행할까?';
-   if(!confirm(realConsent))return;
+   const exactConsent=realConsent+'\\n\\n'+(autoPay?
+    '⚡ PAYAPP 페이지 자동 이동: 공식 주문번호가 실제로 생성된 뒤 새 주문번호가 확인되는 경우에만, 공식 결제하기 버튼을 최대 한 번 눌러 PAYAPP 페이지 열기를 시도해. 결제수단 선택·최종 결제 승인·PAYAPP 다음 버튼은 클릭하지 않아. 팝업 차단 시 수동 진행이 필요해. 미결제 주문 제재 위험을 이해하고 진행할까?':
+    '실제 주문번호 생성 후 결제하기 및 결제 승인은 직접 해 줘.');
+   if(!confirm(exactConsent))return;
   }
   // Starting this explicitly selected mixed watch is the non-submitting preparation consent.
   // Do not display another blocking confirm when Android's opted-in ready alert auto-starts.
@@ -787,7 +796,12 @@ function basketSummary(){
    // Never edit cart while a selected SKU is missing/out.
    cartPrepared=false;awaitingCatalog=namedMode()||chosenItems().some(x=>!itemTarget(x));
   }
-  autoOrder=!!controls.autoOrder.checked;dryRun=armedMode==='mixed'?true:!!controls.dryRun.checked;controls.dryRun.checked=dryRun;autoPay=false;
+  // Freeze start-time permissions; controls cannot escalate privileges mid-watch.
+  controls.payAppPage.checked=autoPay;
+  autoOrder=!!controls.autoOrder.checked;
+  dryRun=armedMode==='mixed'&&!autoPay?true:!!controls.dryRun.checked;
+  controls.dryRun.checked=dryRun;
+  payArmed=false;payDone=false;payDeadline=0;
   active=true;confirmed=false;completed=false;tries=0;triggerMode='';routeBusy=false;lastWindowOk=null;
   if(backgroundWatch){
    controls.bgStatus.hidden=false;controls.bgStatus.dataset.connected='';
@@ -796,7 +810,7 @@ function basketSummary(){
    setTimeout(()=>{if(active&&controls.bgStatus.dataset.connected!=='yes'&&controls.bgStatus.dataset.connected!=='no')controls.bgStatus.textContent='⚠ PC 확장 응답 없음 · 탭을 화면에 둔 경우에만 기존 감시 작동';},2500);
   }else controls.bgStatus.hidden=true;
   controls.reload.hidden=true;controls.reload.style.display='none';
-  renderNames();message('⏳ '+basketSummary()+' · '+open+' + '+storage+' · '+cycle+'초 감시 · '+(awaitingCatalog?'목록·재고 대기 · ':cartPrepared?'장바구니 준비 완료 · ':'일부 재고 대기 · ')+(autoOrder?(dryRun?'무전송 시험':'실제 주문 생성 가능 · 결제 자동진행 없음'):'수동 확정')+' 모드');
+  renderNames();message('⏳ '+basketSummary()+' · '+open+' + '+storage+' · '+cycle+'초 감시 · '+(awaitingCatalog?'목록·재고 대기 · ':cartPrepared?'장바구니 준비 완료 · ':'일부 재고 대기 · ')+(autoOrder?(dryRun?'무전송 시험':autoPay?'실제 주문 생성 + PAYAPP 이동 시도 · 결제 승인 수동':'실제 주문 생성 가능 · 결제하기 수동'):'수동 확정')+' 모드');
   poll();
  };
  el('#qStop',panel).onclick=()=>{const sent=submitClicked;stop();message(sent?'⚠ 주문 요청을 이미 보냈을 수 있어 · 주문내역 확인':'⏸ 감시/확인 중지');};
