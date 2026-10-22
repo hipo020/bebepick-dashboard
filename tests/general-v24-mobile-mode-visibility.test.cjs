@@ -17,13 +17,13 @@ test('SKU and name plans remain separate; none of the stored items are overwritt
  assert.match(render,/list\.forEach/);
  assert.match(render,/browserCart\.entries\(\)/);
  assert.doesNotMatch(render,/items\s*=|localStorage\.setItem|readCart\(\)\.splice/);
- assert.match(src,/return armedMode==='names'\?\(lockedCandidate\?/);
+ assert.match(src,/if\(armedMode==='names'\)return lockedCandidate\?/);
 });
 test('both setup sections have clear titles and display saved counts even in inactive mode',()=>{
  assert.match(src,/id="qNameEditor"/);
  assert.match(src,/id="qSkuEditor"/);
  assert.match(src,/id="qModeStatus"/);
- assert.match(src,/두 목록은 합쳐지지 않아/);
+ assert.match(src,/신상 후보 중 1종을 함께 준비해/);
  assert.match(src,/도우미에 저장된 기존 SKU/);
  assert.match(src,/이 브라우저 장바구니 총/);
  assert.match(src,/renderModeSections\(true\)/);
