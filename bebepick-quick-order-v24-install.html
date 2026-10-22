@@ -34,13 +34,13 @@ textarea{box-sizing:border-box;width:100%;min-height:105px;border:1px solid #d7c
 <p id="status" role="status" class="muted"></p>
 <textarea id="bookmark" readonly aria-label="북마크 코드"></textarea>
 <h2>기록되는 단계</h2>
-<p class="note">서버 조회 시간 · 이름 후보별 발견·SKU 선택 · 최초 판매 가능 발견 · 장바구니 준비 · 재고+주문 조건 충족 · 공식 화면 반영 대기 · 장바구니 열기 · 주문 확인창 진입 · 무전송 시험 종료</p>
+<p class="note">서버 조회 시간 · PAYAPP 자동 이동 ON/OFF 상태 · 실제 주문 후 새 주문번호·공식 결제 버튼 대기 결과 · 이름 후보별 발견·SKU 선택 · 최초 판매 가능 발견 · 장바구니 준비 · 재고+주문 조건 충족 · 공식 화면 반영 대기 · 장바구니 열기 · 주문 확인창 진입 · 무전송 시험 종료</p>
 <p class="note"><strong>안전장치:</strong> 무전송 시험 기본 · 미래에 어느 이름 후보가 선택될지 모른다는 점을 실주문 승인창에서 고지, 수량/재고/장바구니 재검증, 주문 1회 클릭·중복 방지. 기존 주문의 보관/배송 방식 변경 경고나 사이트 제한이 감지되면 자동 중단. PAYAPP 이동은 기본 OFF이며 명시 동의가 있어야 공식 버튼을 최대 1회 클릭해. PAYAPP 화면의 어떤 결제 승인 버튼도 누르지 않아. 로그의 DOM 클릭 기록은 주문 접수 성공을 의미하지 않아.</p>
 <p class="muted">실주문 모드에서 주문번호가 생성되면 3분 결제 기한이 시작될 수 있고, 미결제나 결제 후 취소에 따른 제한 가능성이 있어. 모든 후보를 실제로 구매할 의사가 있을 때만 실주문을 켜 줘. 결제 직전 화면이 나오면 도우미 창을 자동으로 접고 공식 결제 버튼 쪽으로 스크롤해. 크롬 창 자체를 운영체제 작업표시줄로 최소화하는 기능은 아니야. 백그라운드에서는 안전상 감시/확인 동작이 중지될 수 있어. 실제 사이트의 접근 제한을 우회하지 않으며, 저장된 주문 생성 전에는 구매가 완료된 것이 아니야.</p><p class="muted">속도 로그는 브라우저 같은 탭에만 저장돼. 쿠키·인증 토큰·주문번호는 담지 않아.</p>
 </section></main>
 <script>
 (function(){
- const src="https://hipo020.github.io/bebepick-dashboard/bebepick-quick-order-general-v24.js?v=20261022-v24-payapp-optin-v04";
+ const src="https://hipo020.github.io/bebepick-dashboard/bebepick-quick-order-general-v24.js?v=20261022-v24-payapp-diagnostics-v05";
  const code="javascript:(function(){var s=document.createElement('script');s.src="+JSON.stringify(src)+";s.onerror=function(){alert('베베픽 v2.4 로드 실패')};document.documentElement.appendChild(s)})()";
  document.getElementById("bookmark").value=code;
  document.getElementById("copy").onclick=async()=>{
