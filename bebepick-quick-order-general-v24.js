@@ -732,13 +732,13 @@ function basketSummary(){
   if(active){message('⏳ 이미 감시 중이야');return;}
   if(!catalog.length)await loadCatalog(false);
   armedMode=watchMode;lockedCandidate=null;candidateStates.clear();renderModeSections(true);
-  if(armedMode==='names'&&!nameCandidates.length){message('⚠ 이름 후보를 하나 이상 등록해 줘');return;}
+  if(namedMode()&&!nameCandidates.length){message('⚠ 이름 후보를 하나 이상 등록해 줘');return;}
   const selected=controls.sku.value;
-  if(armedMode!=='names'&&!items.length){
+  if(armedMode==='sku'&&!items.length){
    if(!selected&&!validSku(sku)){message('⚠ 구매할 인형을 먼저 선택해 줘');return;}
    sku=selected||sku;option=controls.opt.value==='fullbox'?'fullbox':'single';
   }
-  const chosen=chosenItems();if(armedMode!=='names'&&!chosen.length){message('⚠ 구매할 상품을 추가해 줘');return;}
+  const chosen=chosenItems();if(armedMode==='mixed'&&!items.length){message('⚠ 통합 주문에는 기존 SKU가 필요해 · 장바구니 가져오기 또는 직접 등록해 줘');return;}if(armedMode==='sku'&&!chosen.length){message('⚠ 구매할 상품을 추가해 줘');return;}
   backgroundWatch=!!controls.backgroundWatch.checked;
   cycle=allowed.includes(+controls.cycle.value)?+controls.cycle.value:8;
   open=controls.open.value;storage=controls.storage.value;savePref();
@@ -759,7 +759,7 @@ function basketSummary(){
    timingOnce('initial_cart','초기 목록 기준, 재조회 전');timingOnce('cart_ready','초기 목록 기준');
   }else{
    // Never edit cart while a selected SKU is missing/out.
-   cartPrepared=false;awaitingCatalog=armedMode==='names'||chosenItems().some(x=>!itemTarget(x));
+   cartPrepared=false;awaitingCatalog=namedMode()||chosenItems().some(x=>!itemTarget(x));
   }
   autoOrder=!!controls.autoOrder.checked;dryRun=!!controls.dryRun.checked;autoPay=false;
   active=true;confirmed=false;completed=false;tries=0;triggerMode='';routeBusy=false;lastWindowOk=null;
