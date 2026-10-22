@@ -45,7 +45,11 @@ function sameItems(a,b){const canon=list=>list.map(x=>itemKey(x)+'|'+Number(x.qt
 function itemTarget(x){return catalog.find(p=>p&&p.sku===x.sku&&availableHere(p));}
 function allSaleable(){return chosenItems().length>0&&chosenItems().every(x=>{const p=itemTarget(x);return p&&saleableFor(p,x);});}
 function summaryItems(){return chosenItems().map(x=>{const p=itemTarget(x);return (p?.name||x.sku)+(x.option==='fullbox'?' [풀박스]':' [낱개]')+' ×'+x.qty;}).join(' / ');}
-function basketSummary(){if(armedMode==='names'&&!lockedCandidate)return '미공개 이름 후보 '+nameCandidates.length+'종 · 먼저 판매 가능해진 1종 주문';const c=chosenItems();return c.length+'줄 · '+c.reduce((n,x)=>n+x.qty,0)+'개 · '+summaryItems();}
+function basketSummary(){
+ if(armedMode==='mixed'&&!lockedCandidate)return '기존 SKU '+items.length+'줄 ('+quantityText(countQuantities(items,x=>x.option))+') + 신상 후보 '+nameCandidates.length+'종 중 1종 · 함께 주문 대기';
+ if(armedMode==='names'&&!lockedCandidate)return '미공개 이름 후보 '+nameCandidates.length+'종 · 먼저 판매 가능해진 1종 주문';
+ const c=chosenItems();return c.length+'줄 · '+quantityText(countQuantities(c,x=>x.option))+' · '+summaryItems();
+}
  let cycle=allowed.includes(+pref.cycle)?+pref.cycle:(allowed.includes(+oldPref.interval)?+oldPref.interval:8);
  let open=['개봉','미개봉','카드개봉'].includes(pref.open)?pref.open:'개봉';
  let storage=['보관','발송'].includes(pref.storage)?pref.storage:'보관';
