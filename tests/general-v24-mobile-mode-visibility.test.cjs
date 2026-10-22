@@ -38,5 +38,5 @@ test('compact mobile layout retains visible mode, sticky title and action area',
 test('no changes to real-order and no-submit gates',()=>{
  assert.match(src,/if\(autoOrder&&!dryRun\)/);
  assert.match(src,/if\(dryRun\)/);
- assert.match(src,/if\(!confirm\(realConsent\)\)return/);
+ assert.match(src,/if\(!confirm\(exactConsent\)\)return/);
 });
