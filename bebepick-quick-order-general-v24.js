@@ -714,6 +714,21 @@ function basketSummary(){
   }
   sku=code;option=opt;savePref();renderBasket();message('✅ 인형 '+items.length+'줄 · '+items.reduce((n,x)=>n+x.qty,0)+'개 선택');
  };
+ controls.importCart.onclick=()=>{
+  if(active||completed){message('⚠ 감시를 중지한 다음 가져와 줘');return;}
+  let cart;
+  try{cart=readCart().filter(belongs);}catch(e){message('⚠ 기존 장바구니 정보를 읽지 못했어');return;}
+  if(!cart.length){message('⚠ 이 브라우저의 베베픽 장바구니가 비어 있어');return;}
+  if(cart.length>MAX_LINES-(watchMode==='mixed'?1:0)){message('⚠ 가져올 SKU 줄 수가 너무 많아 · 통합 모드 최대 19줄');return;}
+  const converted=cart.map(x=>({sku:String(x.sku||''),option:normalized(x),qty:Number(x.qty)}));
+  if(converted.some(x=>!validSku(x.sku)||!Number.isInteger(x.qty)||x.qty<1||x.qty>MAX_QTY)){
+   message('⛔ 장바구니 상품코드·수량 형식이 이상해 가져오지 않았어');return;
+  }
+  if(new Set(converted.map(itemKey)).size!==converted.length){message('⚠ 같은 SKU/옵션이 여러 줄이어서 자동 복사하지 않았어');return;}
+  if(!confirm('🛒 현재 브라우저 장바구니 '+converted.length+'줄 ('+quantityText(countQuantities(converted,x=>x.option))+')을 기존 SKU 목록으로 복사할까?\n\n실제 장바구니는 바꾸지 않고 도우미의 저장 목록만 교체해.'))return;
+  items=converted;savePref();renderBasket();renderModeSections(true);
+  message('✅ 기존 SKU '+items.length+'줄 · '+quantityText(countQuantities(items,x=>x.option))+' 복사 완료');
+ };
  controls.basket.addEventListener('click',e=>{
   const btn=e.target.closest('[data-item-action]');if(!btn||active||completed)return;
   const i=Number(btn.dataset.itemIndex),x=items[i];if(!x)return;
@@ -774,7 +789,7 @@ function basketSummary(){
   if(backgroundWatch){
    controls.bgStatus.hidden=false;controls.bgStatus.dataset.connected='';
    controls.bgStatus.textContent='🟡 PC 확장 감시 연결 확인 중…';
-   backgroundNotify('watch-start',{store:STORE,watchMode:armedMode,items:chosenItems(),nameCandidates:nameCandidates.map(x=>({...x})),sku,option});
+   backgroundNotify('watch-start',{store:STORE,watchMode:armedMode,items:(armedMode==='mixed'?items.map(x=>({...x})):chosenItems()),nameCandidates:nameCandidates.map(x=>({...x})),sku,option});
    setTimeout(()=>{if(active&&controls.bgStatus.dataset.connected!=='yes'&&controls.bgStatus.dataset.connected!=='no')controls.bgStatus.textContent='⚠ PC 확장 응답 없음 · 탭을 화면에 둔 경우에만 기존 감시 작동';},2500);
   }else controls.bgStatus.hidden=true;
   controls.reload.hidden=true;controls.reload.style.display='none';
