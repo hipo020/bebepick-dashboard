@@ -50,7 +50,12 @@ test('baseline cart never silently replaced and dry-run gate is forced on',()=>{
  assert.match(js,/controls\.autoOrder\.checked=true;controls\.dryRun\.checked=true/);
  assert.match(js,/if\(dryRun\)/);
 });
-test('mixed auto-start is nonblocking after user intentionally selected it',()=>{\n const block=js.slice(js.indexOf('el(\'#qStart\',panel).onclick'),js.indexOf('el(\'#qStop\',panel).onclick'));\n assert.doesNotMatch(block,/if\\(armedMode==='mixed'\\)\\{\\s*if\\(!confirm/);\n assert.match(block,/controls\\.dryRun\\.checked=true/);\n});\ntest('baseline can be imported only with user consent, without modifying the vendor cart at import',()=>{
+test('mixed auto-start is nonblocking after user intentionally selected it',()=>{
+ const flow=js.slice(js.indexOf("el('#qStart',panel).onclick"),js.indexOf("el('#qStop',panel).onclick"));
+ assert.doesNotMatch(flow,/if\(armedMode==='mixed'\)\{\s*if\(!confirm/);
+ assert.match(flow,/controls\.dryRun\.checked=true/);
+});
+test('baseline can be imported only with user consent, without modifying the vendor cart at import',()=>{
  const p=js.slice(js.indexOf('controls.importCart.onclick'),js.indexOf("controls.basket.addEventListener"));
  assert.match(p,/confirm\(/);
  assert.match(p,/items=converted/);
