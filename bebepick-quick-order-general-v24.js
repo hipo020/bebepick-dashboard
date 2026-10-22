@@ -53,7 +53,7 @@ function basketSummary(){
  let cycle=allowed.includes(+pref.cycle)?+pref.cycle:(allowed.includes(+oldPref.interval)?+oldPref.interval:8);
  let open=['개봉','미개봉','카드개봉'].includes(pref.open)?pref.open:'개봉';
  let storage=['보관','발송'].includes(pref.storage)?pref.storage:'보관';
- let cartProgress=null,cartPrepared=false,awaitingCatalog=false,autoPay=false,autoOrder=false,dryRun=true,active=false,polling=false,confirmed=false,completed=false,payArmed=false,payDone=false,tries=0,timer=null,controllers=new Set(),catalog=[],lastResults=null,triggerMode='',confirmedAt=0,routeBusy=false,lastRouteAt=0,cartTimer=null,uiTimer=null,payWatchTimer=null,lastWindowOk=null,wizardTimer=null,wizardStage=0,wizardStart=0,finalAgreeAt=0,submitClicked=false,payDeadline=0,oldPayOrder='';
+ let cartProgress=null,cartPrepared=false,awaitingCatalog=false,autoPay=false,autoOrder=false,dryRun=true,active=false,polling=false,confirmed=false,completed=false,payArmed=false,payDone=false,tries=0,timer=null,controllers=new Set(),catalog=[],lastResults=null,triggerMode='',confirmedAt=0,routeBusy=false,lastRouteAt=0,cartTimer=null,uiTimer=null,payWatchTimer=null,payLastObservation='',lastWindowOk=null,wizardTimer=null,wizardStage=0,wizardStart=0,finalAgreeAt=0,submitClicked=false,payDeadline=0,oldPayOrder='';
 
  function el(q,root){return (root||document).querySelector(q);}
  function savePref(){try{localStorage.setItem(PREF_KEY,JSON.stringify({sku,option,cycle,open,storage,items,watchMode,nameCandidates,backgroundWatch}));}catch(e){}}
@@ -160,7 +160,9 @@ function basketSummary(){
   dry_run_stop:'무전송 시험 · 최종 주문 클릭 생략',
   submit_click:'최종 주문 버튼 클릭 호출 (접수/주문번호 미확인)',
   pay_panel:'새 주문번호가 표시된 결제 패널 확인', pay_click:'결제창 열기 버튼 클릭 호출',
-  pay_handoff_state:'PAYAPP 페이지 자동 이동 설정', pay_handoff_wait:'주문 후 PAYAPP 단계 감시',
+  pay_handoff_state:'PAYAPP 페이지 자동 이동 설정', pay_panel_pending:'주문 후 공식 결제 패널 표시 대기',
+  pay_order_pending:'공식 결제 패널에서 새 주문번호 확인 대기',
+  pay_button_pending:'공식 결제하기 버튼 활성 대기',
   pay_handoff_timeout:'공식 결제 화면/주문번호 미확인으로 자동 이동 중지',
   pay_handoff_hidden:'브라우저 숨김으로 PAYAPP 자동 이동 중지',
   pay_card_click:'공식 결제하기 버튼 1회 클릭 호출 · 결제 승인 아님',
@@ -883,7 +885,7 @@ function basketSummary(){
   try{sessionStorage.setItem('bbp_general_v2_submit_'+STORE,JSON.stringify({at:Date.now(),items:chosenItems(),store:STORE}));}catch(e){}
   clearInterval(wizardTimer);wizardTimer=null;
   // Arm ONLY a previously opted-in, non-dry-run handoff after final order click.
-  payArmed=autoPay&&!dryRun;payDone=false;payDeadline=payArmed?Date.now()+15000:0;
+  payArmed=autoPay&&!dryRun;payDone=false;payLastObservation='';payDeadline=payArmed?Date.now()+15000:0;
   timingOnce('pay_handoff_state',payArmed?'ON · 새 주문번호 확인 시 공식 결제하기 1회 시도':'OFF · 실제 주문 생성과 PAYAPP 이동은 별개');
   message(payArmed?
    '📨 공식 주문 요청 버튼 1회 클릭 · 주문번호 확인 시 결제하기 1회 자동 이동 시도 (결제 승인 수동)':
@@ -903,17 +905,19 @@ function basketSummary(){
   if(!submitClicked||payDone)return;
   if(payArmed&&Date.now()>payDeadline){
    payArmed=false;payDone=true;
-   timingMark('pay_handoff_timeout','PAYAPP 버튼 자동 진입 제한시간 초과 · 수동 진행');
+   timingMark('pay_handoff_timeout','자동 이동 제한시간 초과 · '+(payLastObservation||'공식 새 주문번호 미확인'));
    message('⚠ 새 주문 화면 또는 결제 버튼 확인이 늦어 PAYAPP 자동 이동 중지 · 직접 확인해 줘.');
    return;
   }
   const sheet=el('.panel[data-sheet="pay"]');
   if(!sheet||!sheet.isConnected||sheet.hidden||getComputedStyle(sheet).display==='none'){
-   timingOnce('pay_handoff_wait','공식 결제 패널 아직 표시되지 않음');return;
+   payLastObservation='공식 결제 패널 아직 표시되지 않음';
+   timingOnce('pay_panel_pending',payLastObservation);return;
   }
   const txt=sheet.textContent||'',m=txt.match(/\bBP[A-Z0-9]{8,}\b/);
   if(!m||m[0]===oldPayOrder||!/주문서를?\s*만들었습니다|주문\s*완료|주문번호/.test(txt)){
-   timingOnce('pay_handoff_wait','결제 패널 표시 · 새 주문번호 미확인');return;
+   payLastObservation='결제 패널 표시 · 새 주문번호 미확인';
+   timingOnce('pay_order_pending',payLastObservation);return;
   }
   timingOnce('pay_panel','공식 화면에 새 주문번호 표시');
   if(!payArmed){
@@ -927,7 +931,8 @@ function basketSummary(){
   if(document.hidden){payArmed=false;payDone=true;timingOnce('pay_handoff_hidden','화면 숨김 · 결제하기 자동 클릭 생략');message('⚠ 브라우저가 백그라운드로 바뀌어 PAYAPP 자동 이동 중지 · 직접 진행해 줘');return;}
   const btn=sheet.querySelector('[data-act="pay-card"]');
   if(!btn||!btn.isConnected||btn.disabled||btn.getAttribute('aria-disabled')==='true'){
-   timingOnce('pay_handoff_wait','새 주문번호 확인 · 공식 결제하기 버튼 비활성 또는 없음');return;
+   payLastObservation='새 주문번호 확인 · 결제하기 버튼 비활성/없음';
+   timingOnce('pay_button_pending',payLastObservation);return;
   }
   // Idempotency gate BEFORE .click: MutationObserver can re-enter synchronously.
   payArmed=false;payDone=true;
