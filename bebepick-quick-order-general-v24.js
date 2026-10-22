@@ -22,6 +22,7 @@ const MAX_LINES=20,MAX_QTY=99,MAX_NAMES=20;
  const nameKey=n=>String(n||'').normalize('NFC').trim().replace(/\s+/g,'').toLocaleLowerCase('ko-KR');
  const validName=n=>typeof n==='string'&&n.trim().length>=2&&n.trim().length<=90&&!/[\u0000-\u001f<>]/.test(n);
  let watchMode=pref.watchMode==='names'?'names':'sku';
+ let backgroundWatch=pref.backgroundWatch===true;
  let nameCandidates=[],lockedCandidate=null,candidateStates=new Map(),armedMode='sku';
  if(Array.isArray(pref.nameCandidates)){
   const used=new Set();
@@ -46,7 +47,7 @@ function basketSummary(){if(armedMode==='names'&&!lockedCandidate)return '미공
  let cartProgress=null,cartPrepared=false,awaitingCatalog=false,autoPay=false,autoOrder=false,dryRun=true,active=false,polling=false,confirmed=false,completed=false,payArmed=false,payDone=false,tries=0,timer=null,controllers=new Set(),catalog=[],lastResults=null,triggerMode='',confirmedAt=0,routeBusy=false,lastRouteAt=0,cartTimer=null,uiTimer=null,lastWindowOk=null,wizardTimer=null,wizardStage=0,wizardStart=0,finalAgreeAt=0,submitClicked=false,payDeadline=0,oldPayOrder='';
 
  function el(q,root){return (root||document).querySelector(q);}
- function savePref(){try{localStorage.setItem(PREF_KEY,JSON.stringify({sku,option,cycle,open,storage,items,watchMode,nameCandidates}));}catch(e){}}
+ function savePref(){try{localStorage.setItem(PREF_KEY,JSON.stringify({sku,option,cycle,open,storage,items,watchMode,nameCandidates,backgroundWatch}));}catch(e){}}
  function readCart(){let c=JSON.parse(localStorage.getItem(CART_KEY)||'[]');if(!Array.isArray(c))throw Error('장바구니 저장 형식이 올바르지 않아');return c;}
  function belongs(c){return (c.store==='china'?'china':'main')===STORE;}
  function normalized(c){return c.opt==='fullbox'?'fullbox':'single';}
@@ -95,6 +96,8 @@ function basketSummary(){if(armedMode==='names'&&!lockedCandidate)return '미공
   '<label style="display:flex;gap:7px;align-items:start;margin:5px 0"><input type="checkbox" id="qDryRun" checked> 무전송 시험 (최종 주문 생성 안 함 · 기본)</label>'+
   '<small style="color:#514163;display:block;margin:5px 0">✅ 결제창 자동 이동 OFF 고정 · 주문번호와 결제 버튼까지만 보여줘.</small>'+
   '<small style="color:#65566c">실제 주문은 자동 클릭 ON + 무전송 시험 OFF + 명시 동의가 모두 필요해. 결제 승인은 직접 진행해.</small></div>'+
+ '<label style="display:block;margin:9px 0;padding:10px;border:1px solid #dbcce8;border-radius:10px"><input type="checkbox" id="qBackgroundWatch"> 🖥️ PC 백그라운드 보조 감시 · 확장 프로그램 필요 (최소 30초, 창 자동 활성화)</label>'+
+ '<div id="qBackgroundStatus" hidden style="font-size:12px;margin:7px 0;padding:8px;border:1px solid #ddd2e6;border-radius:8px"></div>'+
  '<div id="qStatus" role="status" style="font-weight:700;padding:8px 9px;background:#f5effc;border-radius:8px;margin:9px 0">📦 상품 목록을 불러오는 중…</div>'+
  '<div style="display:flex;gap:7px;margin-top:8px"><button id="qStart" type="button" style="flex:1;border:0;border-radius:10px;padding:11px;background:#6b4aac;color:#fff;font-weight:700">대기 시작</button><button id="qStop" type="button" style="border:1px solid #cbbadf;border-radius:10px;background:#fff;padding:10px">중지</button><button id="qLoad" type="button" style="border:1px solid #cbbadf;border-radius:10px;background:#fff;padding:10px">목록 갱신</button></div>'+
  '<button id="qReload" type="button" hidden style="display:none;width:100%;margin-top:8px;border:0;border-radius:9px;background:#332340;color:#fff;padding:11px;font-weight:700">🛒 판매 가능 확인 · 공식 화면 새로고침</button>'+
@@ -105,7 +108,7 @@ function basketSummary(){if(armedMode==='names'&&!lockedCandidate)return '미공
  '<small style="display:block;color:#756b80;margin-top:7px">자동 측정 · 0.1ms 정밀도 기록 · 세션 내 저장. 실제 재입고 시각은 알 수 없으므로 최초 판매 가능 응답부터 측정해. 주문 성공과 서버 접수를 의미하지 않아.</small></details>'+
  '<small style="display:block;color:#766d7f;margin-top:9px">품절이어도 설정하고 대기할 수 있어. 품절 또는 목록에 없는 코드일 때는 재고가 공식 서버에서 확인될 때까지 주문이나 장바구니 변경 없이 기다려. 주문 접수 ON 상태와 선택한 모든 상품 재고를 확인해. 홈페이지 LIVE 표시만으로 주문을 시작하지 않아. 공식 주문 UI 활성화가 필요하고 무전송 시험에서 최종 주문을 생성하지 않아. 5초 감시는 요청 제한 위험이 있어.</small>';
  document.body.appendChild(panel);
- const controls={search:el('#qSearch',panel),manual:el('#qManualSku',panel),sku:el('#qSku',panel),opt:el('#qOpt',panel),cycle:el('#qCycle',panel),open:el('#qOpen',panel),storage:el('#qStorage',panel),pay:null,qty:el('#qQty',panel),add:el('#qAdd',panel),basket:el('#qBasket',panel),watchMode:el('#qWatchMode',panel),name:el('#qName',panel),nameQty:el('#qNameQty',panel),nameOpt:el('#qNameOpt',panel),addName:el('#qAddName',panel),names:el('#qNames',panel),autoOrder:el('#qAutoOrder',panel),dryRun:el('#qDryRun',panel),status:el('#qStatus',panel),product:el('#qProduct',panel),reload:el('#qReload',panel),
+ const controls={search:el('#qSearch',panel),manual:el('#qManualSku',panel),sku:el('#qSku',panel),opt:el('#qOpt',panel),cycle:el('#qCycle',panel),open:el('#qOpen',panel),storage:el('#qStorage',panel),pay:null,qty:el('#qQty',panel),add:el('#qAdd',panel),basket:el('#qBasket',panel),watchMode:el('#qWatchMode',panel),name:el('#qName',panel),nameQty:el('#qNameQty',panel),nameOpt:el('#qNameOpt',panel),addName:el('#qAddName',panel),names:el('#qNames',panel),autoOrder:el('#qAutoOrder',panel),dryRun:el('#qDryRun',panel),backgroundWatch:el('#qBackgroundWatch',panel),bgStatus:el('#qBackgroundStatus',panel),status:el('#qStatus',panel),product:el('#qProduct',panel),reload:el('#qReload',panel),
  timingSummary:el('#qTimingSummary',panel),timingLog:el('#qTimingLog',panel)};
  // Instrumentation only. No extra site requests, no order submission,
  // no recording of auth cookies, customer details, or generated order numbers.
@@ -265,12 +268,13 @@ function basketSummary(){if(armedMode==='names'&&!lockedCandidate)return '미공
   lastScrollStage=stage;
   requestAnimationFrame(()=>{try{if(target.isConnected)target.scrollIntoView({block:'end',inline:'nearest',behavior:'auto'});}catch(e){}});
  }
- function stop(){if(uiTimer)clearInterval(uiTimer);uiTimer=null;timingStop('감시 또는 안전장치 중지');active=false;confirmed=false;if(timer)clearTimeout(timer);timer=null;
+ function backgroundNotify(event,detail){try{window.dispatchEvent(new CustomEvent('bbp-v24-'+event,{detail}));}catch(e){}}
+ function stop(){backgroundNotify('watch-stop');if(uiTimer)clearInterval(uiTimer);uiTimer=null;timingStop('감시 또는 안전장치 중지');active=false;confirmed=false;if(timer)clearTimeout(timer);timer=null;
    if(cartTimer)clearInterval(cartTimer);cartTimer=null;cartProgress=null;
    if(wizardTimer)clearInterval(wizardTimer);wizardTimer=null;
    controllers.forEach(c=>c.abort());controllers.clear();polling=false;payArmed=false;autoOrder=false;
   }
-  function endPolling(){if(uiTimer)clearInterval(uiTimer);uiTimer=null;active=false;if(timer)clearTimeout(timer);timer=null;controllers.forEach(c=>c.abort());controllers.clear();polling=false;}
+  function endPolling(){backgroundNotify('watch-stop');if(uiTimer)clearInterval(uiTimer);uiTimer=null;active=false;if(timer)clearTimeout(timer);timer=null;controllers.forEach(c=>c.abort());controllers.clear();polling=false;}
   function recentSubmit(){try{const prev=JSON.parse(sessionStorage.getItem('bbp_general_v2_submit_'+STORE)||'null');return prev&&Date.now()-prev.at<180000?prev:null;}catch(e){return null;}}
  function config(){const c=window.APP_CONFIG||{};if(!c.supabaseUrl||!c.supabaseAnonKey)throw Error('공식 홈페이지 서버 설정 없음');const base=String(c.supabaseUrl).replace(/\/$/,'');if(base!=='https://eqytdtxemjlygnobhiio.supabase.co')throw Error('공식 서버가 예상한 주소와 다름');return {base:base,key:c.supabaseAnonKey};}
  async function rpc(fn,args){const rpcAt=performance.now(),c=config(),ctl=new AbortController();controllers.add(ctl);const to=setTimeout(()=>ctl.abort(),7500);
@@ -663,6 +667,7 @@ function basketSummary(){if(armedMode==='names'&&!lockedCandidate)return '미공
    sku=selected||sku;option=controls.opt.value==='fullbox'?'fullbox':'single';
   }
   const chosen=chosenItems();if(armedMode!=='names'&&!chosen.length){message('⚠ 구매할 상품을 추가해 줘');return;}
+  backgroundWatch=!!controls.backgroundWatch.checked;
   cycle=allowed.includes(+controls.cycle.value)?+controls.cycle.value:8;
   open=controls.open.value;storage=controls.storage.value;savePref();
   if(chosen.some(x=>!validSku(x.sku)||x.qty<1||x.qty>MAX_QTY||itemTarget(x)&&!allowedOption(itemTarget(x),x.option))){message('⚠ 상품코드·수량·풀박스 지원 여부를 확인해 줘');return;}
@@ -674,6 +679,7 @@ function basketSummary(){if(armedMode==='names'&&!lockedCandidate)return '미공
     '⚠ 여러 인형 실제 주문 자동 생성 확인\n\n'+summaryItems()+'\n\n개봉 '+open+' · 받는 방법 '+storage+'\n공식 주문 확인 2단계를 거쳐 최종 주문을 최대 1번 생성해. 결제 버튼은 직접 눌러야 해. 진행할까?';
    if(!confirm(realConsent))return;
   }
+  if(backgroundWatch&&!confirm('PC 백그라운드 보조 감시를 켤까?\n\nChrome 확장 프로그램이 설치되어 있으면 약 30초 이상 간격으로 공식 공개 주문 상태를 확인하고, 조건이 맞을 때 이 크롬 창/탭을 앞으로 가져올 수 있어.\n\n앞으로 가져온 후에도 기존 도우미가 공식 서버·화면·재고를 다시 검사해. PC가 절전/종료되면 감시하지 못하고 모바일에서는 작동하지 않아.'))return;
   timingStart();
   if(armedMode==='sku'&&allSaleable()){
    if(!await prepare()){timingStop('처음 장바구니 준비 실패');return;}
@@ -685,6 +691,12 @@ function basketSummary(){if(armedMode==='names'&&!lockedCandidate)return '미공
   }
   autoOrder=!!controls.autoOrder.checked;dryRun=!!controls.dryRun.checked;autoPay=false;
   active=true;confirmed=false;completed=false;tries=0;triggerMode='';routeBusy=false;lastWindowOk=null;
+  if(backgroundWatch){
+   controls.bgStatus.hidden=false;controls.bgStatus.dataset.connected='';
+   controls.bgStatus.textContent='🟡 PC 확장 감시 연결 확인 중…';
+   backgroundNotify('watch-start',{store:STORE,watchMode:armedMode,items:chosenItems(),nameCandidates:nameCandidates.map(x=>({...x})),sku,option});
+   setTimeout(()=>{if(active&&controls.bgStatus.dataset.connected!=='yes'&&controls.bgStatus.dataset.connected!=='no')controls.bgStatus.textContent='⚠ PC 확장 응답 없음 · 탭을 화면에 둔 경우에만 기존 감시 작동';},2500);
+  }else controls.bgStatus.hidden=true;
   controls.reload.hidden=true;controls.reload.style.display='none';
   renderNames();message('⏳ '+basketSummary()+' · '+open+' + '+storage+' · '+cycle+'초 감시 · '+(awaitingCatalog?'목록·재고 대기 · ':cartPrepared?'장바구니 준비 완료 · ':'일부 재고 대기 · ')+(autoOrder?(dryRun?'무전송 시험':'실제 주문 생성 가능 · 결제 자동진행 없음'):'수동 확정')+' 모드');
   poll();
@@ -774,8 +786,24 @@ function basketSummary(){if(armedMode==='names'&&!lockedCandidate)return '미공
   if(submitClicked&&!payDone)watchPrePayment();
  });
  ob.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class','hidden','disabled']});
+ window.addEventListener('bbp-v24-extension-status',event=>{
+  if(!active||!backgroundWatch)return;
+  const ok=event.detail?.ok===true;
+  controls.bgStatus.dataset.connected=ok?'yes':'no';
+  controls.bgStatus.textContent=ok?'🟢 PC 백그라운드 보조 감시 연결됨 · 최소 30초 주기':'⚠ PC 확장 감시 연결 안 됨 · 설치/권한 확인 (현재는 전면 탭 감시만 작동)';
+  timingMark('background_extension',ok?'확장 연결됨':'확장 연결 실패');
+ });
+ window.addEventListener('bbp-v24-external-wake',()=>{
+  if(!active||document.hidden||polling||confirmed||completed)return;
+  timingMark('background_wake','PC 확장 감지 신호 → 공식 서버·화면 재검사');
+  if(timer)clearTimeout(timer);
+  timer=null;
+  poll();
+ });
  document.addEventListener('visibilitychange',()=>{if(timingActive)timingMark(document.hidden?'hidden':'resumed');if(active&&!document.hidden&&!polling){if(timer)clearTimeout(timer);schedule(100);}});
  window.addEventListener('pagehide',()=>{stop();ob.disconnect();mini.remove();});
+ controls.backgroundWatch.checked=backgroundWatch;
+ controls.backgroundWatch.addEventListener('change',()=>{if(active){controls.backgroundWatch.checked=backgroundWatch;message('⚠ 감시 중 변경 불가 · 중지 후 설정해 줘');return;}backgroundWatch=controls.backgroundWatch.checked;savePref();});
  controls.watchMode.value=watchMode;controls.opt.value=option;controls.cycle.value=String(cycle);controls.open.value=open;controls.storage.value=storage;controls.manual.value=sku;
  window.__bbpGeneralQuickV24={show,stop,__v2:true,version:'2.4.0'};
  renderNames();renderBasket();loadCatalog(false);
