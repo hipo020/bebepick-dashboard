@@ -291,6 +291,11 @@ function basketSummary(){if(armedMode==='names'&&!lockedCandidate)return '미공
   return '⚪ 판매 상태 확인 필요';
  }
  function renderBasket(){
+  if(armedMode==='names'||(!active&&watchMode==='names')){
+   controls.basket.textContent=lockedCandidate?'🧸 실제 선택 후보: '+lockedCandidate.name+' · '+lockedCandidate.item.sku+' · '+(lockedCandidate.item.option==='fullbox'?'풀박스':'낱개')+' ×'+lockedCandidate.item.qty:
+    '🧸 여러 이름 후보 모드 · 이 SKU 목록은 주문 대상이 아니야. 후보 목록에서 한 종류가 선정되면 표시돼.';
+   return;
+  }
   const list=items.length?items:[];
   controls.basket.replaceChildren();
   const head=document.createElement('div');head.style.cssText='font-weight:750;margin-bottom:6px';
@@ -586,7 +591,7 @@ function basketSummary(){if(armedMode==='names'&&!lockedCandidate)return '미공
  controls.watchMode.addEventListener('change',()=>{
   if(active||completed){controls.watchMode.value=watchMode;message('⚠ 감시 중에는 감시 방식을 변경할 수 없어');return;}
   watchMode=controls.watchMode.value==='names'?'names':'sku';
-  savePref();renderNames();message(watchMode==='names'?'🧸 여러 이름 후보 중 한 종류를 선택하는 감시로 설정했어':'🛒 기존 선택 SKU 전체 주문 모드로 설정했어');
+  savePref();renderNames();renderBasket();message(watchMode==='names'?'🧸 여러 이름 후보 중 한 종류를 선택하는 감시로 설정했어':'🛒 기존 선택 SKU 전체 주문 모드로 설정했어');
  });
  controls.addName.onclick=()=>{
   if(active||completed){message('⚠ 감시를 시작하기 전에 후보를 등록해 줘');return;}
@@ -598,7 +603,7 @@ function basketSummary(){if(armedMode==='names'&&!lockedCandidate)return '미공
   if(nameCandidates.length>=MAX_NAMES){message('⚠ 후보는 최대 '+MAX_NAMES+'종까지 등록 가능해');return;}
   nameCandidates.push({name,qty,option:opt});
   watchMode='names';controls.watchMode.value='names';
-  controls.name.value='';savePref();renderNames();
+  controls.name.value='';savePref();renderNames();renderBasket();
   message('✅ 이름 후보 '+nameCandidates.length+'종 저장됨 · 순서대로 우선 감시');
  };
  controls.name.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();controls.addName.click();}});
@@ -665,8 +670,8 @@ function basketSummary(){if(armedMode==='names'&&!lockedCandidate)return '미공
   if(autoOrder&&!dryRun){
    if(recentSubmit()){message('⚠ 최근 주문 요청 이력이 있어 · 주문내역 확인 후 새로고침해 줘');return;}
    const realConsent=armedMode==='names'?
-    '⚠ 실제 주문번호 자동 생성 허용\\n\\n이름 후보 '+nameCandidates.length+'종 중 판매 가능으로 확인된 1종을 자동 선택해 주문할 수 있어. 어느 후보가 선택될지는 아직 확정되지 않았어.\\n\\n'+nameCandidates.map((c,i)=>(i+1)+'. '+c.name+' · '+(c.option==='fullbox'?'풀박스':'낱개')+' ×'+c.qty).join('\\n')+'\\n\\n개봉 '+open+' · 받는 방법 '+storage+'\\n\\n공식 주문 확인 2단계를 거쳐 최종 주문번호 생성 버튼을 최대 1번 누를 수 있어. 결제는 자동 실행하지 않아. 미결제·취소 제재가 생길 수 있으므로 후보 모두 실제로 구매할 의사가 있는지 확인해 줘. 동의할까?':
-    '⚠ 여러 인형 실제 주문 자동 생성 확인\\n\\n'+summaryItems()+'\\n\\n개봉 '+open+' · 받는 방법 '+storage+'\\n공식 주문 확인 2단계를 거쳐 최종 주문을 최대 1번 생성해. 결제 버튼은 직접 눌러야 해. 진행할까?';
+    '⚠ 실제 주문번호 자동 생성 허용\n\n이름 후보 '+nameCandidates.length+'종 중 판매 가능으로 확인된 1종을 자동 선택해 주문할 수 있어. 어느 후보가 선택될지는 아직 확정되지 않았어.\n\n'+nameCandidates.map((c,i)=>(i+1)+'. '+c.name+' · '+(c.option==='fullbox'?'풀박스':'낱개')+' ×'+c.qty).join('\n')+'\n\n개봉 '+open+' · 받는 방법 '+storage+'\n\n공식 주문 확인 2단계를 거쳐 최종 주문번호 생성 버튼을 최대 1번 누를 수 있어. 결제는 자동 실행하지 않아. 미결제·취소 제재가 생길 수 있으므로 후보 모두 실제로 구매할 의사가 있는지 확인해 줘. 동의할까?':
+    '⚠ 여러 인형 실제 주문 자동 생성 확인\n\n'+summaryItems()+'\n\n개봉 '+open+' · 받는 방법 '+storage+'\n공식 주문 확인 2단계를 거쳐 최종 주문을 최대 1번 생성해. 결제 버튼은 직접 눌러야 해. 진행할까?';
    if(!confirm(realConsent))return;
   }
   timingStart();
