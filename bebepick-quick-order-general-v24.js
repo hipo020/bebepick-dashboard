@@ -889,8 +889,8 @@ function basketSummary(){
   }
   const sheet=el('.panel[data-sheet="pay"]');
   if(!sheet||!sheet.isConnected||sheet.hidden||getComputedStyle(sheet).display==='none')return;
-  const txt=sheet.textContent||'',m=txt.match(/\\bBP[A-Z0-9]{8,}\\b/);
-  if(!m||m[0]===oldPayOrder||!/주문서를?\\s*만들었습니다|주문\\s*완료|주문번호/.test(txt))return;
+  const txt=sheet.textContent||'',m=txt.match(/\bBP[A-Z0-9]{8,}\b/);
+  if(!m||m[0]===oldPayOrder||!/주문서를?\s*만들었습니다|주문\s*완료|주문번호/.test(txt))return;
   timingOnce('pay_panel','공식 화면에 새 주문번호 표시');
   if(!payArmed){
    payDone=true;
