@@ -10,7 +10,7 @@ const required = [
   'qNameEditor', 'qNameSummary', 'qName', 'qNameQty', 'qNameOpt', 'qAddName', 'qNames',
   'qSkuEditor', 'qSkuSummary', 'qSearch', 'qSku', 'qManualSku', 'qUseSku', 'qProduct',
   'qQty', 'qAdd', 'qImportCart', 'qBasket', 'qOpt', 'qCycle', 'qOpen', 'qStorage',
-  'qAutoOrder', 'qDryRun', 'qBackgroundWatch', 'qBackgroundStatus',
+  'qAutoOrder', 'qDryRun', 'qPayAppPage', 'qBackgroundWatch', 'qBackgroundStatus',
   'qStatus', 'qActions', 'qStart', 'qStop', 'qLoad', 'qReload',
   'qTiming', 'qTimingSummary', 'qTimingLog', 'qTimingCopy', 'qTimingDownload'
 ];
