@@ -6,6 +6,7 @@ on:
       - 'bebepick-quick-order-general-v24.js'
       - 'tests/chrome-background-watch.test.cjs'
       - 'tests/general-v24-mobile-mode-visibility.test.cjs'
+      - 'tests/general-v24-quantity-total.test.cjs'
       - '.github/workflows/pc-background-watch.yml'
   pull_request:
     paths:
@@ -13,6 +14,7 @@ on:
       - 'bebepick-quick-order-general-v24.js'
       - 'tests/chrome-background-watch.test.cjs'
       - 'tests/general-v24-mobile-mode-visibility.test.cjs'
+      - 'tests/general-v24-quantity-total.test.cjs'
       - '.github/workflows/pc-background-watch.yml'
 permissions:
   contents: read
@@ -30,6 +32,8 @@ jobs:
         run: node --test tests/general-fast-order-v24-names.test.mjs
       - name: Mobile bookmarklet UX and basket preservation tests
         run: node --test tests/general-v24-mobile-mode-visibility.test.cjs
+      - name: Saved-quantity and cart-total tests
+        run: node --test tests/general-v24-quantity-total.test.cjs
       - name: Package Chrome extension
         run: cd chrome-background-watch && zip -q -9 ../bebepick-pc-background-watch-v01.zip manifest.json background.js bridge.js checks.js README.md
       - uses: actions/upload-artifact@v4
