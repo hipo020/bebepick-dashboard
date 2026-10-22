@@ -63,44 +63,62 @@ async function snapshot(store) {
   const key = await officialKey();
   return Promise.all([rpc(key, 'order_windows', {}), rpc(key, 'list_products', { p_brand: store })]);
 }
+// All plan state edits are serialized so an in-flight RPC cannot rearm a stopped tab.
+let mutationQueue = Promise.resolve();
+function mutatePlan(update) {
+  const result = mutationQueue.then(async () => {
+    const state = await plans();
+    const output = update(state);
+    await save(state);
+    return output;
+  });
+  mutationQueue = result.catch(() => {});
+  return result;
+}
 async function tick() {
   if (checking) return;
   checking = true;
   try {
-    const current = await plans();
-    const now = Date.now();
-    for (const [id, entry] of Object.entries(current)) {
+    const snapshotPlans = await plans();
+    for (const [id, entry] of Object.entries(snapshotPlans)) {
       const tabId = Number(id);
       try {
         const tab = await chrome.tabs.get(tabId);
         const parsed = new URL(tab.url);
-        if (parsed.origin !== 'https://bebepick.me' || (parsed.pathname !== '/live' && parsed.pathname !== '/plus') ||
+        if (parsed.origin !== 'https://bebepick.me' ||
+            (parsed.pathname !== '/live' && parsed.pathname !== '/plus') ||
             entry.plan.store !== (parsed.pathname === '/plus' ? 'china' : 'main')) {
-          delete current[id]; continue;
+          await mutatePlan(state => { delete state[id]; });
+          continue;
         }
-        if (entry.cooldownUntil > now || entry.suspendedUntil > now) continue;
+        if (entry.cooldownUntil > Date.now() || entry.suspendedUntil > Date.now()) continue;
         const [windows, catalog] = await snapshot(entry.plan.store);
-        entry.lastCheckAt = now;
-        entry.lastError = '';
-        if (!BBPChecks.isReady(windows, catalog, entry.plan)) continue;
-        // Record one wake before focusing: no repeated wake storms or accidental second submit.
-        entry.cooldownUntil = Date.now() + 120000;
-        await chrome.storage.session.set({ [KEY]: current });
+        const ready = BBPChecks.isReady(windows, catalog, entry.plan);
+        const stillArmed = await mutatePlan(state => {
+          const next = state[id];
+          if (!next || JSON.stringify(next.plan) !== JSON.stringify(entry.plan)) return false;
+          next.lastCheckAt = Date.now();
+          next.lastError = '';
+          if (ready) next.cooldownUntil = Date.now() + 120000;
+          return true;
+        });
+        if (!ready || !stillArmed) continue;
+        // Focus does not submit an order. v2.4 must independently revalidate everything.
         await chrome.tabs.update(tabId, { active: true });
         await chrome.windows.update(tab.windowId, { focused: true });
         await chrome.tabs.sendMessage(tabId, { type: 'WAKE' });
       } catch (error) {
         const status = Number(error && error.status);
-        entry.lastError = String(error && error.message || error).slice(0, 100);
-        if (status === 401 || status === 403) {
-          // Never retry through another identity or bypass vendor access.
-          delete current[id];
-        } else {
-          entry.suspendedUntil = Date.now() + (status === 429 ? 120000 : 30000);
-        }
+        const description = String(error && error.message || error).slice(0, 100);
+        await mutatePlan(state => {
+          const next = state[id];
+          if (!next || JSON.stringify(next.plan) !== JSON.stringify(entry.plan)) return;
+          next.lastError = description;
+          if (status === 401 || status === 403) delete state[id];
+          else next.suspendedUntil = Date.now() + (status === 429 ? 120000 : 30000);
+        });
       }
     }
-    await save(current);
   } finally { checking = false; }
 }
 chrome.runtime.onMessage.addListener((msg, sender, reply) => {
@@ -113,15 +131,15 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
     if (msg && msg.type === 'START') {
       const plan = BBPChecks.sanitizePlan(msg.plan, parsed.pathname);
       if (!plan) return { ok: false, error: 'invalid-watch-plan' };
-      current[String(tab.id)] = { plan, lastCheckAt: null, cooldownUntil: 0, suspendedUntil: 0, lastError: '' };
-      await save(current);
+      await mutatePlan(state => {
+        state[String(tab.id)] = { plan, lastCheckAt: null, cooldownUntil: 0, suspendedUntil: 0, lastError: '' };
+      });
       // First check immediately, then the 30-second alarm supplements foreground polling.
       tick();
       return { ok: true };
     }
     if (msg && msg.type === 'STOP') {
-      delete current[String(tab.id)];
-      await save(current);
+      await mutatePlan(state => { delete state[String(tab.id)]; });
       return { ok: true };
     }
     return { ok: false };
@@ -130,21 +148,21 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
 });
 chrome.alarms.onAlarm.addListener(alarm => { if (alarm.name === ALARM) tick(); });
 chrome.tabs.onRemoved.addListener(async tabId => {
-  const current = await plans();
-  if (current[String(tabId)]) { delete current[String(tabId)]; await save(current); }
+  await mutatePlan(state => { delete state[String(tabId)]; });
 });
 chrome.tabs.onUpdated.addListener(async (tabId, changes) => {
   if (!changes.url) return;
-  const current = await plans();
-  if (!current[String(tabId)]) return;
-  try {
-    const parsed = new URL(changes.url);
-    const store = parsed.pathname === '/plus' ? 'china' : parsed.pathname === '/live' ? 'main' : '';
-    if (parsed.origin === 'https://bebepick.me' && store === current[String(tabId)].plan.store) return;
-  } catch (_) {}
-  delete current[String(tabId)]; await save(current);
+  await mutatePlan(state => {
+    if (!state[String(tabId)]) return;
+    try {
+      const parsed = new URL(changes.url);
+      const store = parsed.pathname === '/plus' ? 'china' : parsed.pathname === '/live' ? 'main' : '';
+      if (parsed.origin === 'https://bebepick.me' && store === state[String(tabId)].plan.store) return;
+    } catch (_) {}
+    delete state[String(tabId)];
+  });
 });
 chrome.runtime.onStartup.addListener(async () => {
   // Session state must not silently rearm after browser restart.
-  await save({});
+  await mutatePlan(state => { for (const id of Object.keys(state)) delete state[id]; });
 });
