@@ -666,8 +666,8 @@ function basketSummary(){
  }
  controls.watchMode.addEventListener('change',()=>{
   if(active||completed){controls.watchMode.value=watchMode;message('⚠ 감시 중에는 감시 방식을 변경할 수 없어');return;}
-  watchMode=controls.watchMode.value==='names'?'names':'sku';
-  savePref();renderNames();renderBasket();renderModeSections(true);message(watchMode==='names'?'🧸 여러 이름 후보 중 한 종류를 선택하는 감시로 설정했어':'🛒 기존 선택 SKU 전체 주문 모드로 설정했어');
+  watchMode=['sku','names','mixed'].includes(controls.watchMode.value)?controls.watchMode.value:'sku';
+  savePref();renderNames();renderBasket();renderModeSections(true);message(watchMode==='mixed'?'🧸 기존 SKU 전부 + 이름 후보 한 종류를 합쳐 주문 준비해':watchMode==='names'?'🧸 여러 이름 후보 중 한 종류를 선택하는 감시로 설정했어':'🛒 기존 선택 SKU 전체 주문 모드로 설정했어');
  });
  controls.addName.onclick=()=>{
   if(active||completed){message('⚠ 감시를 시작하기 전에 후보를 등록해 줘');return;}
@@ -678,7 +678,7 @@ function basketSummary(){
   if(nameCandidates.some(x=>nameKey(x.name)===nameKey(name))){message('⚠ 같은 이름이 이미 등록됐어 · 삭제한 뒤 다시 추가해 줘');return;}
   if(nameCandidates.length>=MAX_NAMES){message('⚠ 후보는 최대 '+MAX_NAMES+'종까지 등록 가능해');return;}
   nameCandidates.push({name,qty,option:opt});
-  watchMode='names';controls.watchMode.value='names';
+  if(watchMode!=='mixed'){watchMode='names';controls.watchMode.value='names';}
   controls.name.value='';savePref();renderNames();renderBasket();renderModeSections(true);
   message('✅ 이름 후보 '+nameCandidates.length+'종 저장됨 · 순서대로 우선 감시');
  };
