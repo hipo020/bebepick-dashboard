@@ -21,7 +21,7 @@ try {
 const MAX_LINES=20,MAX_QTY=99,MAX_NAMES=20;
  const nameKey=n=>String(n||'').normalize('NFC').trim().replace(/\s+/g,'').toLocaleLowerCase('ko-KR');
  const validName=n=>typeof n==='string'&&n.trim().length>=2&&n.trim().length<=90&&!/[\u0000-\u001f<>]/.test(n);
- let watchMode=pref.watchMode==='names'?'names':'sku';
+ let watchMode=['sku','names','mixed'].includes(pref.watchMode)?pref.watchMode:'sku';
  let backgroundWatch=pref.backgroundWatch===true;
  let nameCandidates=[],lockedCandidate=null,candidateStates=new Map(),armedMode='sku';
  if(Array.isArray(pref.nameCandidates)){
