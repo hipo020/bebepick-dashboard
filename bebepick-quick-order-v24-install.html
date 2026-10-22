@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#f9f6ff">
+<title>베베픽 범용 자동주문 v2.4 · 속도 기록 설치</title>
+<style>
+*{box-sizing:border-box}:root{font-family:system-ui,-apple-system,"Pretendard",sans-serif;color-scheme:light}
+body{margin:0;background:#f8f5fc;color:#31263e}main{padding:18px 14px 60px;max-width:720px;margin:0 auto}
+h1{font-size:23px;margin:0 0 10px}h2{font-size:17px;margin:19px 0 9px}
+p,li{line-height:1.65}li{margin:7px 0}
+section{background:white;border:1px solid #e7dff0;border-radius:16px;padding:18px}
+button{border:0;border-radius:10px;background:#7553a9;color:white;padding:12px 18px;font-weight:750;font-size:15px}
+textarea{box-sizing:border-box;width:100%;min-height:105px;border:1px solid #d7c6e7;background:#fbf9ff;border-radius:8px;padding:10px;font:12px/1.5 ui-monospace,monospace}
+.note{border-radius:9px;background:#f6f0fc;padding:12px;font-size:13px}
+.muted,small{color:#726881}a{color:#68419c}
+</style></head>
+<body><main><section>
+<h1>🧸 베베픽 자동주문 v2.4 · 이름 후보 / 여러 SKU</h1>
+<p class="muted">미공개 신상 이름 후보 20종 중 먼저 판매 가능한 1종 주문 또는 기존 SKU 여러 개 함께 주문</p>
+<p><strong>한 몰에서 여러 인형/낱개·풀박스/수량을 고른 다음, 공식 재고가 모두 준비될 때까지 기다려.</strong> 개봉·보관 옵션을 미리 정해 두고, 명시 동의한 경우에만 공식 주문 확인과 주문 생성까지 진행해. <strong>페이앱 결제창은 자동으로 열지 않아.</strong></p>
+<h2>지원하는 두 감시 방식</h2>
+<p class="note"><strong>① 이름 후보 중 1종 주문:</strong> 공식 SKU를 몰라도 인형 이름을 20종까지 미리 등록해. 이름이 띄어쓰기 제외 정확히 일치하고 공식 매장/재고 조건이 맞는 상품 1종을 자동 선택해. 여러 후보가 한 번에 판매 가능하면 등록한 우선순위를 따라. 비슷한 이름은 일치로 보지 않아. 같은 이름의 SKU가 여러 개면 그 후보는 자동 선택하지 않아.</p>
+<p class="note"><strong>② 기존 여러 SKU 모두 주문:</strong> v2.3과 똑같이 상품코드를 지정하고 여러 인형·수량을 담아 선택 상품이 모두 판매 가능할 때 주문해. 이름 후보 모드와 SKU 모드는 동시에 실행되지 않아.</p>
+<h2>설치 방법</h2>
+<ol>
+<li>아래 <strong>북마크 코드 복사</strong>를 눌러.</li>
+<li>PC·갤럭시 크롬에서 새 북마크를 만들고 북마크 <strong>주소</strong>를 복사한 코드로 바꿔.</li>
+<li><a href="https://bebepick.me/plus">베베픽 플러스</a> 또는 <a href="https://bebepick.me/live">베베픽</a> 주문 페이지에 로그인해 둬.</li>
+<li>기존 v2.2.2 등 주문 도우미가 떠 있다면 공식 페이지를 한 번 새로고침하고, 새 v2.4 북마크를 실행해. 이전 실주문 v2.3과 진단 v2.3.1/v2.3.2를 같은 탭에서 동시에 사용하지 마.</li>
+<li><strong>감시 방식</strong>을 선택해. 이름 후보 모드라면 정확한 이름을 적고 <strong>후보 수량·낱개/풀박스</strong>를 정해 <strong>＋ 이름 후보 등록</strong>을 반복해. 후보는 ↑↓로 우선순위 조정 가능해. 이미 진단 v2.3.2에 입력한 후보는 처음 실행 시 가져오지만 실주문 모드를 자동 ON하지는 않아.</li>
+<li>기존 SKU 모드라면 인형 검색 → 구매 단위/수량 → <strong>＋ 인형 추가</strong>로 여러 SKU를 목록에 담아.</li><li><strong>개봉·보관</strong> 옵션을 선택해 (한 주문의 전체 상품에 동일하게 적용).</li><li><strong>무전송 시험</strong>을 유지한 채 먼저 시험해. 실제 주문번호는 생성되지 않아. 실제 주문까지 원할 때만 <strong>공식 동의 2단계 및 최종 주문 자동 클릭</strong>을 켜고 무전송 시험을 끈 뒤 상세 내용을 확인하고 승인해.</li>
+<li>결과는 도우미 아래 <strong>⏱️ 자동주문 구간별 속도 기록</strong>에서 확인해. 복사하거나 JSON으로 저장할 수 있어.</li>
+</ol>
+<p><button id="copy" type="button">📋 북마크 코드 복사</button></p>
+<p id="status" role="status" class="muted"></p>
+<textarea id="bookmark" readonly aria-label="북마크 코드"></textarea>
+<h2>기록되는 단계</h2>
+<p class="note">서버 조회 시간 · 이름 후보별 발견·SKU 선택 · 최초 판매 가능 발견 · 장바구니 준비 · 재고+주문 조건 충족 · 공식 화면 반영 대기 · 장바구니 열기 · 주문 확인창 진입 · 무전송 시험 종료</p>
+<p class="note"><strong>안전장치:</strong> 무전송 시험 기본 · 미래에 어느 이름 후보가 선택될지 모른다는 점을 실주문 승인창에서 고지, 수량/재고/장바구니 재검증, 주문 1회 클릭·중복 방지. 기존 주문의 보관/배송 방식 변경 경고나 사이트 제한이 감지되면 자동 중단. 결제 승인·페이앱 실행은 하지 않아. 로그의 DOM 클릭 기록은 주문 접수 성공을 의미하지 않아.</p>
+<p class="muted">실주문 모드에서 주문번호가 생성되면 3분 결제 기한이 시작될 수 있고, 미결제나 결제 후 취소에 따른 제한 가능성이 있어. 모든 후보를 실제로 구매할 의사가 있을 때만 실주문을 켜 줘. 결제 직전 화면이 나오면 도우미 창을 자동으로 접고 공식 결제 버튼 쪽으로 스크롤해. 크롬 창 자체를 운영체제 작업표시줄로 최소화하는 기능은 아니야. 백그라운드에서는 안전상 감시/확인 동작이 중지될 수 있어. 실제 사이트의 접근 제한을 우회하지 않으며, 저장된 주문 생성 전에는 구매가 완료된 것이 아니야.</p><p class="muted">속도 로그는 브라우저 같은 탭에만 저장돼. 쿠키·인증 토큰·주문번호는 담지 않아.</p>
+</section></main>
+<script>
+(function(){
+ const src="https://hipo020.github.io/bebepick-dashboard/bebepick-quick-order-general-v24.js?v=20261022-v24-multi-name-real";
+ const code="javascript:(function(){var s=document.createElement('script');s.src="+JSON.stringify(src)+";s.onerror=function(){alert('베베픽 v2.4 로드 실패')};document.documentElement.appendChild(s)})()";
+ document.getElementById("bookmark").value=code;
+ document.getElementById("copy").onclick=async()=>{
+  try{await navigator.clipboard.writeText(code);document.getElementById("status").textContent="✅ 복사했어! 북마크 주소에 붙여넣으면 돼.";}
+  catch(e){const t=document.getElementById("bookmark");t.focus();t.select();document.getElementById("status").textContent="복사가 차단됐어. 선택된 코드를 직접 복사해 줘.";}
+ };
+})();
+</script></body></html>
