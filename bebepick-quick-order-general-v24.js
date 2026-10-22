@@ -305,6 +305,52 @@ function basketSummary(){if(armedMode==='names'&&!lockedCandidate)return '미공
     controls.basket.append(r);
   });
  }
+ function inspectNameCandidates(rows,candidates){
+  const states=[],eligible=[];
+  for(const c of candidates){
+   const matched=rows.filter(p=>p&&validSku(p.sku)&&availableHere(p)&&nameKey(p.name)===nameKey(c.name));
+   let state='공식 상품 목록에 아직 없음';
+   if(matched.length>1)state='동명 SKU '+matched.length+'개 · 자동 선택 보류';
+   else if(matched.length===1){
+    const p=matched[0];
+    if(!allowedOption(p,c.option))state='선택한 옵션 지원 안 함';
+    else if(saleableFor(p,{sku:p.sku,option:c.option,qty:c.qty})){
+     state='판매 가능 · '+p.sku;
+     eligible.push({name:c.name,item:{sku:p.sku,option:c.option,qty:c.qty}});
+    }else state='SKU '+p.sku+' · 재고/구매한도 대기';
+   }
+   states.push({key:nameKey(c.name),name:c.name,state});
+  }
+  return {states,selected:eligible[0]||null};
+ }
+ function lockedCandidateValid(rows= catalog){
+  if(armedMode!=='names')return true;
+  if(!lockedCandidate)return false;
+  const matched=rows.filter(p=>p&&p.sku===lockedCandidate.item.sku&&availableHere(p));
+  return matched.length===1&&nameKey(matched[0].name)===nameKey(lockedCandidate.name)&&
+   rows.filter(p=>p&&availableHere(p)&&nameKey(p.name)===nameKey(lockedCandidate.name)).length===1&&
+   saleableFor(matched[0],lockedCandidate.item);
+ }
+ function renderNames(){
+  controls.names.replaceChildren();
+  if(!nameCandidates.length){controls.names.textContent='등록된 후보 없음 · 이름을 추가해 줘';return;}
+  const title=document.createElement('div');title.textContent='후보 '+nameCandidates.length+'종 · ↑ ↓ 우선순위 변경';title.style.cssText='font-weight:700;margin:7px 0';controls.names.append(title);
+  nameCandidates.forEach((c,i)=>{
+   const line=document.createElement('div');line.style.cssText='display:flex;flex-wrap:wrap;align-items:center;gap:5px;padding:6px 0;border-top:1px solid #e2d7eb';
+   const label=document.createElement('span');label.style.cssText='flex:1;min-width:140px;overflow-wrap:anywhere';
+   const marker=candidateStates.get(nameKey(c.name));
+   label.textContent=(i+1)+'. '+c.name+' · '+(c.option==='fullbox'?'풀박스':'낱개')+' ×'+c.qty+
+    (lockedCandidate?.name===c.name?' ✅ 선택됨':marker?' · '+marker:'');
+   line.append(label);
+   for(const [cmd,txt] of [['up','↑'],['down','↓'],['remove','삭제']]){
+    const btn=document.createElement('button');btn.type='button';btn.textContent=txt;
+    btn.dataset.nameAction=cmd;btn.dataset.nameIndex=String(i);
+    btn.disabled=active||completed||(cmd==='up'&&i===0)||(cmd==='down'&&i===nameCandidates.length-1);
+    btn.style.cssText='border:1px solid #d8c9e5;border-radius:6px;background:#fff;padding:5px 7px';line.append(btn);
+   }
+   controls.names.append(line);
+  });
+ }
  function fillCatalog(){
   const q=controls.search.value.toLocaleLowerCase('ko-KR').replace(/\s+/g,'');
   const list=visibleProducts().filter(p=>(String(p.name||'')+' '+p.sku).toLocaleLowerCase('ko-KR').replace(/\s+/g,'').includes(q))
