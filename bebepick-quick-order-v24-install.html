@@ -17,7 +17,7 @@ textarea{box-sizing:border-box;width:100%;min-height:105px;border:1px solid #d7c
 <h1>🧸 베베픽 자동주문 v2.4 · 이름 후보 / 여러 SKU</h1>
 <p class="muted">미공개 신상 이름 후보 20종 중 먼저 판매 가능한 1종 주문 또는 기존 SKU 여러 개 함께 주문</p>
 <p><strong>한 몰에서 여러 인형/낱개·풀박스/수량을 고른 다음, 공식 재고가 모두 준비될 때까지 기다려.</strong> 개봉·보관 옵션을 미리 정해 두고, 명시 동의한 경우에만 공식 주문 확인과 주문 생성까지 진행해. <strong>페이앱 결제창은 자동으로 열지 않아.</strong></p>
-<h2>지원하는 두 감시 방식</h2>
+<h2>지원하는 두 감시 방식</h2><p class="note">🔎 모바일 UI 정리: 이름 후보와 기존 SKU는 별도 저장 목록이야. 두 화면을 동시에 주문하지 않고, 선택한 감시 방식만 주문 대상으로 사용해. <strong>화면 아래 기존 SKU 목록과 이 브라우저에 저장된 사이트 장바구니를 따로 확인</strong>할 수 있어. 이전 북마크는 반드시 새 코드로 교체해 줘.</p>
 <p class="note"><strong>① 이름 후보 중 1종 주문:</strong> 공식 SKU를 몰라도 인형 이름을 20종까지 미리 등록해. 이름이 띄어쓰기 제외 정확히 일치하고 공식 매장/재고 조건이 맞는 상품 1종을 자동 선택해. 여러 후보가 한 번에 판매 가능하면 등록한 우선순위를 따라. 비슷한 이름은 일치로 보지 않아. 같은 이름의 SKU가 여러 개면 그 후보는 자동 선택하지 않아.</p>
 <p class="note"><strong>② 기존 여러 SKU 모두 주문:</strong> v2.3과 똑같이 상품코드를 지정하고 여러 인형·수량을 담아 선택 상품이 모두 판매 가능할 때 주문해. 이름 후보 모드와 SKU 모드는 동시에 실행되지 않아.</p>
 <h2>설치 방법</h2>
@@ -40,7 +40,7 @@ textarea{box-sizing:border-box;width:100%;min-height:105px;border:1px solid #d7c
 </section></main>
 <script>
 (function(){
- const src="https://hipo020.github.io/bebepick-dashboard/bebepick-quick-order-general-v24.js?v=20261022-v24-pc-background-v01";
+ const src="https://hipo020.github.io/bebepick-dashboard/bebepick-quick-order-general-v24.js?v=20261022-v24-mobile-baskets-v01";
  const code="javascript:(function(){var s=document.createElement('script');s.src="+JSON.stringify(src)+";s.onerror=function(){alert('베베픽 v2.4 로드 실패')};document.documentElement.appendChild(s)})()";
  document.getElementById("bookmark").value=code;
  document.getElementById("copy").onclick=async()=>{

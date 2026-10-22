@@ -67,13 +67,17 @@ function basketSummary(){if(armedMode==='names'&&!lockedCandidate)return '미공
  function money(n){return n!==null&&n!==undefined&&n!==''&&Number.isFinite(+n)?Number(n).toLocaleString('ko-KR')+'원':'가격 로그인 후 확인';}
  const panel=document.createElement('aside');panel.id='bbpQuickGeneralV24';
  panel.style.cssText='position:fixed;z-index:2147483645;left:10px;right:10px;bottom:10px;max-width:455px;max-height:86dvh;overflow:auto;margin:auto;background:#fff;border:2px solid #8762b8;border-radius:16px;padding:14px 14px 12px;color:#282235;box-shadow:0 8px 32px #0005;font:14px/1.48 system-ui,-apple-system,sans-serif';
+ if(window.matchMedia&&matchMedia('(max-width:640px)').matches){panel.style.cssText+=';top:8px;bottom:8px;left:5px;right:5px;max-height:calc(100dvh - 16px);max-width:none;padding:10px 10px 8px';}
  const inputStyle='width:100%;margin-top:3px;min-height:37px;border:1px solid #d8cee5;border-radius:9px;padding:7px;background:#fff;color:#202020;font:inherit';
  const rowStyle='display:flex;gap:8px;flex-wrap:wrap;margin:8px 0';
- panel.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><strong>🧸 베베픽 자동주문 v2.4 · 여러 이름 후보 / SKU</strong><button id="qClose" type="button" style="border:0;background:#fff;font-size:23px;color:#333">×</button></div>'+
+ panel.innerHTML='<div style="position:sticky;top:-12px;background:#fff;z-index:3;padding:8px 0;border-bottom:1px solid #e9e0ee;display:flex;align-items:center;justify-content:space-between;gap:8px"><strong>🧸 베베픽 자동주문 v2.4 · 여러 이름 후보 / SKU</strong><button id="qClose" type="button" style="border:0;background:#fff;font-size:23px;color:#333">×</button></div>'+
  '<div style="font-size:12px;color:#71677d;margin:3px 0" id="qChannel"></div>'+
  '<div style="border:1px solid #d2b9e8;background:#faf6ff;border-radius:10px;padding:10px;margin-top:9px">'+
   '<label style="font-weight:700;display:block">감시 방식<select id="qWatchMode" style="'+inputStyle+'"><option value="sku">기존 · 선택한 SKU 모두 주문</option><option value="names">신상 · 이름 후보 중 먼저 판매 가능한 1종 주문</option></select></label>'+
-  '<div style="margin-top:6px;font-size:12px">SKU 없이 미공개 상품 이름을 최대 20종까지 등록 가능해. 한 번에 1종만 선택하고 등록 순서가 우선이야. 실제 주문 ON이면 주문번호가 생성될 수 있어.</div>'+
+  '<div style="margin-top:6px;font-size:12px">① 이름 후보 중 1종 또는 ② 기존 SKU 전부 주문 · 두 방식은 동시에 주문되지 않아. 각 방식의 저장 목록은 따로 보관돼.</div>'+
+ '</div>'+
+ '<div id="qModeStatus" role="status" style="font-weight:700;font-size:12px;background:#f4effa;padding:9px;margin:8px 0;border-radius:8px"></div>'+
+ '<details id="qNameEditor" open style="border:1px solid #d2b9e8;background:#faf6ff;border-radius:10px;padding:10px;margin-top:8px"><summary id="qNameSummary" style="font-weight:750;cursor:pointer">① 신상 이름 후보 등록</summary>'+
   '<label style="display:block;font-size:12px;margin-top:9px">공식 상품명 정확히 입력<input id="qName" placeholder="예: 메이메이 서프라이즈" maxlength="90" style="'+inputStyle+'"></label>'+
   '<div style="display:flex;align-items:end;gap:7px;margin-top:7px">'+
    '<label style="flex:1;font-size:12px">후보 수량<input id="qNameQty" type="number" min="1" max="99" value="1" style="'+inputStyle+'"></label>'+
@@ -81,7 +85,8 @@ function basketSummary(){if(armedMode==='names'&&!lockedCandidate)return '미공
    '<button id="qAddName" type="button" style="background:#7350b4;color:white;border:0;border-radius:9px;padding:11px;font-weight:700">＋ 이름 후보 등록</button>'+
   '</div>'+
   '<div id="qNames" style="font-size:12px;margin-top:6px"></div>'+
- '</div>'+ 
+ '</details>'+
+ '<details id="qSkuEditor" style="border:1px solid #e3d8ed;background:#fff;border-radius:10px;padding:10px;margin-top:8px"><summary id="qSkuSummary" style="font-weight:750;cursor:pointer">② 기존 SKU 인형 등록</summary>'+ 
  '<label style="font-weight:600;display:block;margin-top:9px">인형 이름·상품코드 검색<input id="qSearch" placeholder="예: 밤토끼, D796" autocomplete="off" style="'+inputStyle+'"></label>'+
  '<label style="font-weight:600;display:block;margin-top:7px">선택할 상품 (품절 포함)<select id="qSku" style="'+inputStyle+'"><option value="">상품 목록 불러오는 중…</option></select></label>'+
  '<div style="display:flex;gap:6px;align-items:end;margin-top:6px"><label style="flex:1;font-size:12px">목록에 없는 상품코드로 미리 설정<input id="qManualSku" style="'+inputStyle+'" placeholder="예: D796" maxlength="24" autocapitalize="characters"></label><button id="qUseSku" type="button" style="border:1px solid #cbbadf;background:#f9f6fe;color:#563886;border-radius:9px;padding:9px;white-space:nowrap;font-weight:700">코드 적용</button></div>'+
@@ -89,6 +94,7 @@ function basketSummary(){if(armedMode==='names'&&!lockedCandidate)return '미공
  '<div style="display:flex;gap:8px;align-items:end;margin:7px 0"><label style="flex:1;font-size:12px">해당 인형 수량<input id="qQty" type="number" min="1" max="99" step="1" value="1" style="'+inputStyle+'"></label><button id="qAdd" type="button" style="border:0;border-radius:9px;background:#704aac;color:#fff;font-weight:700;padding:11px">＋ 인형 추가</button></div>'+
  '<div style="font-size:12px;color:#55446e;margin:6px 0">여러 인형·수량을 추가해. 목록이 비어 있으면 기존처럼 현재 선택한 인형 1개로 진행해.</div>'+
  '<div id="qBasket" style="border:1px solid #e3d8ed;border-radius:10px;padding:7px;font-size:12px"></div>'+
+ '</details>'+
  '<div style="'+rowStyle+'"><label style="flex:1;min-width:123px">구매 단위<select id="qOpt" style="'+inputStyle+'"><option value="single">낱개 1개</option><option value="fullbox">풀박스 1세트</option></select></label><label style="flex:1;min-width:115px">서버 확인 주기<select id="qCycle" style="'+inputStyle+'"><option value="5">5초 (요청 많음)</option><option value="8">8초 (기본)</option><option value="10">10초</option><option value="15">15초</option><option value="30">30초</option><option value="60">60초</option></select></label></div>'+
  '<div style="'+rowStyle+'"><label style="flex:1;min-width:125px">개봉 옵션<select id="qOpen" style="'+inputStyle+'"><option value="개봉">개봉</option><option value="미개봉">미개봉</option><option value="카드개봉">카드개봉</option></select></label><label style="flex:1;min-width:120px">받는 방법<select id="qStorage" style="'+inputStyle+'"><option value="보관">보관</option><option value="발송">바로 배송</option></select></label></div>'+
  '<div style="background:#f6f0ff;padding:10px;border-radius:10px;margin:9px 0">'+
@@ -99,7 +105,7 @@ function basketSummary(){if(armedMode==='names'&&!lockedCandidate)return '미공
  '<label style="display:block;margin:9px 0;padding:10px;border:1px solid #dbcce8;border-radius:10px"><input type="checkbox" id="qBackgroundWatch"> 🖥️ PC 백그라운드 보조 감시 · 확장 프로그램 필요 (최소 30초, 창 자동 활성화)</label>'+
  '<div id="qBackgroundStatus" hidden style="font-size:12px;margin:7px 0;padding:8px;border:1px solid #ddd2e6;border-radius:8px"></div>'+
  '<div id="qStatus" role="status" style="font-weight:700;padding:8px 9px;background:#f5effc;border-radius:8px;margin:9px 0">📦 상품 목록을 불러오는 중…</div>'+
- '<div style="display:flex;gap:7px;margin-top:8px"><button id="qStart" type="button" style="flex:1;border:0;border-radius:10px;padding:11px;background:#6b4aac;color:#fff;font-weight:700">대기 시작</button><button id="qStop" type="button" style="border:1px solid #cbbadf;border-radius:10px;background:#fff;padding:10px">중지</button><button id="qLoad" type="button" style="border:1px solid #cbbadf;border-radius:10px;background:#fff;padding:10px">목록 갱신</button></div>'+
+ '<div id="qActions" style="position:sticky;bottom:-11px;z-index:3;background:#fff;padding:9px 0 6px;border-top:1px solid #e7ddec;display:flex;gap:7px;margin-top:8px"><button id="qStart" type="button" style="flex:1;border:0;border-radius:10px;padding:11px;background:#6b4aac;color:#fff;font-weight:700">대기 시작</button><button id="qStop" type="button" style="border:1px solid #cbbadf;border-radius:10px;background:#fff;padding:10px">중지</button><button id="qLoad" type="button" style="border:1px solid #cbbadf;border-radius:10px;background:#fff;padding:10px">목록 갱신</button></div>'+
  '<button id="qReload" type="button" hidden style="display:none;width:100%;margin-top:8px;border:0;border-radius:9px;background:#332340;color:#fff;padding:11px;font-weight:700">🛒 판매 가능 확인 · 공식 화면 새로고침</button>'+
  '<details id="qTiming" style="margin:9px 0;padding:10px;border:1px solid #d7c4e7;background:#faf7ff;border-radius:10px"><summary style="cursor:pointer;font-weight:750">⏱️ 자동주문 구간별 속도 기록 (로컬 저장)</summary>'+
  '<div id="qTimingSummary" style="margin:6px 0;font-size:12px;color:#4c376a">대기 시작 후 기록이 표시돼.</div>'+
@@ -109,7 +115,7 @@ function basketSummary(){if(armedMode==='names'&&!lockedCandidate)return '미공
  '<small style="display:block;color:#766d7f;margin-top:9px">품절이어도 설정하고 대기할 수 있어. 품절 또는 목록에 없는 코드일 때는 재고가 공식 서버에서 확인될 때까지 주문이나 장바구니 변경 없이 기다려. 주문 접수 ON 상태와 선택한 모든 상품 재고를 확인해. 홈페이지 LIVE 표시만으로 주문을 시작하지 않아. 공식 주문 UI 활성화가 필요하고 무전송 시험에서 최종 주문을 생성하지 않아. 5초 감시는 요청 제한 위험이 있어.</small>';
  document.body.appendChild(panel);
  const controls={search:el('#qSearch',panel),manual:el('#qManualSku',panel),sku:el('#qSku',panel),opt:el('#qOpt',panel),cycle:el('#qCycle',panel),open:el('#qOpen',panel),storage:el('#qStorage',panel),pay:null,qty:el('#qQty',panel),add:el('#qAdd',panel),basket:el('#qBasket',panel),watchMode:el('#qWatchMode',panel),name:el('#qName',panel),nameQty:el('#qNameQty',panel),nameOpt:el('#qNameOpt',panel),addName:el('#qAddName',panel),names:el('#qNames',panel),autoOrder:el('#qAutoOrder',panel),dryRun:el('#qDryRun',panel),backgroundWatch:el('#qBackgroundWatch',panel),bgStatus:el('#qBackgroundStatus',panel),status:el('#qStatus',panel),product:el('#qProduct',panel),reload:el('#qReload',panel),
- timingSummary:el('#qTimingSummary',panel),timingLog:el('#qTimingLog',panel)};
+ timingSummary:el('#qTimingSummary',panel),timingLog:el('#qTimingLog',panel),modeStatus:el('#qModeStatus',panel),nameEditor:el('#qNameEditor',panel),skuEditor:el('#qSkuEditor',panel),nameSummary:el('#qNameSummary',panel),skuSummary:el('#qSkuSummary',panel)};
  // Instrumentation only. No extra site requests, no order submission,
  // no recording of auth cookies, customer details, or generated order numbers.
  const TIMING_KEY='bbp_general_v24_timing_last_'+STORE;
@@ -294,28 +300,62 @@ function basketSummary(){if(armedMode==='names'&&!lockedCandidate)return '미공
   if(p.stock==='low'||p.stock===null)return '🟢 판매 재고 표시';
   return '⚪ 판매 상태 확인 필요';
  }
+ function renderModeSections(forceOpen){
+  const current=active?armedMode:watchMode,names=current==='names';
+  let browserCart=[];
+  try{browserCart=readCart().filter(belongs);}catch(e){}
+  const q=items.reduce((n,x)=>n+x.qty,0);
+  controls.nameSummary.textContent='① 신상 이름 후보 '+nameCandidates.length+'종'+(names?' · 현재 주문 방식':' · 저장됨, 현재 주문 제외');
+  controls.skuSummary.textContent='② 기존 SKU '+items.length+'줄 · '+q+'개 / 이 브라우저 장바구니 '+browserCart.length+'줄';
+  controls.modeStatus.textContent=names?
+   '🟣 현재: 이름 후보 중 1종만 주문 · 기존 SKU '+items.length+'줄은 따로 저장돼 있지만 이번 주문에는 포함되지 않아. 두 목록은 합쳐지지 않아.':
+   '🟢 현재: 등록 SKU '+items.length+'줄 전체 주문 · 신상 이름 후보 '+nameCandidates.length+'종은 따로 저장돼 있지만 이번 주문에는 포함되지 않아.';
+  if(forceOpen){controls.nameEditor.open=names;controls.skuEditor.open=!names;}
+ }
  function renderBasket(){
-  if(armedMode==='names'||(!active&&watchMode==='names')){
-   controls.basket.textContent=lockedCandidate?'🧸 실제 선택 후보: '+lockedCandidate.name+' · '+lockedCandidate.item.sku+' · '+(lockedCandidate.item.option==='fullbox'?'풀박스':'낱개')+' ×'+lockedCandidate.item.qty:
-    '🧸 여러 이름 후보 모드 · 이 SKU 목록은 주문 대상이 아니야. 후보 목록에서 한 종류가 선정되면 표시돼.';
-   return;
-  }
-  const list=items.length?items:[];
+  const names=(active?armedMode:watchMode)==='names';
+  let browserCart=null;
+  try{browserCart=readCart().filter(belongs);}catch(e){}
+  const list=items.slice();
   controls.basket.replaceChildren();
-  const head=document.createElement('div');head.style.cssText='font-weight:750;margin-bottom:6px';
-  head.textContent=list.length?'🧸 선택된 인형 '+list.length+'줄 · 총 '+list.reduce((n,x)=>n+x.qty,0)+'개':'선택 목록 없음 · 현재 선택 상품 1개로 진행';
-  controls.basket.appendChild(head);
+  const heading=document.createElement('div');heading.style.cssText='font-weight:750;margin-bottom:6px';
+  heading.textContent=list.length?'🧸 도우미에 저장된 기존 SKU '+list.length+'줄 · 총 '+list.reduce((n,x)=>n+x.qty,0)+'개':'🧸 도우미 SKU 저장 목록 없음';
+  controls.basket.appendChild(heading);
+  if(names){
+   const warning=document.createElement('div');warning.style.cssText='background:#fff0db;color:#69421a;padding:7px;border-radius:7px;margin-bottom:7px';
+   warning.textContent='⚠ 지금은 이름 후보 주문 모드야. 아래 SKU 인형은 보관돼 있지만 이번 주문에는 포함되지 않아. 이 인형들을 주문하려면 위 감시 방식을 “기존 SKU 모두”로 바꿔 줘.';
+   controls.basket.append(warning);
+  }
   list.forEach((x,i)=>{
-    const r=document.createElement('div');r.style.cssText='display:flex;align-items:center;gap:5px;flex-wrap:wrap;padding:5px 0;border-top:1px solid #f0eaf5';
-    const name=document.createElement('span');name.style.cssText='flex:1;min-width:110px;overflow-wrap:anywhere';
-    const p=itemTarget(x);name.textContent=(p?.name||x.sku)+' · '+(x.option==='fullbox'?'풀박스':'낱개')+' ×'+x.qty;
-    r.append(name);
+   const row=document.createElement('div');row.style.cssText='display:flex;align-items:center;gap:5px;flex-wrap:wrap;padding:6px 0;border-top:1px solid #f0eaf5';
+   const name=document.createElement('span');name.style.cssText='flex:1;min-width:110px;overflow-wrap:anywhere';
+   const p=itemTarget(x);
+   name.textContent=(i+1)+'. '+(p?.name||x.sku)+' · '+x.sku+' · '+(x.option==='fullbox'?'풀박스':'낱개')+' ×'+x.qty;
+   row.append(name);
+   if(!names){
     for(const [cmd,txt] of [['less','−'],['more','＋'],['remove','삭제']]){
-      const b=document.createElement('button');b.type='button';b.textContent=txt;b.dataset.itemAction=cmd;b.dataset.itemIndex=String(i);
-      b.style.cssText='border:1px solid #d4c8e0;border-radius:6px;background:#fff;padding:4px 7px';r.append(b);
+     const b=document.createElement('button');b.type='button';b.textContent=txt;
+     b.dataset.itemAction=cmd;b.dataset.itemIndex=String(i);
+     b.style.cssText='border:1px solid #d4c8e0;border-radius:6px;background:#fff;padding:4px 7px';row.append(b);
     }
-    controls.basket.append(r);
+   }
+   controls.basket.append(row);
   });
+  const cartTitle=document.createElement('div');cartTitle.style.cssText='font-weight:750;margin-top:12px;padding-top:9px;border-top:2px solid #e8deef';
+  cartTitle.textContent=browserCart===null?'🛒 이 브라우저 장바구니 조회 실패':'🛒 이 브라우저에 저장된 장바구니 '+browserCart.length+'줄 · 도우미 SKU 목록과 별개';
+  controls.basket.appendChild(cartTitle);
+  if(browserCart&&browserCart.length){
+   for(const [i,x] of browserCart.entries()){
+    const p=catalog.find(p=>p&&p.sku===x.sku&&availableHere(p));
+    const line=document.createElement('div');line.style.cssText='padding:4px 0;border-bottom:1px solid #f0eaf5;overflow-wrap:anywhere';
+    line.textContent=(i+1)+'. '+(p?.name||x.sku)+' · '+x.sku+' · '+(normalized(x)==='fullbox'?'풀박스':'낱개')+' ×'+Number(x.qty);
+    controls.basket.append(line);
+   }
+   const info=document.createElement('div');info.style.cssText='font-size:11px;color:#806b86;margin-top:5px';
+   info.textContent='이 장바구니는 현재 브라우저 저장 정보야. 도우미가 상품을 준비할 때 차이가 있으면 먼저 교체 확인을 요청해.';
+   controls.basket.append(info);
+  }
+  renderModeSections(false);
  }
  function inspectNameCandidates(rows,candidates){
   const states=[],eligible=[];
@@ -595,7 +635,7 @@ function basketSummary(){if(armedMode==='names'&&!lockedCandidate)return '미공
  controls.watchMode.addEventListener('change',()=>{
   if(active||completed){controls.watchMode.value=watchMode;message('⚠ 감시 중에는 감시 방식을 변경할 수 없어');return;}
   watchMode=controls.watchMode.value==='names'?'names':'sku';
-  savePref();renderNames();renderBasket();message(watchMode==='names'?'🧸 여러 이름 후보 중 한 종류를 선택하는 감시로 설정했어':'🛒 기존 선택 SKU 전체 주문 모드로 설정했어');
+  savePref();renderNames();renderBasket();renderModeSections(true);message(watchMode==='names'?'🧸 여러 이름 후보 중 한 종류를 선택하는 감시로 설정했어':'🛒 기존 선택 SKU 전체 주문 모드로 설정했어');
  });
  controls.addName.onclick=()=>{
   if(active||completed){message('⚠ 감시를 시작하기 전에 후보를 등록해 줘');return;}
@@ -607,7 +647,7 @@ function basketSummary(){if(armedMode==='names'&&!lockedCandidate)return '미공
   if(nameCandidates.length>=MAX_NAMES){message('⚠ 후보는 최대 '+MAX_NAMES+'종까지 등록 가능해');return;}
   nameCandidates.push({name,qty,option:opt});
   watchMode='names';controls.watchMode.value='names';
-  controls.name.value='';savePref();renderNames();renderBasket();
+  controls.name.value='';savePref();renderNames();renderBasket();renderModeSections(true);
   message('✅ 이름 후보 '+nameCandidates.length+'종 저장됨 · 순서대로 우선 감시');
  };
  controls.name.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();controls.addName.click();}});
@@ -659,7 +699,7 @@ function basketSummary(){if(armedMode==='names'&&!lockedCandidate)return '미공
   if(completed){message('⚠ 이전 주문 시도가 있어 · 새로고침 후 다시 시도해 줘');return;}
   if(active){message('⏳ 이미 감시 중이야');return;}
   if(!catalog.length)await loadCatalog(false);
-  armedMode=watchMode;lockedCandidate=null;candidateStates.clear();
+  armedMode=watchMode;lockedCandidate=null;candidateStates.clear();renderModeSections(true);
   if(armedMode==='names'&&!nameCandidates.length){message('⚠ 이름 후보를 하나 이상 등록해 줘');return;}
   const selected=controls.sku.value;
   if(armedMode!=='names'&&!items.length){
@@ -804,7 +844,7 @@ function basketSummary(){if(armedMode==='names'&&!lockedCandidate)return '미공
  window.addEventListener('pagehide',()=>{stop();ob.disconnect();mini.remove();});
  controls.backgroundWatch.checked=backgroundWatch;
  controls.backgroundWatch.addEventListener('change',()=>{if(active){controls.backgroundWatch.checked=backgroundWatch;message('⚠ 감시 중 변경 불가 · 중지 후 설정해 줘');return;}backgroundWatch=controls.backgroundWatch.checked;savePref();});
- controls.watchMode.value=watchMode;controls.opt.value=option;controls.cycle.value=String(cycle);controls.open.value=open;controls.storage.value=storage;controls.manual.value=sku;
+ controls.watchMode.value=watchMode;renderModeSections(true);controls.opt.value=option;controls.cycle.value=String(cycle);controls.open.value=open;controls.storage.value=storage;controls.manual.value=sku;
  window.__bbpGeneralQuickV24={show,stop,__v2:true,version:'2.4.0'};
  renderNames();renderBasket();loadCatalog(false);
 }catch(e){alert('범용 v2 도우미 오류: '+String(e.message||e));}
