@@ -763,6 +763,7 @@ function basketSummary(){
   cycle=allowed.includes(+controls.cycle.value)?+controls.cycle.value:8;
   open=controls.open.value;storage=controls.storage.value;savePref();
   if(chosen.some(x=>!validSku(x.sku)||x.qty<1||x.qty>MAX_QTY||itemTarget(x)&&!allowedOption(itemTarget(x),x.option))){message('⚠ 상품코드·수량·풀박스 지원 여부를 확인해 줘');return;}
+  if(armedMode==='mixed'){controls.autoOrder.checked=true;controls.dryRun.checked=true;}
   autoOrder=!!controls.autoOrder.checked;dryRun=armedMode==='mixed'?true:!!controls.dryRun.checked;controls.dryRun.checked=dryRun;autoPay=false;
   if(autoOrder&&!dryRun){
    if(recentSubmit()){message('⚠ 최근 주문 요청 이력이 있어 · 주문내역 확인 후 새로고침해 줘');return;}
