@@ -25,7 +25,7 @@ test('both setup sections have clear titles and display saved counts even in ina
  assert.match(src,/id="qModeStatus"/);
  assert.match(src,/두 목록은 합쳐지지 않아/);
  assert.match(src,/도우미에 저장된 기존 SKU/);
- assert.match(src,/이 브라우저에 저장된 장바구니/);
+ assert.match(src,/이 브라우저 장바구니 총/);
  assert.match(src,/renderModeSections\(true\)/);
 });
 test('compact mobile layout retains visible mode, sticky title and action area',()=>{
