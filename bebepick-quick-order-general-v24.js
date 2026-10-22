@@ -770,7 +770,7 @@ function basketSummary(){
   if(autoPay&&(controls.dryRun.checked||!controls.autoOrder.checked)){
    message('⚠ PAYAPP 옵션은 실제 주문 동의 ON · 무전송 시험 OFF 상태에서만 진행할 수 있어. 선택값을 확인해 줘.');return;
   }
-  else if(armedMode==='mixed'){controls.autoOrder.checked=true;controls.dryRun.checked=true;}
+  if(!autoPay&&armedMode==='mixed'){controls.autoOrder.checked=true;controls.dryRun.checked=true;}
   autoOrder=!!controls.autoOrder.checked;
   dryRun=armedMode==='mixed'&&!autoPay?true:!!controls.dryRun.checked;
   controls.dryRun.checked=dryRun;
