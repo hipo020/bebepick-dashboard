@@ -14,7 +14,9 @@ try {
  let oldGeneral={};try{oldGeneral=JSON.parse(localStorage.getItem('bbp_quick_general_v1_'+STORE)||'{}')||{};}catch(e){}
  let pref={};try{pref=JSON.parse(localStorage.getItem(PREF_KEY)||'{}')||{};}catch(e){}
  let prevV23={};try{prevV23=JSON.parse(localStorage.getItem('bbp_quick_general_v23_'+STORE)||'{}')||{};}catch(e){}
- pref={...oldGeneral,...prevV23,...pref};
+ let prevV232={};try{prevV232=JSON.parse(localStorage.getItem('bbp_preorder_test_v232_'+STORE)||'{}')||{};}catch(e){}
+ // Import past diagnostic names once as a convenience, never enable live name-mode automatically.
+ pref={...oldGeneral,...prevV23,...(Array.isArray(pref.nameCandidates)?{}:{nameCandidates:prevV232.nameCandidates}),...pref};
  let sku=String(pref.sku||''),option=pref.option==='fullbox'?'fullbox':(oldPref.opt==='fullbox'?'fullbox':'single');
 const MAX_LINES=20,MAX_QTY=99,MAX_NAMES=20;
  const nameKey=n=>String(n||'').normalize('NFC').trim().replace(/\s+/g,'').toLocaleLowerCase('ko-KR');
