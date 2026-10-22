@@ -635,7 +635,7 @@ function basketSummary(){if(armedMode==='names'&&!lockedCandidate)return '미공
  controls.watchMode.addEventListener('change',()=>{
   if(active||completed){controls.watchMode.value=watchMode;message('⚠ 감시 중에는 감시 방식을 변경할 수 없어');return;}
   watchMode=controls.watchMode.value==='names'?'names':'sku';
-  savePref();renderNames();renderBasket();message(watchMode==='names'?'🧸 여러 이름 후보 중 한 종류를 선택하는 감시로 설정했어':'🛒 기존 선택 SKU 전체 주문 모드로 설정했어');
+  savePref();renderNames();renderBasket();renderModeSections(true);message(watchMode==='names'?'🧸 여러 이름 후보 중 한 종류를 선택하는 감시로 설정했어':'🛒 기존 선택 SKU 전체 주문 모드로 설정했어');
  });
  controls.addName.onclick=()=>{
   if(active||completed){message('⚠ 감시를 시작하기 전에 후보를 등록해 줘');return;}
@@ -647,7 +647,7 @@ function basketSummary(){if(armedMode==='names'&&!lockedCandidate)return '미공
   if(nameCandidates.length>=MAX_NAMES){message('⚠ 후보는 최대 '+MAX_NAMES+'종까지 등록 가능해');return;}
   nameCandidates.push({name,qty,option:opt});
   watchMode='names';controls.watchMode.value='names';
-  controls.name.value='';savePref();renderNames();renderBasket();
+  controls.name.value='';savePref();renderNames();renderBasket();renderModeSections(true);
   message('✅ 이름 후보 '+nameCandidates.length+'종 저장됨 · 순서대로 우선 감시');
  };
  controls.name.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();controls.addName.click();}});
@@ -699,7 +699,7 @@ function basketSummary(){if(armedMode==='names'&&!lockedCandidate)return '미공
   if(completed){message('⚠ 이전 주문 시도가 있어 · 새로고침 후 다시 시도해 줘');return;}
   if(active){message('⏳ 이미 감시 중이야');return;}
   if(!catalog.length)await loadCatalog(false);
-  armedMode=watchMode;lockedCandidate=null;candidateStates.clear();
+  armedMode=watchMode;lockedCandidate=null;candidateStates.clear();renderModeSections(true);
   if(armedMode==='names'&&!nameCandidates.length){message('⚠ 이름 후보를 하나 이상 등록해 줘');return;}
   const selected=controls.sku.value;
   if(armedMode!=='names'&&!items.length){
@@ -844,7 +844,7 @@ function basketSummary(){if(armedMode==='names'&&!lockedCandidate)return '미공
  window.addEventListener('pagehide',()=>{stop();ob.disconnect();mini.remove();});
  controls.backgroundWatch.checked=backgroundWatch;
  controls.backgroundWatch.addEventListener('change',()=>{if(active){controls.backgroundWatch.checked=backgroundWatch;message('⚠ 감시 중 변경 불가 · 중지 후 설정해 줘');return;}backgroundWatch=controls.backgroundWatch.checked;savePref();});
- controls.watchMode.value=watchMode;controls.opt.value=option;controls.cycle.value=String(cycle);controls.open.value=open;controls.storage.value=storage;controls.manual.value=sku;
+ controls.watchMode.value=watchMode;renderModeSections(true);controls.opt.value=option;controls.cycle.value=String(cycle);controls.open.value=open;controls.storage.value=storage;controls.manual.value=sku;
  window.__bbpGeneralQuickV24={show,stop,__v2:true,version:'2.4.0'};
  renderNames();renderBasket();loadCatalog(false);
 }catch(e){alert('범용 v2 도우미 오류: '+String(e.message||e));}
