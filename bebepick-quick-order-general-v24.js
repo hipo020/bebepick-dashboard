@@ -772,9 +772,9 @@ function basketSummary(){
     '⚠ 여러 인형 실제 주문 자동 생성 확인\n\n'+summaryItems()+'\n\n개봉 '+open+' · 받는 방법 '+storage+'\n공식 주문 확인 2단계를 거쳐 최종 주문을 최대 1번 생성해. 결제 버튼은 직접 눌러야 해. 진행할까?';
    if(!confirm(realConsent))return;
   }
-  if(armedMode==='mixed'){
-   if(!confirm('🧸 통합 주문 준비 확인\n\n기존 SKU '+items.length+'줄 · '+quantityText(countQuantities(items,x=>x.option))+'를 유지하고, 다음 신상 이름 후보 중 판매 가능한 한 종류만 추가할게.\n\n'+nameCandidates.map((x,i)=>(i+1)+'. '+x.name+' ×'+x.qty).join('\n')+'\n\n기존 SKU 중 품절이 있으면 진행하지 않아. 준비 단계에서 장바구니가 변경될 수 있지만 최종 주문 확정 버튼은 자동으로 누르지 않는 무전송 시험으로만 실행해. 계속할까?'))return;
-  }
+  // Starting this explicitly selected mixed watch is the non-submitting preparation consent.
+  // Do not display another blocking confirm when Android's opted-in ready alert auto-starts.
+  // The original cart must still match the baseline, and mixed forces dry-run true.
   if(backgroundWatch&&!confirm('PC 백그라운드 보조 감시를 켤까?\n\nChrome 확장 프로그램이 설치되어 있으면 약 30초 이상 간격으로 공식 공개 주문 상태를 확인하고, 조건이 맞을 때 이 크롬 창/탭을 앞으로 가져올 수 있어.\n\n앞으로 가져온 후에도 기존 도우미가 공식 서버·화면·재고를 다시 검사해. PC가 절전/종료되면 감시하지 못하고 모바일에서는 작동하지 않아.'))return;
   timingStart();
   if(armedMode==='sku'&&allSaleable()){
