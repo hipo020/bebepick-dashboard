@@ -332,15 +332,16 @@ function basketSummary(){
   const skuTotal=countQuantities(items,x=>x.option);
   const cartTotal=browserCart===null?null:countQuantities(browserCart,normalized);
   const cartCount=browserCart?.length??'?';
-  controls.nameSummary.textContent='① 신상 이름 후보 '+nameCandidates.length+'종'+(names?' · 현재 주문 방식':' · 저장됨, 현재 주문 제외');
+  controls.nameSummary.textContent='① 신상 이름 후보 '+nameCandidates.length+'종'+((names||current==='mixed')?' · 이번 주문에 후보 1종 포함':' · 저장됨, 현재 주문 제외');
   controls.skuSummary.textContent='② 기존 SKU '+items.length+'줄 · 총 '+quantityText(skuTotal)+' / 이 브라우저 장바구니 '+cartCount+'줄 · '+quantityText(cartTotal);
   controls.quantitySummary.textContent='📦 도우미 등록 총 수량: '+quantityText(skuTotal)+' ('+items.length+'줄)'+
    '\n🛒 이 브라우저 장바구니 총 수량: '+quantityText(cartTotal)+' ('+cartCount+'줄)'+
    (names?'\n⚠ 현재는 이름 후보 1종 주문 모드 · 위 SKU 수량은 이번 주문에서 제외됨':'\n✅ 현재 SKU 전체 주문 모드 · 인형별 수량으로 진행');
-  controls.modeStatus.textContent=names?
-   '🟣 현재: 이름 후보 중 1종만 주문 · 기존 SKU '+items.length+'줄은 따로 저장돼 있지만 이번 주문에는 포함되지 않아. 두 목록은 합쳐지지 않아.':
-   '🟢 현재: 등록 SKU '+items.length+'줄 전체 주문 · 신상 이름 후보 '+nameCandidates.length+'종은 따로 저장돼 있지만 이번 주문에는 포함되지 않아.';
-  if(forceOpen){controls.nameEditor.open=names;controls.skuEditor.open=!names;}
+  controls.modeStatus.textContent=current==='mixed'?
+   '🧸 통합 주문 · 기존 SKU 전부 ('+quantityText(skuTotal)+') + 신상 후보 중 1종을 함께 준비해':
+   names?'🟣 이름 후보만 주문 · 기존 SKU 목록은 제외':
+   '🟢 기존 SKU 모두 주문 · 신상 후보 목록은 제외';
+  if(forceOpen){controls.nameEditor.open=names||current==='mixed';controls.skuEditor.open=!names||current==='mixed';}
  }
  function renderBasket(){
   const names=(active?armedMode:watchMode)==='names';
