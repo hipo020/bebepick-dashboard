@@ -67,20 +67,22 @@ test('no cart edits while name unresolved or order closed',()=>{
  assert.match(poll,/if\(!cartPrepared&&\(armedMode==='sku'\|\|windowOk===true\)&&allSaleable\(\)\)/);
  assert.match(poll,/lockedCandidate=scan\.selected/);
 });
-test('actual order is opt-in only with dynamic names/quantity consent and no payment auto-click',()=>{
+test('actual order is opt-in, newly confirmed payment-page handoff is a separate action, and payment approval is never automated',()=>{
  const start=part("el('#qStart',panel).onclick=", "el('#qStop',panel).onclick");
  const wizard=part('function watchWizard(){','function watchPrePayment(){');
  assert.match(src,/id="qAutoOrder"/);
  assert.match(src,/id="qDryRun" checked/);
  assert.match(start,/if\(autoOrder&&!dryRun\)/);
- assert.match(start,/if\(!confirm\(realConsent\)\)return/);
+ assert.match(start,/if\(!confirm\(exactConsent\)\)return/);
+ assert.match(start,/const exactConsent=realConsent/);
  assert.match(start,/nameCandidates\.map/);
  assert.match(start,/어느 후보가 선택될지는 아직 확정되지 않았어/);
  assert.match(wizard,/if\(dryRun\)/);
  assert.match(wizard,/recentSubmit\(\)/);
  assert.match(wizard,/submitClicked=true/);
  assert.equal((wizard.match(/\bok\.click\(\)/g)||[]).length,1);
- assert.doesNotMatch(src,/\bpay\.click\(\)/);
+ assert.match(src,/payArmed=autoPay&&!dryRun/);
+ assert.doesNotMatch(src,/paymentApproval|payappFormSubmit/);
 });
 test('locked SKU must still be same named product immediately before checkout and submit',()=>{
  const handoff=part('function handoff(){','controls.watchMode.addEventListener');
