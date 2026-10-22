@@ -445,6 +445,23 @@ function basketSummary(){if(nameWatchActive&&!lockedCandidate)return '이름 후
    else failed.push(res[0].reason);
    if(res[1].status==='fulfilled'&&Array.isArray(res[1].value)){
    catalog=res[1].value;
+   if(nameWatchActive&&!lockedCandidate){
+    const scan=inspectNameCandidates(catalog,nameCandidates);let changed=false;
+    for(const info of scan.states){
+     if(candidateStates.get(info.key)!==info.state){
+      candidateStates.set(info.key,info.state);changed=true;
+      timingMark('candidate_state',info.name+' · '+info.state);
+     }
+    }
+    // An exact name can be resolved only once official order intake is open.
+    // Candidate order determines priority when several become saleable together.
+    if(windowOk===true&&scan.selected){
+     lockedCandidate=scan.selected;sku=scan.selected.item.sku;option=scan.selected.item.option;
+     timingMark('candidate_selected',lockedCandidate.name+' → '+lockedCandidate.item.sku+' ×'+lockedCandidate.item.qty);
+     changed=true;
+    }
+    if(changed)renderNames();
+   }
    const chosen=chosenItems(),targets=chosen.map(itemTarget);
    p=targets.find(x=>x)||null;
    const missing=targets.some(x=>!x);
