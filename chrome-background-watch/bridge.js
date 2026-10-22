@@ -3,7 +3,11 @@
 if (location.pathname === '/live' || location.pathname === '/plus') {
   window.addEventListener('bbp-v24-watch-start', event => {
     if (event.detail && typeof event.detail === 'object') {
-      chrome.runtime.sendMessage({ type: 'START', plan: event.detail }).catch(() => {});
+      chrome.runtime.sendMessage({ type: 'START', plan: event.detail })
+        .then(result => window.dispatchEvent(new CustomEvent('bbp-v24-extension-status', { detail: {
+          ok: result?.ok === true, error: String(result?.error || '')
+        } })))
+        .catch(() => window.dispatchEvent(new CustomEvent('bbp-v24-extension-status', { detail: { ok: false, error: '연결 실패' } })));
     }
   });
   window.addEventListener('bbp-v24-watch-stop', () => {
