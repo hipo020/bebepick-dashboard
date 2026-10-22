@@ -26,3 +26,10 @@ jobs:
         run: node --test tests/chrome-background-watch.test.cjs
       - name: Existing v2.4 regression tests
         run: node --test tests/general-fast-order-v24-names.test.mjs
+      - name: Package Chrome extension
+        run: cd chrome-background-watch && zip -q -9 ../bebepick-pc-background-watch-v01.zip manifest.json background.js bridge.js checks.js README.md
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bebepick-pc-background-watch-v01
+          path: bebepick-pc-background-watch-v01.zip
+          retention-days: 30
