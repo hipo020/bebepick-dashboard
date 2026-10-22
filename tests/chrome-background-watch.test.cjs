@@ -59,7 +59,7 @@ test('No extension script issues order or payment API calls', () => {
   assert.doesNotMatch(scripts,/\bcreate_orders\b|\bpayapp_start\b|\bcheckout\.click\(/);
   const main=read('bebepick-quick-order-general-v24.js');
   assert.match(main, /bbp-v24-external-wake/);
-  assert.match(main, /bbp-v24-watch-start/);
-  assert.match(main, /bbp-v24-watch-stop/);
+  assert.match(main, /backgroundNotify/);
+  assert.match(main, /watch-stop/);
   assert.match(main, /if\(dryRun\)/);
 });
