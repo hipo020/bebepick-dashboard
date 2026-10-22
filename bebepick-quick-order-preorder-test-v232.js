@@ -307,6 +307,24 @@ function basketSummary(){if(nameWatchActive&&!lockedCandidate)return '이름 후
     controls.basket.append(r);
   });
  }
+ function inspectNameCandidates(rows,candidates){
+  const states=[],eligible=[];
+  for(const c of candidates){
+   const matches=rows.filter(p=>p&&validSku(p.sku)&&availableHere(p)&&nameKey(p.name)===nameKey(c.name));
+   let state='공식 목록 대기';
+   if(matches.length>1)state='동명이인 SKU '+matches.length+'개 · 안전 대기';
+   else if(matches.length===1){
+    const p=matches[0];
+    if(!allowedOption(p,c.option))state='원하는 옵션 미지원';
+    else if(saleableFor(p,{sku:p.sku,option:c.option,qty:c.qty})){
+     state='판매 가능 · '+p.sku;
+     eligible.push({name:c.name,item:{sku:p.sku,option:c.option,qty:c.qty}});
+    }else state='공식 목록 발견 '+p.sku+' · 재고 대기';
+   }
+   states.push({name:c.name,key:nameKey(c.name),state});
+  }
+  return {states,selected:eligible[0]||null};
+ }
  function fillCatalog(){
   const q=controls.search.value.toLocaleLowerCase('ko-KR').replace(/\s+/g,'');
   const list=visibleProducts().filter(p=>(String(p.name||'')+' '+p.sku).toLocaleLowerCase('ko-KR').replace(/\s+/g,'').includes(q))
