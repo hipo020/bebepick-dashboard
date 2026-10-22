@@ -97,6 +97,7 @@ function basketSummary(){if(armedMode==='names'&&!lockedCandidate)return '미공
   '<small style="color:#514163;display:block;margin:5px 0">✅ 결제창 자동 이동 OFF 고정 · 주문번호와 결제 버튼까지만 보여줘.</small>'+
   '<small style="color:#65566c">실제 주문은 자동 클릭 ON + 무전송 시험 OFF + 명시 동의가 모두 필요해. 결제 승인은 직접 진행해.</small></div>'+
  '<label style="display:block;margin:9px 0;padding:10px;border:1px solid #dbcce8;border-radius:10px"><input type="checkbox" id="qBackgroundWatch"> 🖥️ PC 백그라운드 보조 감시 · 확장 프로그램 필요 (최소 30초, 창 자동 활성화)</label>'+
+ '<div id="qBackgroundStatus" hidden style="font-size:12px;margin:7px 0;padding:8px;border:1px solid #ddd2e6;border-radius:8px"></div>'+
  '<div id="qStatus" role="status" style="font-weight:700;padding:8px 9px;background:#f5effc;border-radius:8px;margin:9px 0">📦 상품 목록을 불러오는 중…</div>'+
  '<div style="display:flex;gap:7px;margin-top:8px"><button id="qStart" type="button" style="flex:1;border:0;border-radius:10px;padding:11px;background:#6b4aac;color:#fff;font-weight:700">대기 시작</button><button id="qStop" type="button" style="border:1px solid #cbbadf;border-radius:10px;background:#fff;padding:10px">중지</button><button id="qLoad" type="button" style="border:1px solid #cbbadf;border-radius:10px;background:#fff;padding:10px">목록 갱신</button></div>'+
  '<button id="qReload" type="button" hidden style="display:none;width:100%;margin-top:8px;border:0;border-radius:9px;background:#332340;color:#fff;padding:11px;font-weight:700">🛒 판매 가능 확인 · 공식 화면 새로고침</button>'+
@@ -107,7 +108,7 @@ function basketSummary(){if(armedMode==='names'&&!lockedCandidate)return '미공
  '<small style="display:block;color:#756b80;margin-top:7px">자동 측정 · 0.1ms 정밀도 기록 · 세션 내 저장. 실제 재입고 시각은 알 수 없으므로 최초 판매 가능 응답부터 측정해. 주문 성공과 서버 접수를 의미하지 않아.</small></details>'+
  '<small style="display:block;color:#766d7f;margin-top:9px">품절이어도 설정하고 대기할 수 있어. 품절 또는 목록에 없는 코드일 때는 재고가 공식 서버에서 확인될 때까지 주문이나 장바구니 변경 없이 기다려. 주문 접수 ON 상태와 선택한 모든 상품 재고를 확인해. 홈페이지 LIVE 표시만으로 주문을 시작하지 않아. 공식 주문 UI 활성화가 필요하고 무전송 시험에서 최종 주문을 생성하지 않아. 5초 감시는 요청 제한 위험이 있어.</small>';
  document.body.appendChild(panel);
- const controls={search:el('#qSearch',panel),manual:el('#qManualSku',panel),sku:el('#qSku',panel),opt:el('#qOpt',panel),cycle:el('#qCycle',panel),open:el('#qOpen',panel),storage:el('#qStorage',panel),pay:null,qty:el('#qQty',panel),add:el('#qAdd',panel),basket:el('#qBasket',panel),watchMode:el('#qWatchMode',panel),name:el('#qName',panel),nameQty:el('#qNameQty',panel),nameOpt:el('#qNameOpt',panel),addName:el('#qAddName',panel),names:el('#qNames',panel),autoOrder:el('#qAutoOrder',panel),dryRun:el('#qDryRun',panel),backgroundWatch:el('#qBackgroundWatch',panel),status:el('#qStatus',panel),product:el('#qProduct',panel),reload:el('#qReload',panel),
+ const controls={search:el('#qSearch',panel),manual:el('#qManualSku',panel),sku:el('#qSku',panel),opt:el('#qOpt',panel),cycle:el('#qCycle',panel),open:el('#qOpen',panel),storage:el('#qStorage',panel),pay:null,qty:el('#qQty',panel),add:el('#qAdd',panel),basket:el('#qBasket',panel),watchMode:el('#qWatchMode',panel),name:el('#qName',panel),nameQty:el('#qNameQty',panel),nameOpt:el('#qNameOpt',panel),addName:el('#qAddName',panel),names:el('#qNames',panel),autoOrder:el('#qAutoOrder',panel),dryRun:el('#qDryRun',panel),backgroundWatch:el('#qBackgroundWatch',panel),bgStatus:el('#qBackgroundStatus',panel),status:el('#qStatus',panel),product:el('#qProduct',panel),reload:el('#qReload',panel),
  timingSummary:el('#qTimingSummary',panel),timingLog:el('#qTimingLog',panel)};
  // Instrumentation only. No extra site requests, no order submission,
  // no recording of auth cookies, customer details, or generated order numbers.
@@ -690,7 +691,12 @@ function basketSummary(){if(armedMode==='names'&&!lockedCandidate)return '미공
   }
   autoOrder=!!controls.autoOrder.checked;dryRun=!!controls.dryRun.checked;autoPay=false;
   active=true;confirmed=false;completed=false;tries=0;triggerMode='';routeBusy=false;lastWindowOk=null;
-  if(backgroundWatch)backgroundNotify('watch-start',{store:STORE,watchMode:armedMode,items:chosenItems(),nameCandidates:nameCandidates.map(x=>({...x})),sku,option});
+  if(backgroundWatch){
+   controls.bgStatus.hidden=false;controls.bgStatus.dataset.connected='';
+   controls.bgStatus.textContent='🟡 PC 확장 감시 연결 확인 중…';
+   backgroundNotify('watch-start',{store:STORE,watchMode:armedMode,items:chosenItems(),nameCandidates:nameCandidates.map(x=>({...x})),sku,option});
+   setTimeout(()=>{if(active&&controls.bgStatus.dataset.connected!=='yes'&&controls.bgStatus.dataset.connected!=='no')controls.bgStatus.textContent='⚠ PC 확장 응답 없음 · 탭을 화면에 둔 경우에만 기존 감시 작동';},2500);
+  }else controls.bgStatus.hidden=true;
   controls.reload.hidden=true;controls.reload.style.display='none';
   renderNames();message('⏳ '+basketSummary()+' · '+open+' + '+storage+' · '+cycle+'초 감시 · '+(awaitingCatalog?'목록·재고 대기 · ':cartPrepared?'장바구니 준비 완료 · ':'일부 재고 대기 · ')+(autoOrder?(dryRun?'무전송 시험':'실제 주문 생성 가능 · 결제 자동진행 없음'):'수동 확정')+' 모드');
   poll();
@@ -780,6 +786,13 @@ function basketSummary(){if(armedMode==='names'&&!lockedCandidate)return '미공
   if(submitClicked&&!payDone)watchPrePayment();
  });
  ob.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class','hidden','disabled']});
+ window.addEventListener('bbp-v24-extension-status',event=>{
+  if(!active||!backgroundWatch)return;
+  const ok=event.detail?.ok===true;
+  controls.bgStatus.dataset.connected=ok?'yes':'no';
+  controls.bgStatus.textContent=ok?'🟢 PC 백그라운드 보조 감시 연결됨 · 최소 30초 주기':'⚠ PC 확장 감시 연결 안 됨 · 설치/권한 확인 (현재는 전면 탭 감시만 작동)';
+  timingMark('background_extension',ok?'확장 연결됨':'확장 연결 실패');
+ });
  window.addEventListener('bbp-v24-external-wake',()=>{
   if(!active||document.hidden||polling||confirmed||completed)return;
   timingMark('background_wake','PC 확장 감지 신호 → 공식 서버·화면 재검사');
