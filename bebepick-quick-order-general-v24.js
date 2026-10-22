@@ -68,6 +68,16 @@ function basketSummary(){if(armedMode==='names'&&!lockedCandidate)return '미공
  const rowStyle='display:flex;gap:8px;flex-wrap:wrap;margin:8px 0';
  panel.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><strong>🧸 베베픽 자동주문 v2.4 · 여러 이름 후보 / SKU</strong><button id="qClose" type="button" style="border:0;background:#fff;font-size:23px;color:#333">×</button></div>'+
  '<div style="font-size:12px;color:#71677d;margin:3px 0" id="qChannel"></div>'+
+ '<div style="border:1px solid #d2b9e8;background:#faf6ff;border-radius:10px;padding:10px;margin-top:9px">'+
+  '<label style="font-weight:700;display:block">감시 방식<select id="qWatchMode" style="'+inputStyle+'"><option value="sku">기존 · 선택한 SKU 모두 주문</option><option value="names">신상 · 이름 후보 중 먼저 판매 가능한 1종 주문</option></select></label>'+
+  '<div style="margin-top:6px;font-size:12px">SKU 없이 미공개 상품 이름을 최대 20종까지 등록 가능해. 한 번에 1종만 선택하고 등록 순서가 우선이야. 실제 주문 ON이면 주문번호가 생성될 수 있어.</div>'+
+  '<label style="display:block;font-size:12px;margin-top:9px">공식 상품명 정확히 입력<input id="qName" placeholder="예: 메이메이 서프라이즈" maxlength="90" style="'+inputStyle+'"></label>'+
+  '<div style="display:flex;align-items:end;gap:7px;margin-top:7px">'+
+   '<label style="flex:1;font-size:12px">후보 수량<input id="qNameQty" type="number" min="1" max="99" value="1" style="'+inputStyle+'"></label>'+
+   '<button id="qAddName" type="button" style="background:#7350b4;color:white;border:0;border-radius:9px;padding:11px;font-weight:700">＋ 이름 후보 등록</button>'+
+  '</div>'+
+  '<div id="qNames" style="font-size:12px;margin-top:6px"></div>'+
+ '</div>'+ 
  '<label style="font-weight:600;display:block;margin-top:9px">인형 이름·상품코드 검색<input id="qSearch" placeholder="예: 밤토끼, D796" autocomplete="off" style="'+inputStyle+'"></label>'+
  '<label style="font-weight:600;display:block;margin-top:7px">선택할 상품 (품절 포함)<select id="qSku" style="'+inputStyle+'"><option value="">상품 목록 불러오는 중…</option></select></label>'+
  '<div style="display:flex;gap:6px;align-items:end;margin-top:6px"><label style="flex:1;font-size:12px">목록에 없는 상품코드로 미리 설정<input id="qManualSku" style="'+inputStyle+'" placeholder="예: D796" maxlength="24" autocapitalize="characters"></label><button id="qUseSku" type="button" style="border:1px solid #cbbadf;background:#f9f6fe;color:#563886;border-radius:9px;padding:9px;white-space:nowrap;font-weight:700">코드 적용</button></div>'+
@@ -92,7 +102,7 @@ function basketSummary(){if(armedMode==='names'&&!lockedCandidate)return '미공
  '<small style="display:block;color:#756b80;margin-top:7px">자동 측정 · 0.1ms 정밀도 기록 · 세션 내 저장. 실제 재입고 시각은 알 수 없으므로 최초 판매 가능 응답부터 측정해. 주문 성공과 서버 접수를 의미하지 않아.</small></details>'+
  '<small style="display:block;color:#766d7f;margin-top:9px">품절이어도 설정하고 대기할 수 있어. 품절 또는 목록에 없는 코드일 때는 재고가 공식 서버에서 확인될 때까지 주문이나 장바구니 변경 없이 기다려. 주문 접수 ON 상태와 선택한 모든 상품 재고를 확인해. 홈페이지 LIVE 표시만으로 주문을 시작하지 않아. 공식 주문 UI 활성화가 필요하고 무전송 시험에서 최종 주문을 생성하지 않아. 5초 감시는 요청 제한 위험이 있어.</small>';
  document.body.appendChild(panel);
- const controls={search:el('#qSearch',panel),manual:el('#qManualSku',panel),sku:el('#qSku',panel),opt:el('#qOpt',panel),cycle:el('#qCycle',panel),open:el('#qOpen',panel),storage:el('#qStorage',panel),pay:null,qty:el('#qQty',panel),add:el('#qAdd',panel),basket:el('#qBasket',panel),autoOrder:el('#qAutoOrder',panel),dryRun:el('#qDryRun',panel),status:el('#qStatus',panel),product:el('#qProduct',panel),reload:el('#qReload',panel),
+ const controls={search:el('#qSearch',panel),manual:el('#qManualSku',panel),sku:el('#qSku',panel),opt:el('#qOpt',panel),cycle:el('#qCycle',panel),open:el('#qOpen',panel),storage:el('#qStorage',panel),pay:null,qty:el('#qQty',panel),add:el('#qAdd',panel),basket:el('#qBasket',panel),watchMode:el('#qWatchMode',panel),name:el('#qName',panel),nameQty:el('#qNameQty',panel),addName:el('#qAddName',panel),names:el('#qNames',panel),autoOrder:el('#qAutoOrder',panel),dryRun:el('#qDryRun',panel),status:el('#qStatus',panel),product:el('#qProduct',panel),reload:el('#qReload',panel),
  timingSummary:el('#qTimingSummary',panel),timingLog:el('#qTimingLog',panel)};
  // Instrumentation only. No extra site requests, no order submission,
  // no recording of auth cookies, customer details, or generated order numbers.
@@ -655,7 +665,7 @@ function basketSummary(){if(armedMode==='names'&&!lockedCandidate)return '미공
  ob.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class','hidden','disabled']});
  document.addEventListener('visibilitychange',()=>{if(timingActive)timingMark(document.hidden?'hidden':'resumed');if(active&&!document.hidden&&!polling){if(timer)clearTimeout(timer);schedule(100);}});
  window.addEventListener('pagehide',()=>{stop();ob.disconnect();mini.remove();});
- controls.opt.value=option;controls.cycle.value=String(cycle);controls.open.value=open;controls.storage.value=storage;controls.manual.value=sku;
+ controls.watchMode.value=watchMode;controls.opt.value=option;controls.cycle.value=String(cycle);controls.open.value=open;controls.storage.value=storage;controls.manual.value=sku;
  window.__bbpGeneralQuickV24={show,stop,__v2:true,version:'2.4.0'};
  renderBasket();loadCatalog(false);
 }catch(e){alert('범용 v2 도우미 오류: '+String(e.message||e));}
