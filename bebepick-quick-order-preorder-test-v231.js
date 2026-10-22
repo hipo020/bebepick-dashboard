@@ -607,6 +607,7 @@ function basketSummary(){const c=chosenItems();return c.length+'줄 · '+c.reduc
   timingMark('pre_submit_ready','공식 2단계 최종 확인창 도달 · 주문 확정 클릭 0회');
   mini.textContent='✅ 최종 확인창 도착 · 주문 생성 0회';
   message('✅ 최종 확인창까지 자동 도착 · 주문번호와 3분 결제 화면은 생성하지 않았어');
+  if(domWatchTimer)clearInterval(domWatchTimer);domWatchTimer=null;
   timingStop('최종 주문 확정 직전 진단 성공 · 클릭 0회');
  }
  const ob=new MutationObserver(records=>{
