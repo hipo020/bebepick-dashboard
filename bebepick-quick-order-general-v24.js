@@ -870,22 +870,46 @@ function basketSummary(){
   submitClicked=true;
   try{sessionStorage.setItem('bbp_general_v2_submit_'+STORE,JSON.stringify({at:Date.now(),items:chosenItems(),store:STORE}));}catch(e){}
   clearInterval(wizardTimer);wizardTimer=null;
-  payArmed=false;payDone=false;payDeadline=0;
-  message('📨 공식 주문 버튼 1회 클릭 · 결제 직전 화면 확인해 줘 (페이앱 자동 실행 OFF)');
+  // Arm ONLY a previously opted-in, non-dry-run handoff after final order click.
+  payArmed=autoPay&&!dryRun;payDone=false;payDeadline=payArmed?Date.now()+15000:0;
+  message(payArmed?
+   '📨 공식 주문 요청 버튼 1회 클릭 · 주문번호 확인 시 결제하기 1회 자동 이동 시도 (결제 승인 수동)':
+   '📨 공식 주문 버튼 1회 클릭 · 결제 직전 화면 확인해 줘 (페이앱 자동 실행 OFF)');
   timingOnce('submit_click','DOM 클릭 호출 · 서버 접수 미확인');ok.click();
  }
- // Display pre-payment readiness without clicking PayApp/payment controls.
+ // Only the official payment button may be clicked once, after a newly created
+ // order is visibly confirmed in the official pay sheet. Never interact with PAYAPP itself.
  function watchPrePayment(){
   if(!submitClicked||payDone)return;
+  if(payArmed&&Date.now()>payDeadline){
+   payArmed=false;payDone=true;
+   timingMark('pay_handoff_timeout','PAYAPP 버튼 자동 진입 제한시간 초과 · 수동 진행');
+   message('⚠ 새 주문 화면 또는 결제 버튼 확인이 늦어 PAYAPP 자동 이동 중지 · 직접 확인해 줘.');
+   return;
+  }
   const sheet=el('.panel[data-sheet="pay"]');
   if(!sheet||!sheet.isConnected||sheet.hidden||getComputedStyle(sheet).display==='none')return;
-  const txt=sheet.textContent||'',m=txt.match(/\bBP[A-Z0-9]{8,}\b/);
-  if(!m||m[0]===oldPayOrder||!/주문서를?\s*만들었습니다|주문\s*완료|주문번호/.test(txt))return;
-  payDone=true;
-  timingOnce('pay_panel','공식 화면에 새 주문번호 표시 · 결제 버튼 클릭 0회');
-  mini.textContent='✅ 결제 직전 화면 · 도우미 펼치기';
-  message('✅ 새 주문번호가 공식 화면에 표시됐어 · 결제는 직접 눌러줘!');
-  if(folded)revealOfficial();
+  const txt=sheet.textContent||'',m=txt.match(/\\bBP[A-Z0-9]{8,}\\b/);
+  if(!m||m[0]===oldPayOrder||!/주문서를?\\s*만들었습니다|주문\\s*완료|주문번호/.test(txt))return;
+  timingOnce('pay_panel','공식 화면에 새 주문번호 표시');
+  if(!payArmed){
+   payDone=true;
+   mini.textContent='✅ 결제 직전 화면 · 도우미 펼치기';
+   message('✅ 새 주문번호가 공식 화면에 표시됐어 · 결제는 직접 눌러줘!');
+   if(folded)revealOfficial();
+   return;
+  }
+  // Backgrounded Chrome/unknown order/invalid button: do not attempt navigation.
+  if(document.hidden){payArmed=false;payDone=true;message('⚠ 브라우저가 백그라운드로 바뀌어 PAYAPP 자동 이동 중지 · 직접 진행해 줘');return;}
+  const btn=sheet.querySelector('[data-act="pay-card"]');
+  if(!btn||!btn.isConnected||btn.disabled||btn.getAttribute('aria-disabled')==='true')return;
+  // Idempotency gate BEFORE .click: MutationObserver can re-enter synchronously.
+  payArmed=false;payDone=true;
+  timingOnce('pay_card_click','공식 결제하기 버튼 클릭 1회 · PAYAPP 도착 및 결제 승인은 별도');
+  message('⚡ 공식 결제하기 버튼 1회 클릭 · PAYAPP 화면 열기 시도 · 실제 결제 승인은 직접 해 줘');
+  mini.textContent='⚡ PAYAPP 열기 시도 · 결제 승인 수동';
+  try{btn.click();}
+  catch(e){message('⚠ PAYAPP 열기 실패 · 팝업 차단 또는 공식 화면 확인 후 결제하기를 직접 눌러줘');}
  }
  const ob=new MutationObserver(records=>{
   // Own floating panel status/trace mutations must NOT cause reentrant
