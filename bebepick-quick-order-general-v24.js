@@ -96,6 +96,7 @@ function basketSummary(){
  panel.innerHTML='<div style="position:sticky;top:-12px;background:#fff;z-index:3;padding:8px 0;border-bottom:1px solid #e9e0ee;display:flex;align-items:center;justify-content:space-between;gap:8px"><strong>🧸 베베픽 자동주문 v2.4 · 여러 이름 후보 / SKU</strong><button id="qClose" type="button" style="border:0;background:#fff;font-size:23px;color:#333">×</button></div>'+
  '<div style="font-size:12px;color:#71677d;margin:3px 0" id="qChannel"></div>'+
  '<div id="qQuantitySummary" role="status" style="font-weight:750;font-size:13px;background:#eee6fa;border:1px solid #bca5d8;border-radius:10px;padding:9px 11px;margin:8px 0;white-space:pre-line">📦 저장된 총 수량 확인 중…</div>'+
+ '<button id="qExportAndroid" type="button" style="width:100%;min-height:40px;background:#fff5ef;border:1px solid #edb6a3;color:#8b4c44;border-radius:10px;font-weight:750;padding:9px;margin:5px 0">🚀 갤럭시 앱으로 인형 목록 한 번에 보내기</button>'+
  '<div style="border:1px solid #d2b9e8;background:#faf6ff;border-radius:10px;padding:10px;margin-top:9px">'+
   '<label style="font-weight:700;display:block">감시 방식<select id="qWatchMode" style="'+inputStyle+'"><option value="sku">기존 · 선택한 SKU 모두 주문</option><option value="names">신상 · 이름 후보 중 먼저 판매 가능한 1종 주문</option><option value="mixed">통합 · 기존 SKU 전부 + 신상 후보 중 1종 함께 주문</option></select></label>'+
   '<div style="margin-top:6px;font-size:12px">기존 SKU만 / 신상 후보만 / 기존 SKU + 신상 후보 중 1종 함께 주문을 선택할 수 있어. 통합 모드에서 두 상품 목록이 모두 확인되어야 다음 단계로 진행해.</div>'+
@@ -141,7 +142,7 @@ function basketSummary(){
  '<small style="display:block;color:#756b80;margin-top:7px">자동 측정 · 0.1ms 정밀도 기록 · 세션 내 저장. 실제 재입고 시각은 알 수 없으므로 최초 판매 가능 응답부터 측정해. 주문 성공과 서버 접수를 의미하지 않아.</small></details>'+
  '<small style="display:block;color:#766d7f;margin-top:9px">품절이어도 설정하고 대기할 수 있어. 품절 또는 목록에 없는 코드일 때는 재고가 공식 서버에서 확인될 때까지 주문이나 장바구니 변경 없이 기다려. 주문 접수 ON 상태와 선택한 모든 상품 재고를 확인해. 홈페이지 LIVE 표시만으로 주문을 시작하지 않아. 공식 주문 UI 활성화가 필요하고 무전송 시험에서 최종 주문을 생성하지 않아. 5초 감시는 요청 제한 위험이 있어.</small>';
  document.body.appendChild(panel);
- const controls={search:el('#qSearch',panel),manual:el('#qManualSku',panel),sku:el('#qSku',panel),opt:el('#qOpt',panel),cycle:el('#qCycle',panel),open:el('#qOpen',panel),storage:el('#qStorage',panel),pay:null,qty:el('#qQty',panel),add:el('#qAdd',panel),basket:el('#qBasket',panel),importCart:el('#qImportCart',panel),watchMode:el('#qWatchMode',panel),name:el('#qName',panel),nameQty:el('#qNameQty',panel),nameOpt:el('#qNameOpt',panel),addName:el('#qAddName',panel),names:el('#qNames',panel),autoOrder:el('#qAutoOrder',panel),dryRun:el('#qDryRun',panel),payAppPage:el('#qPayAppPage',panel),backgroundWatch:el('#qBackgroundWatch',panel),bgStatus:el('#qBackgroundStatus',panel),status:el('#qStatus',panel),product:el('#qProduct',panel),reload:el('#qReload',panel),
+ const controls={search:el('#qSearch',panel),manual:el('#qManualSku',panel),sku:el('#qSku',panel),opt:el('#qOpt',panel),cycle:el('#qCycle',panel),open:el('#qOpen',panel),storage:el('#qStorage',panel),pay:null,qty:el('#qQty',panel),add:el('#qAdd',panel),basket:el('#qBasket',panel),importCart:el('#qImportCart',panel),exportAndroid:el('#qExportAndroid',panel),watchMode:el('#qWatchMode',panel),name:el('#qName',panel),nameQty:el('#qNameQty',panel),nameOpt:el('#qNameOpt',panel),addName:el('#qAddName',panel),names:el('#qNames',panel),autoOrder:el('#qAutoOrder',panel),dryRun:el('#qDryRun',panel),payAppPage:el('#qPayAppPage',panel),backgroundWatch:el('#qBackgroundWatch',panel),bgStatus:el('#qBackgroundStatus',panel),status:el('#qStatus',panel),product:el('#qProduct',panel),reload:el('#qReload',panel),
  timingSummary:el('#qTimingSummary',panel),timingLog:el('#qTimingLog',panel),modeStatus:el('#qModeStatus',panel),quantitySummary:el('#qQuantitySummary',panel),nameEditor:el('#qNameEditor',panel),skuEditor:el('#qSkuEditor',panel),nameSummary:el('#qNameSummary',panel),skuSummary:el('#qSkuSummary',panel)};
  // Instrumentation only. No extra site requests, no order submission,
  // no recording of auth cookies, customer details, or generated order numbers.
@@ -722,6 +723,46 @@ function basketSummary(){
    items.push({sku:code,option:opt,qty});
   }
   sku=code;option=opt;savePref();renderBasket();message('✅ 인형 '+items.length+'줄 · '+items.reduce((n,x)=>n+x.qty,0)+'개 선택');
+ };
+ // Data-only bridge: no credentials, address, order IDs, or card data cross apps.
+ // Source is this single Chrome tab, the native app will validate and confirm import.
+ controls.exportAndroid.onclick=()=>{
+  // Data-only plan export. No login, address, card, token or order information.
+  // Read-only snapshot; does not modify cart or change running monitor.
+  const mode=active?armedMode:watchMode;
+  let baseline=items.map(x=>({sku:x.sku,option:x.option,qty:x.qty}));
+  // When Chrome's helper list is empty, read the existing cart on this SAME browser.
+  // Never modify or submit the vendor cart. The Android confirmation displays totals.
+  if(mode!=='names'&&!baseline.length){
+   try{
+    const vendorCart=readCart().filter(belongs);
+    const converted=vendorCart.map(x=>({sku:String(x.sku||''),option:normalized(x),qty:Number(x.qty)}));
+    if(converted.length>0&&converted.length<=MAX_LINES&&
+       converted.every(x=>validSku(x.sku)&&['single','fullbox'].includes(x.option)&&Number.isInteger(x.qty)&&x.qty>=1&&x.qty<=MAX_QTY)&&
+       new Set(converted.map(itemKey)).size===converted.length)baseline=converted;
+   }catch(e){}
+   if(!baseline.length&&validSku(sku))baseline=[{sku,option,qty:1}];
+  }
+  const payload={kind:'bebepick-shop-watch-plan-v1',store:STORE,watchMode:mode,cycle,open,storage,
+   items:baseline,
+   nameCandidates:nameCandidates.map(x=>({name:x.name,option:x.option,qty:x.qty}))};
+  if(mode==='mixed'&&(!payload.items.length||!payload.nameCandidates.length)){
+   message('⚠ 통합 모드는 기존 SKU와 신상 이름 후보를 모두 등록한 다음 앱으로 보내 줘');return;
+  }
+  if(mode==='sku'&&!payload.items.length){
+   message('⚠ 등록된 기존 SKU가 없어 · 상품을 목록에 추가해 줘');return;
+  }
+  if(mode==='names'&&!payload.nameCandidates.length){
+   message('⚠ 보낼 신상 이름 후보가 없어');return;
+  }
+  const data=JSON.stringify(payload);
+  if(data.length>14000){message('⚠ 인형 목록이 너무 길어 일부 후보를 줄여줘');return;}
+  // Direct user click is necessary: Chrome and Android WebView have isolated storage.
+  // The app validates and shows a confirmation dialog; this never starts a live order.
+  const url='intent://import/plan?data='+encodeURIComponent(data)+
+   '#Intent;scheme=bebepickorder;package=com.hipo.bebepickorder;end';
+  message('📱 갤럭시 beta.37 앱 열기 시도 · 인형 목록 가져오기를 확인해 줘');
+  window.location.href=url;
  };
  controls.importCart.onclick=()=>{
   if(active||completed){message('⚠ 감시를 중지한 다음 가져와 줘');return;}
