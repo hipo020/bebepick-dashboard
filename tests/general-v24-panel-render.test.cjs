@@ -6,7 +6,7 @@ const path = require('node:path');
 
 const src = fs.readFileSync(path.join(__dirname, '..', 'bebepick-quick-order-general-v24.js'), 'utf8');
 const required = [
-  'qClose', 'qChannel', 'qQuantitySummary', 'qWatchMode', 'qModeStatus',
+  'qClose', 'qChannel', 'qQuantitySummary', 'qExportAndroid', 'qWatchMode', 'qModeStatus',
   'qNameEditor', 'qNameSummary', 'qName', 'qNameQty', 'qNameOpt', 'qAddName', 'qNames',
   'qSkuEditor', 'qSkuSummary', 'qSearch', 'qSku', 'qManualSku', 'qUseSku', 'qProduct',
   'qQty', 'qAdd', 'qImportCart', 'qBasket', 'qOpt', 'qCycle', 'qOpen', 'qStorage',
