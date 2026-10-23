@@ -102,6 +102,7 @@ function basketSummary(){
   '<div style="margin-top:6px;font-size:11px;color:#796986">기존 인형만 · 신상만 · 기존 인형+신상 중 선택해 줘.</div>'+
  '</div>'+
  '<div id="qModeStatus" role="status" style="font-weight:700;font-size:12px;color:#694e83;background:#f7f2fc;padding:8px 10px;margin:8px 0;border-radius:10px"></div>'+
+ '<div id="qSafetyMode" role="status" style="font-size:12px;font-weight:700;color:#3e7257;padding:1px 5px;margin:3px 0 8px">🛡️ 기본 무전송 · 실제 주문 생성 안 함</div>'+
  '<details id="qNameEditor" style="border:1px solid #e0cfef;background:#fff;border-radius:12px;padding:10px 12px;margin-top:8px"><summary id="qNameSummary" style="font-weight:750;cursor:pointer">① 신상 이름 후보 등록</summary>'+
   '<label style="display:block;font-size:12px;margin-top:9px">공식 상품명 정확히 입력<input id="qName" placeholder="예: 메이메이 서프라이즈" maxlength="90" style="'+inputStyle+'"></label>'+
   '<div style="display:flex;align-items:end;gap:7px;margin-top:7px">'+
@@ -143,7 +144,7 @@ function basketSummary(){
  '<small style="display:block;color:#766d7f;margin-top:9px">품절이어도 설정하고 대기할 수 있어. 품절 또는 목록에 없는 코드일 때는 재고가 공식 서버에서 확인될 때까지 주문이나 장바구니 변경 없이 기다려. 주문 접수 ON 상태와 선택한 모든 상품 재고를 확인해. 홈페이지 LIVE 표시만으로 주문을 시작하지 않아. 공식 주문 UI 활성화가 필요하고 무전송 시험에서 최종 주문을 생성하지 않아. 5초 감시는 요청 제한 위험이 있어.</small>';
  document.body.appendChild(panel);
  const controls={search:el('#qSearch',panel),manual:el('#qManualSku',panel),sku:el('#qSku',panel),opt:el('#qOpt',panel),cycle:el('#qCycle',panel),open:el('#qOpen',panel),storage:el('#qStorage',panel),pay:null,qty:el('#qQty',panel),add:el('#qAdd',panel),basket:el('#qBasket',panel),importCart:el('#qImportCart',panel),exportAndroid:el('#qExportAndroid',panel),watchMode:el('#qWatchMode',panel),name:el('#qName',panel),nameQty:el('#qNameQty',panel),nameOpt:el('#qNameOpt',panel),addName:el('#qAddName',panel),names:el('#qNames',panel),autoOrder:el('#qAutoOrder',panel),dryRun:el('#qDryRun',panel),payAppPage:el('#qPayAppPage',panel),backgroundWatch:el('#qBackgroundWatch',panel),bgStatus:el('#qBackgroundStatus',panel),status:el('#qStatus',panel),product:el('#qProduct',panel),reload:el('#qReload',panel),
- timingSummary:el('#qTimingSummary',panel),timingLog:el('#qTimingLog',panel),modeStatus:el('#qModeStatus',panel),quantitySummary:el('#qQuantitySummary',panel),nameEditor:el('#qNameEditor',panel),skuEditor:el('#qSkuEditor',panel),nameSummary:el('#qNameSummary',panel),skuSummary:el('#qSkuSummary',panel)};
+ timingSummary:el('#qTimingSummary',panel),timingLog:el('#qTimingLog',panel),modeStatus:el('#qModeStatus',panel),safetyMode:el('#qSafetyMode',panel),quantitySummary:el('#qQuantitySummary',panel),nameEditor:el('#qNameEditor',panel),skuEditor:el('#qSkuEditor',panel),nameSummary:el('#qNameSummary',panel),skuSummary:el('#qSkuSummary',panel)};
  // Instrumentation only. No extra site requests, no order submission,
  // no recording of auth cookies, customer details, or generated order numbers.
  const TIMING_KEY='bbp_general_v24_timing_last_'+STORE;
@@ -1012,6 +1013,14 @@ function basketSummary(){
  });
  document.addEventListener('visibilitychange',()=>{if(timingActive)timingMark(document.hidden?'hidden':'resumed');if(active&&!document.hidden&&!polling){if(timer)clearTimeout(timer);schedule(100);}});
  window.addEventListener('pagehide',()=>{stop();ob.disconnect();mini.remove();});
+ function updateSafetyLabel(){
+  const real=controls.autoOrder.checked&&!controls.dryRun.checked;
+  controls.safetyMode.textContent=real?
+   controls.payAppPage.checked?'⚠ 실제 주문번호 생성 + PAYAPP 열기 시도 · 결제 승인 수동':'⚠ 실제 주문 가능 · 결제하기 수동':
+   controls.autoOrder.checked?'🛡️ 무전송 자동 확인 · 주문번호 생성 안 함':'🛡️ 감시만 · 주문 자동 클릭 OFF';
+  controls.safetyMode.style.color=real?'#9b4e37':'#3e7257';
+ }
+ [controls.autoOrder,controls.dryRun,controls.payAppPage].forEach(x=>x.addEventListener('change',updateSafetyLabel));
  // Keep visible intent unambiguous; never escalate privileges mid-watch.
  controls.payAppPage.addEventListener('change',()=>{
   if(active){controls.payAppPage.checked=autoPay;message('⚠ 감시 중 PAYAPP 설정 변경 불가 · 중지 후 설정해 줘');return;}
@@ -1030,7 +1039,7 @@ function basketSummary(){
  });
  controls.backgroundWatch.checked=backgroundWatch;
  controls.backgroundWatch.addEventListener('change',()=>{if(active){controls.backgroundWatch.checked=backgroundWatch;message('⚠ 감시 중 변경 불가 · 중지 후 설정해 줘');return;}backgroundWatch=controls.backgroundWatch.checked;savePref();});
- controls.watchMode.value=watchMode;renderModeSections(true);controls.opt.value=option;controls.cycle.value=String(cycle);controls.open.value=open;controls.storage.value=storage;controls.manual.value=sku;
+ controls.watchMode.value=watchMode;renderModeSections(true);controls.opt.value=option;controls.cycle.value=String(cycle);controls.open.value=open;controls.storage.value=storage;controls.manual.value=sku;updateSafetyLabel();
  window.__bbpGeneralQuickV24={show,stop,__v2:true,version:'2.4.0'};
  renderNames();renderBasket();loadCatalog(false);
 }catch(e){alert('범용 v2 도우미 오류: '+String(e.message||e));}
