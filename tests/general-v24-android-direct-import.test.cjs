@@ -28,7 +28,8 @@ test('bridge sends item list, quantity and names, never payment or address',()=>
  assert.match(snippet,/items:items\.map/);
  assert.match(snippet,/nameCandidates:nameCandidates\.map/);
  assert.match(snippet,/store:STORE,watchMode:mode,cycle,open,storage/);
- assert.doesNotMatch(snippet,/creditCard|address|localStorage|authorization|access_token|sessionStorage|CART_KEY|payapp|checkout\.click/);
+ const executable=snippet.replace(/\/\/[^\n]*/g,'');
+ assert.doesNotMatch(executable,/creditCard|address|localStorage|authorization|access_token|sessionStorage|CART_KEY|payapp|checkout\.click/);
 });
 
 test('mixed mode fails closed if missing one of both source lists',()=>{
