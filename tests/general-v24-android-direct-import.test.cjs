@@ -25,7 +25,8 @@ test('native Android URI is created only on direct user click',()=>{
 
 test('bridge sends item list, quantity and names, never payment or address',()=>{
  assert.match(snippet,/kind:'bebepick-shop-watch-plan-v1'/);
- assert.match(snippet,/items:items\.map/);
+ assert.match(snippet,/items:baseline/);
+ assert.match(snippet,/readCart\(\)\.filter\(belongs\)/);
  assert.match(snippet,/nameCandidates:nameCandidates\.map/);
  assert.match(snippet,/store:STORE,watchMode:mode,cycle,open,storage/);
  const executable=snippet.replace(/\/\/[^\n]*/g,'');
@@ -35,4 +36,5 @@ test('bridge sends item list, quantity and names, never payment or address',()=>
 test('mixed mode fails closed if missing one of both source lists',()=>{
  assert.match(snippet,/mode==='mixed'&&\(!payload\.items\.length\|\|!payload\.nameCandidates\.length\)/);
  assert.match(snippet,/if\(data\.length>14000\)/);
+ assert.match(snippet,/new Set\(converted\.map\(itemKey\)\)\.size===converted\.length/);
 });
