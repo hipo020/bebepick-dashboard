@@ -129,7 +129,7 @@ function basketSummary(){
   '<label style="display:flex;gap:7px;align-items:start;margin:5px 0"><input type="checkbox" id="qDryRun" checked> 무전송 시험 (최종 주문 생성 안 함 · 기본)</label>'+
   '<label style="display:flex;gap:7px;align-items:start;margin:8px 0;padding:9px;border:1px solid #c5a6e7;border-radius:9px;background:#fff"><input type="checkbox" id="qPayAppPage"> ⚡ 영상처럼 PAYAPP 결제 페이지까지 자동 이동 (실제 주문번호 생성 + 공식 결제하기 1회 클릭 · 결제 승인 수동)</label>'+
   '<small style="display:block;color:#8a2343;font-weight:750">⚠ 선택 시 무전송 시험이 해제되고 실제 주문이 생성될 수 있어. 미결제·취소 제재 가능성 있음. 시작 시 별도 확인을 받아. 기본 OFF · 이 선택은 저장하지 않아.</small>'+
-  ''+
+
   '<small style="color:#65566c">실제 주문은 자동 클릭 ON + 무전송 시험 OFF + 명시 동의가 모두 필요해. 결제 승인은 직접 진행해.</small></div></details>'+
  '<details id="qPcOptions" style="border:1px solid #ece2f3;border-radius:12px;padding:9px 12px;margin:9px 0;background:#fff"><summary style="font-weight:700;font-size:12px;cursor:pointer">🖥️ PC 백그라운드 감시 (선택)</summary><label style="display:block;margin-top:8px;font-size:12px"><input type="checkbox" id="qBackgroundWatch"> PC 확장 프로그램 연결 · 최소 30초 간격</label></details>'+
  '<div id="qBackgroundStatus" hidden style="font-size:12px;margin:7px 0;padding:8px;border:1px solid #ddd2e6;border-radius:8px"></div>'+
@@ -859,7 +859,7 @@ function basketSummary(){
   autoOrder=!!controls.autoOrder.checked;
   dryRun=armedMode==='mixed'&&!autoPay?true:!!controls.dryRun.checked;
   controls.dryRun.checked=dryRun;
-  payArmed=false;payDone=false;payDeadline=0;
+  updateSafetyLabel();payArmed=false;payDone=false;payDeadline=0;
   active=true;confirmed=false;completed=false;tries=0;triggerMode='';routeBusy=false;lastWindowOk=null;
   if(backgroundWatch){
    controls.bgStatus.hidden=false;controls.bgStatus.dataset.connected='';
