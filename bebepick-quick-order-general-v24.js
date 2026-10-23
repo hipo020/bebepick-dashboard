@@ -346,12 +346,12 @@ function basketSummary(){
   controls.skuSummary.textContent='② 기존 SKU '+items.length+'줄 · 총 '+quantityText(skuTotal)+' / 이 브라우저 장바구니 '+cartCount+'줄 · '+quantityText(cartTotal);
   controls.quantitySummary.textContent='📦 도우미 등록 총 수량: '+quantityText(skuTotal)+' ('+items.length+'줄)'+
    '\n🛒 이 브라우저 장바구니 총 수량: '+quantityText(cartTotal)+' ('+cartCount+'줄)'+
-   (names?'\n⚠ 현재는 이름 후보 1종 주문 모드 · 위 SKU 수량은 이번 주문에서 제외됨':'\n✅ 현재 SKU 전체 주문 모드 · 인형별 수량으로 진행');
+   (names?'\n⚠ 이름 후보 1종 주문 모드 · 위 SKU 수량은 이번 주문에서 제외됨':current==='mixed'?'\n✅ 통합 모드 · 기존 SKU 전부 + 신상 후보 중 1종':'\n✅ 현재 SKU 전체 주문 모드 · 인형별 수량으로 진행');
   controls.modeStatus.textContent=current==='mixed'?
    '🧸 통합 주문 · 기존 SKU 전부 ('+quantityText(skuTotal)+') + 신상 후보 중 1종을 함께 준비해':
    names?'🟣 이름 후보만 주문 · 기존 SKU 목록은 제외':
    '🟢 기존 SKU 모두 주문 · 신상 후보 목록은 제외';
-  if(forceOpen){controls.nameEditor.open=names||current==='mixed';controls.skuEditor.open=!names||current==='mixed';}
+  if(forceOpen){controls.nameEditor.open=names||(current==='mixed'&&!nameCandidates.length);controls.skuEditor.open=!names;}
  }
  function renderBasket(){
   const names=(active?armedMode:watchMode)==='names';
@@ -811,6 +811,7 @@ function basketSummary(){
   const chosen=chosenItems();if(armedMode==='mixed'&&items.length>MAX_LINES-1){message('⚠ 통합 주문은 신상 1종 공간을 남겨 기존 SKU 최대 19줄까지 등록해 줘');return;}if(armedMode==='mixed'&&!items.length){message('⚠ 통합 주문에는 기존 SKU가 필요해 · 장바구니 가져오기 또는 직접 등록해 줘');return;}if(armedMode==='sku'&&!chosen.length){message('⚠ 구매할 상품을 추가해 줘');return;}
   backgroundWatch=!!controls.backgroundWatch.checked;
   cycle=allowed.includes(+controls.cycle.value)?+controls.cycle.value:8;
+  if(cycle<=2&&!confirm('⚠ '+cycle+'초 간격 감시는 공식 서버에 1분마다 최대 약 '+Math.round(60/cycle*2)+'회(주문상태+상품목록) 요청할 수 있어.\n짧은 주기라고 주문 성공을 보장하지 않으며 429/차단 및 배터리 소모 가능성이 커. 3~5초를 권장해. 그래도 계속할까?'))return;
   open=controls.open.value;storage=controls.storage.value;savePref();
   if(chosen.some(x=>!validSku(x.sku)||x.qty<1||x.qty>MAX_QTY||itemTarget(x)&&!allowedOption(itemTarget(x),x.option))){message('⚠ 상품코드·수량·풀박스 지원 여부를 확인해 줘');return;}
   // The PayApp-page handoff is separate, explicit, and not persisted.
