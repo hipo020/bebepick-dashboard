@@ -9,7 +9,7 @@ try {
  if(window.__bbpGeneralQuickV2){alert('기존 v2.2.2 도우미가 실행 중이야. 새로고침한 뒤 v2.3 북마크를 실행해 줘.');return;}
  if(window.__bbpGeneralQuickV1||window.__bbpRabbitFast){alert('⚠ 이전 도우미가 열려 있어. 서로 다른 자동화가 충돌하지 않도록 베베픽 페이지를 한 번 새로고침하고 범용 v2 북마크를 실행해 줘.');return;}
  const CART_KEY='bbp_cart_v1',OPTS_KEY='bbp_order_opts',PREF_KEY='bbp_quick_general_v24_'+STORE;
- const allowed=[5,8,10,15,30,60], labels={single:'낱개 1개',fullbox:'풀박스 1세트'};
+ const allowed=[1,2,3,4,5,8,10,15,30], labels={single:'낱개 1개',fullbox:'풀박스 1세트'};
  let oldPref={};try{oldPref=JSON.parse(localStorage.getItem('bbp_rabbit_d796_v3')||'{}')||{};}catch(e){}
  let oldGeneral={};try{oldGeneral=JSON.parse(localStorage.getItem('bbp_quick_general_v1_'+STORE)||'{}')||{};}catch(e){}
  let pref={};try{pref=JSON.parse(localStorage.getItem(PREF_KEY)||'{}')||{};}catch(e){}
@@ -89,20 +89,20 @@ function basketSummary(){
  function label(p){return p?String(p.name||p.sku)+' · '+p.sku:String(sku||'상품 미선택');}
  function money(n){return n!==null&&n!==undefined&&n!==''&&Number.isFinite(+n)?Number(n).toLocaleString('ko-KR')+'원':'가격 로그인 후 확인';}
  const panel=document.createElement('aside');panel.id='bbpQuickGeneralV24';
- panel.style.cssText='position:fixed;z-index:2147483645;left:10px;right:10px;bottom:10px;max-width:455px;max-height:86dvh;overflow:auto;margin:auto;background:#fff;border:2px solid #8762b8;border-radius:16px;padding:14px 14px 12px;color:#282235;box-shadow:0 8px 32px #0005;font:14px/1.48 system-ui,-apple-system,sans-serif';
- if(window.matchMedia&&matchMedia('(max-width:640px)').matches){panel.style.cssText+=';top:8px;bottom:8px;left:5px;right:5px;max-height:calc(100dvh - 16px);max-width:none;padding:10px 10px 8px';}
- const inputStyle='width:100%;margin-top:3px;min-height:37px;border:1px solid #d8cee5;border-radius:9px;padding:7px;background:#fff;color:#202020;font:inherit';
+ panel.style.cssText='position:fixed;z-index:2147483645;left:10px;right:10px;bottom:10px;max-width:455px;max-height:86dvh;overflow:auto;margin:auto;background:#fffcff;border:1px solid #d6c2e9;border-radius:20px;padding:14px 14px 12px;color:#352941;box-shadow:0 12px 40px #0003;font:14px/1.48 system-ui,-apple-system,sans-serif';
+ if(window.matchMedia&&matchMedia('(max-width:640px)').matches){panel.style.cssText+=';top:8px;bottom:8px;left:5px;right:5px;max-height:calc(100dvh - 16px);max-width:none;padding:12px 12px 8px';}
+ const inputStyle='width:100%;margin-top:4px;min-height:40px;border:1px solid #e0d6eb;border-radius:11px;padding:8px;background:#fff;color:#352941;font:inherit';
  const rowStyle='display:flex;gap:8px;flex-wrap:wrap;margin:8px 0';
- panel.innerHTML='<div style="position:sticky;top:-12px;background:#fff;z-index:3;padding:8px 0;border-bottom:1px solid #e9e0ee;display:flex;align-items:center;justify-content:space-between;gap:8px"><strong>🧸 베베픽 자동주문 v2.4 · 여러 이름 후보 / SKU</strong><button id="qClose" type="button" style="border:0;background:#fff;font-size:23px;color:#333">×</button></div>'+
+ panel.innerHTML='<div style="position:sticky;top:-12px;background:#fff;z-index:3;padding:8px 0;border-bottom:1px solid #e9e0ee;display:flex;align-items:center;justify-content:space-between;gap:8px"><strong style="font-size:15px;letter-spacing:-.3px">🧸 베베픽 주문 도우미 <small style="font-size:10px;color:#927da5">v2.4</small></strong><button id="qClose" type="button" style="border:0;background:#fff;font-size:23px;color:#333">×</button></div>'+
  '<div style="font-size:12px;color:#71677d;margin:3px 0" id="qChannel"></div>'+
- '<div id="qQuantitySummary" role="status" style="font-weight:750;font-size:13px;background:#eee6fa;border:1px solid #bca5d8;border-radius:10px;padding:9px 11px;margin:8px 0;white-space:pre-line">📦 저장된 총 수량 확인 중…</div>'+
- '<button id="qExportAndroid" type="button" style="width:100%;min-height:40px;background:#fff5ef;border:1px solid #edb6a3;color:#8b4c44;border-radius:10px;font-weight:750;padding:9px;margin:5px 0">🚀 갤럭시 앱으로 인형 목록 한 번에 보내기</button>'+
- '<div style="border:1px solid #d2b9e8;background:#faf6ff;border-radius:10px;padding:10px;margin-top:9px">'+
+ '<div id="qQuantitySummary" role="status" style="font-weight:750;font-size:13px;background:#f3ecfc;border:1px solid #ddcfed;border-radius:12px;padding:10px 12px;margin:9px 0;white-space:pre-line">📦 저장된 총 수량 확인 중…</div>'+
+ '<details id="qDeviceImport" style="border:1px solid #ede0f1;background:#fffafd;border-radius:12px;padding:9px 12px;margin:8px 0"><summary style="font-size:12px;font-weight:700;color:#6b557a;cursor:pointer">📱 갤럭시 앱 연결 · 저장한 인형 목록 보내기</summary><button id="qExportAndroid" type="button" style="width:100%;min-height:40px;background:#fff3ed;border:1px solid #efc4b4;color:#8b4c44;border-radius:10px;font-weight:750;padding:9px;margin:9px 0 1px">🚀 인형 목록 한 번에 보내기</button></details>'+
+ '<div style="border:1px solid #e3d4f1;background:#faf7ff;border-radius:12px;padding:11px;margin-top:9px">'+
   '<label style="font-weight:700;display:block">감시 방식<select id="qWatchMode" style="'+inputStyle+'"><option value="sku">기존 · 선택한 SKU 모두 주문</option><option value="names">신상 · 이름 후보 중 먼저 판매 가능한 1종 주문</option><option value="mixed">통합 · 기존 SKU 전부 + 신상 후보 중 1종 함께 주문</option></select></label>'+
-  '<div style="margin-top:6px;font-size:12px">기존 SKU만 / 신상 후보만 / 기존 SKU + 신상 후보 중 1종 함께 주문을 선택할 수 있어. 통합 모드에서 두 상품 목록이 모두 확인되어야 다음 단계로 진행해.</div>'+
+  '<div style="margin-top:6px;font-size:11px;color:#796986">기존 인형만 · 신상만 · 기존 인형+신상 중 선택해 줘.</div>'+
  '</div>'+
- '<div id="qModeStatus" role="status" style="font-weight:700;font-size:12px;background:#f4effa;padding:9px;margin:8px 0;border-radius:8px"></div>'+
- '<details id="qNameEditor" open style="border:1px solid #d2b9e8;background:#faf6ff;border-radius:10px;padding:10px;margin-top:8px"><summary id="qNameSummary" style="font-weight:750;cursor:pointer">① 신상 이름 후보 등록</summary>'+
+ '<div id="qModeStatus" role="status" style="font-weight:700;font-size:12px;color:#694e83;background:#f7f2fc;padding:8px 10px;margin:8px 0;border-radius:10px"></div>'+
+ '<details id="qNameEditor" style="border:1px solid #e0cfef;background:#fff;border-radius:12px;padding:10px 12px;margin-top:8px"><summary id="qNameSummary" style="font-weight:750;cursor:pointer">① 신상 이름 후보 등록</summary>'+
   '<label style="display:block;font-size:12px;margin-top:9px">공식 상품명 정확히 입력<input id="qName" placeholder="예: 메이메이 서프라이즈" maxlength="90" style="'+inputStyle+'"></label>'+
   '<div style="display:flex;align-items:end;gap:7px;margin-top:7px">'+
    '<label style="flex:1;font-size:12px">후보 수량<input id="qNameQty" type="number" min="1" max="99" value="1" style="'+inputStyle+'"></label>'+
@@ -111,26 +111,26 @@ function basketSummary(){
   '</div>'+
   '<div id="qNames" style="font-size:12px;margin-top:6px"></div>'+
  '</details>'+
- '<details id="qSkuEditor" style="border:1px solid #e3d8ed;background:#fff;border-radius:10px;padding:10px;margin-top:8px"><summary id="qSkuSummary" style="font-weight:750;cursor:pointer">② 기존 SKU 인형 등록</summary>'+ 
+ '<details id="qSkuEditor" style="border:1px solid #e0cfef;background:#fff;border-radius:12px;padding:10px 12px;margin-top:8px"><summary id="qSkuSummary" style="font-weight:750;cursor:pointer">② 기존 SKU 인형 등록</summary>'+ 
  '<label style="font-weight:600;display:block;margin-top:9px">인형 이름·상품코드 검색<input id="qSearch" placeholder="예: 밤토끼, D796" autocomplete="off" style="'+inputStyle+'"></label>'+
  '<label style="font-weight:600;display:block;margin-top:7px">선택할 상품 (품절 포함)<select id="qSku" style="'+inputStyle+'"><option value="">상품 목록 불러오는 중…</option></select></label>'+
- '<div style="display:flex;gap:6px;align-items:end;margin-top:6px"><label style="flex:1;font-size:12px">목록에 없는 상품코드로 미리 설정<input id="qManualSku" style="'+inputStyle+'" placeholder="예: D796" maxlength="24" autocapitalize="characters"></label><button id="qUseSku" type="button" style="border:1px solid #cbbadf;background:#f9f6fe;color:#563886;border-radius:9px;padding:9px;white-space:nowrap;font-weight:700">코드 적용</button></div>'+
+ '<details id="qManualDetails" style="margin-top:8px;border:1px solid #efe5f2;border-radius:9px;padding:8px"><summary style="font-size:12px;color:#675777;cursor:pointer">상품코드를 알고 있어? 직접 등록하기</summary><div style="display:flex;gap:6px;align-items:end;margin-top:6px"><label style="flex:1;font-size:12px">상품코드<input id="qManualSku" style="'+inputStyle+'" placeholder="예: D796" maxlength="24" autocapitalize="characters"></label><button id="qUseSku" type="button" style="border:1px solid #cbbadf;background:#f9f6fe;color:#563886;border-radius:9px;padding:9px;white-space:nowrap;font-weight:700">코드 적용</button></div></details>'+
  '<div id="qProduct" style="font-size:12px;color:#6b5677;margin:7px 0"></div>'+
- '<div style="display:flex;gap:8px;align-items:end;margin:7px 0"><label style="flex:1;font-size:12px">새로 추가할 인형 수량 (총합 아님)<input id="qQty" type="number" min="1" max="99" step="1" value="1" style="'+inputStyle+'"></label><button id="qAdd" type="button" style="border:0;border-radius:9px;background:#704aac;color:#fff;font-weight:700;padding:11px">＋ 인형 추가</button></div>'+
- '<div style="font-size:12px;color:#55446e;margin:6px 0">여러 인형·수량을 추가해. 목록이 비어 있으면 기존처럼 현재 선택한 인형 1개로 진행해.</div>'+
+ '<label style="display:block;font-size:12px;margin:8px 0 1px">추가할 상품 구매 단위<select id="qOpt" style="'+inputStyle+'"><option value="single">낱개 1개</option><option value="fullbox">풀박스 1세트</option></select></label><div style="display:flex;gap:8px;align-items:end;margin:7px 0"><label style="flex:1;font-size:12px">새로 추가할 인형 수량 (총합 아님)<input id="qQty" type="number" min="1" max="99" step="1" value="1" style="'+inputStyle+'"></label><button id="qAdd" type="button" style="border:0;border-radius:9px;background:#704aac;color:#fff;font-weight:700;padding:11px">＋ 인형 추가</button></div>'+
+ '<small style="display:block;color:#80708a;margin:5px 0">목록에 저장된 수량이 실제 주문에 반영돼.</small>'+
  '<button id="qImportCart" type="button" style="width:100%;padding:9px;margin:6px 0;border:1px solid #cbbadf;border-radius:8px;background:#f7f2fc;color:#573b71;font-weight:700">🛒 현재 브라우저 장바구니를 기존 SKU 목록으로 가져오기</button>'+ 
  '<div id="qBasket" style="border:1px solid #e3d8ed;border-radius:10px;padding:7px;font-size:12px"></div>'+
  '</details>'+
- '<div style="'+rowStyle+'"><label style="flex:1;min-width:123px">구매 단위<select id="qOpt" style="'+inputStyle+'"><option value="single">낱개 1개</option><option value="fullbox">풀박스 1세트</option></select></label><label style="flex:1;min-width:115px">서버 확인 주기<select id="qCycle" style="'+inputStyle+'"><option value="5">5초 (요청 많음)</option><option value="8">8초 (기본)</option><option value="10">10초</option><option value="15">15초</option><option value="30">30초</option><option value="60">60초</option></select></label></div>'+
- '<div style="'+rowStyle+'"><label style="flex:1;min-width:125px">개봉 옵션<select id="qOpen" style="'+inputStyle+'"><option value="개봉">개봉</option><option value="미개봉">미개봉</option><option value="카드개봉">카드개봉</option></select></label><label style="flex:1;min-width:120px">받는 방법<select id="qStorage" style="'+inputStyle+'"><option value="보관">보관</option><option value="발송">바로 배송</option></select></label></div>'+
- '<div style="background:#f6f0ff;padding:10px;border-radius:10px;margin:9px 0">'+
+ '<div style="border:1px solid #e5d8ee;background:#fff;border-radius:12px;padding:10px 12px;margin-top:10px"><strong style="font-size:13px">⚙️ 주문 · 감시 설정</strong><div style="'+rowStyle+'"><label style="flex:1;min-width:125px;font-size:12px">서버 확인 주기<select id="qCycle" style="'+inputStyle+'"><option value="1">1초 (매우 잦음)</option><option value="2">2초 (매우 잦음)</option><option value="3">3초 (빠름)</option><option value="4">4초</option><option value="5">5초</option><option value="8">8초 (기본)</option><option value="10">10초</option><option value="15">15초</option><option value="30">30초</option></select></label></div><small style="display:block;color:#966452;margin-top:2px">⚠ 1~2초는 서버 요청량과 차단 위험이 높아. 3~5초 권장 · 429 응답 시 자동으로 60초 쉬어.</small>'+
+ '<div style="'+rowStyle+'"><label style="flex:1;min-width:125px;font-size:12px">개봉 옵션<select id="qOpen" style="'+inputStyle+'"><option value="개봉">개봉</option><option value="미개봉">미개봉</option><option value="카드개봉">카드개봉</option></select></label><label style="flex:1;min-width:120px;font-size:12px">받는 방법<select id="qStorage" style="'+inputStyle+'"><option value="보관">보관</option><option value="발송">바로 배송</option></select></label></div></div>'+
+ '<details id="qOrderOptions" style="border:1px solid #e4d8ee;background:#f9f6fe;padding:10px 12px;border-radius:12px;margin:9px 0"><summary style="font-weight:750;font-size:13px;cursor:pointer">🔐 자동 진행 · 실제 주문 설정 <small style="color:#957eaa">기본 무전송</small></summary><div style="padding-top:8px">'+
   '<label style="display:flex;gap:7px;align-items:start;margin:5px 0;font-weight:700"><input type="checkbox" id="qAutoOrder"> 공식 동의 2단계 및 최종 주문 자동 클릭</label>'+
   '<label style="display:flex;gap:7px;align-items:start;margin:5px 0"><input type="checkbox" id="qDryRun" checked> 무전송 시험 (최종 주문 생성 안 함 · 기본)</label>'+
   '<label style="display:flex;gap:7px;align-items:start;margin:8px 0;padding:9px;border:1px solid #c5a6e7;border-radius:9px;background:#fff"><input type="checkbox" id="qPayAppPage"> ⚡ 영상처럼 PAYAPP 결제 페이지까지 자동 이동 (실제 주문번호 생성 + 공식 결제하기 1회 클릭 · 결제 승인 수동)</label>'+
   '<small style="display:block;color:#8a2343;font-weight:750">⚠ 선택 시 무전송 시험이 해제되고 실제 주문이 생성될 수 있어. 미결제·취소 제재 가능성 있음. 시작 시 별도 확인을 받아. 기본 OFF · 이 선택은 저장하지 않아.</small>'+
-  '<small style="color:#514163;display:block;margin:5px 0">✅ 결제창 자동 이동 OFF 고정 · 주문번호와 결제 버튼까지만 보여줘.</small>'+
-  '<small style="color:#65566c">실제 주문은 자동 클릭 ON + 무전송 시험 OFF + 명시 동의가 모두 필요해. 결제 승인은 직접 진행해.</small></div>'+
- '<label style="display:block;margin:9px 0;padding:10px;border:1px solid #dbcce8;border-radius:10px"><input type="checkbox" id="qBackgroundWatch"> 🖥️ PC 백그라운드 보조 감시 · 확장 프로그램 필요 (최소 30초, 창 자동 활성화)</label>'+
+  ''+
+  '<small style="color:#65566c">실제 주문은 자동 클릭 ON + 무전송 시험 OFF + 명시 동의가 모두 필요해. 결제 승인은 직접 진행해.</small></div></details>'+
+ '<details id="qPcOptions" style="border:1px solid #ece2f3;border-radius:12px;padding:9px 12px;margin:9px 0;background:#fff"><summary style="font-weight:700;font-size:12px;cursor:pointer">🖥️ PC 백그라운드 감시 (선택)</summary><label style="display:block;margin-top:8px;font-size:12px"><input type="checkbox" id="qBackgroundWatch"> PC 확장 프로그램 연결 · 최소 30초 간격</label></details>'+
  '<div id="qBackgroundStatus" hidden style="font-size:12px;margin:7px 0;padding:8px;border:1px solid #ddd2e6;border-radius:8px"></div>'+
  '<div id="qStatus" role="status" style="font-weight:700;padding:8px 9px;background:#f5effc;border-radius:8px;margin:9px 0">📦 상품 목록을 불러오는 중…</div>'+
  '<div id="qActions" style="position:sticky;bottom:-11px;z-index:3;background:#fff;padding:9px 0 6px;border-top:1px solid #e7ddec;display:flex;gap:7px;margin-top:8px"><button id="qStart" type="button" style="flex:1;border:0;border-radius:10px;padding:11px;background:#6b4aac;color:#fff;font-weight:700">대기 시작</button><button id="qStop" type="button" style="border:1px solid #cbbadf;border-radius:10px;background:#fff;padding:10px">중지</button><button id="qLoad" type="button" style="border:1px solid #cbbadf;border-radius:10px;background:#fff;padding:10px">목록 갱신</button></div>'+
