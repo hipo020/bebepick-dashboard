@@ -730,8 +730,21 @@ function basketSummary(){
   // Data-only plan export. No login, address, card, token or order information.
   // Read-only snapshot; does not modify cart or change running monitor.
   const mode=active?armedMode:watchMode;
+  let baseline=items.map(x=>({sku:x.sku,option:x.option,qty:x.qty}));
+  // When Chrome's helper list is empty, read the existing cart on this SAME browser.
+  // Never modify or submit the vendor cart. The Android confirmation displays totals.
+  if(mode!=='names'&&!baseline.length){
+   try{
+    const vendorCart=readCart().filter(belongs);
+    const converted=vendorCart.map(x=>({sku:String(x.sku||''),option:normalized(x),qty:Number(x.qty)}));
+    if(converted.length>0&&converted.length<=MAX_LINES&&
+       converted.every(x=>validSku(x.sku)&&['single','fullbox'].includes(x.option)&&Number.isInteger(x.qty)&&x.qty>=1&&x.qty<=MAX_QTY)&&
+       new Set(converted.map(itemKey)).size===converted.length)baseline=converted;
+   }catch(e){}
+   if(!baseline.length&&validSku(sku))baseline=[{sku,option,qty:1}];
+  }
   const payload={kind:'bebepick-shop-watch-plan-v1',store:STORE,watchMode:mode,cycle,open,storage,
-   items:items.map(x=>({sku:x.sku,option:x.option,qty:x.qty})),
+   items:baseline,
    nameCandidates:nameCandidates.map(x=>({name:x.name,option:x.option,qty:x.qty}))};
   if(mode==='mixed'&&(!payload.items.length||!payload.nameCandidates.length)){
    message('⚠ 통합 모드는 기존 SKU와 신상 이름 후보를 모두 등록한 다음 앱으로 보내 줘');return;
