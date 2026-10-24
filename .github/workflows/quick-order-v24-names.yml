@@ -7,6 +7,7 @@ on:
       - 'bebepick-quick-order-v24-install.html'
       - 'tests/general-fast-order-v24-names.test.mjs'
       - 'tests/general-v24-payapp-one-tap-terms.test.cjs'
+      - 'tests/general-v24-postclick-observation.test.cjs'
       - 'tests/general-v24-bookmark-android-boot.test.cjs'
       - '.github/workflows/quick-order-v24-names.yml'
   pull_request:
@@ -15,6 +16,7 @@ on:
       - 'bebepick-quick-order-v24-install.html'
       - 'tests/general-fast-order-v24-names.test.mjs'
       - 'tests/general-v24-payapp-one-tap-terms.test.cjs'
+      - 'tests/general-v24-postclick-observation.test.cjs'
       - 'tests/general-v24-bookmark-android-boot.test.cjs'
       - '.github/workflows/quick-order-v24-names.yml'
 jobs:
@@ -29,5 +31,7 @@ jobs:
         run: node --test tests/general-v24-bookmark-android-boot.test.cjs
       - name: PAYAPP manual bookmark consent and first-site DOM diagnostics
         run: node --test tests/general-v24-payapp-one-tap-terms.test.cjs
+      - name: Read-only final-button diagnostics and existing click safety
+        run: node --test tests/general-v24-postclick-observation.test.cjs tests/general-v24-submit-origin.test.cjs
       - name: v2.4 name candidates and legacy v2.3/2.3.1/2.3.2 regressions
         run: node --test tests/general-fast-order-v24-names.test.mjs tests/general-fast-order-v23-multi.test.mjs tests/quick-order-presubmit-v231.test.mjs tests/quick-order-presubmit-v232-names.test.mjs
