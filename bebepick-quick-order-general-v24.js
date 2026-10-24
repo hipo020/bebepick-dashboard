@@ -200,7 +200,7 @@ function basketSummary(){
  }
  function renderTimingHistory(){
   if(!controls.timingHistory)return;
-  const previouslySelected=selectedHistoryId;
+  const previouslySelected=controls.timingHistory.value||selectedHistoryId;
   controls.timingHistory.textContent='';
   const current=document.createElement('option');current.value='';current.textContent='현재 기록';
   controls.timingHistory.appendChild(current);
