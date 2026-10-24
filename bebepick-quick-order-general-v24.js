@@ -1092,7 +1092,7 @@ function basketSummary(){
    const matching=resources.filter(e=>{
     try{
      const path=new URL(e.name,location.href).pathname;
-     return /\/(?:rpc|functions\/v1)\//.test(path)&&/(order|checkout|payment|pay)/i.test(path);
+     return /\/(?:rpc|functions\/v1)\//.test(path)&&/(?:create|submit|place|make|finalize|complete|process)[_-]?(?:order|checkout)|(?:order|checkout)[_-]?(?:create|submit|place|finalize|complete)|\/(?:checkout|purchase)(?:\/|$)/i.test(path);
     }catch(error){return false;}
    });
    requestEvidence=matching.length>0?'Y':'N';
