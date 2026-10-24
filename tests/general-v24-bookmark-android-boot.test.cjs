@@ -56,3 +56,20 @@ test('PayApp remains a separate opt-in bookmark, and tiny diagnostic confirms Ch
  new Function('location','alert',fields['check-bookmark'].value.slice(11))({hostname:'bebepick.me'},x=>{msg=x});
  assert.match(msg,/북마크 실행 확인/);
 });
+
+test('minimal launcher recognises both official /plus and /live routes but rejects other pages',()=>{
+ const c=bookmarkCode();
+ for(const location of [
+  {hostname:'bebepick.me',pathname:'/plus',expected:1},
+  {hostname:'bebepick.me',pathname:'/live',expected:1},
+  {hostname:'bebepick.me',pathname:'/plus/',expected:1},
+  {hostname:'bebepick.me',pathname:'/live/',expected:1},
+  {hostname:'payapp.kr',pathname:'/WEBPAY_INPUT/X',expected:0},
+  {hostname:'bebepick.me',pathname:'/unknown',expected:0}
+ ]){
+  const added=[];
+  const doc={createElement:()=>({}),documentElement:{appendChild:x=>added.push(x)}};
+  new Function('location','document','window','alert',c.slice(11))(location,doc,{},()=>{});
+  assert.equal(added.length,location.expected,JSON.stringify(location));
+ }
+});
