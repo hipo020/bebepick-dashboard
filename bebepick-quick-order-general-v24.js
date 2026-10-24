@@ -1108,7 +1108,7 @@ function basketSummary(){
   if(!submitClicked||payDone)return;
   const since=submitAttemptAt?Date.now()-submitAttemptAt:0;
   if(since>=2000)timingOnce('submit_post_2s',submitAfterClickShape());
-  if(since>=5000&&!el('.panel[data-sheet="pay"]')){
+  if(since>=5000){
    timingOnce('submit_stalled_5s',submitAfterClickShape());
    if(!manualSubmitObserved){
     mini.textContent='⚠ 최종 주문 클릭 후 화면 전환 미확인 · 직접 확인';
