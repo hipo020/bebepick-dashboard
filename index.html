@@ -916,13 +916,14 @@ body{background:var(--sb-bg);color:var(--sb-ink)}
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="./stock-sort-presets.js?v=20261012b"></script>
+<script src="./queue-nickname.js?v=20261025a"></script>
 <script>
 const EDGE_URL = "https://fergbabqmwnbkkxjvgkj.supabase.co/functions/v1/bebepick-dashboard";
 const API_URL = EDGE_URL + "?api=1";
 const SHOP_URL = "https://bebepick-web.pages.dev/";
 const BEBEPICK_URL = "https://kswhgzweesuwacgqruok.supabase.co";
 const BEBEPICK_KEY = "sb_publishable_XSYCZ48RRSxjI24XoR9CUg_-D5ae3KV";
-const QUEUE_NICKNAME = "leo-s8v2z";
+// User nickname is configured on queue.html and remains on this device only.
 const historyCache = new Map();
 const liveSb = window.supabase.createClient(BEBEPICK_URL, BEBEPICK_KEY, {
   auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
@@ -1230,62 +1231,41 @@ async function refreshBroadcastState() {
       '<div class="queue-links">' + links.join("") + "</div>";
 
     if (mine) {
-      const target = String(QUEUE_NICKNAME || "").trim().toLowerCase();
-      const mineRows = [];
-
-      for (const row of rows) {
-        let queue = row.queue_data;
-        if (typeof queue === "string") {
-          try { queue = JSON.parse(queue); } catch { queue = []; }
+      const nickname=BebepickQueueIdentity.read();
+      const mineRows=[];
+      if(nickname){
+        for(const row of rows){
+          const match=BebepickQueueIdentity.match(row.queue_data,row.current_idx,nickname);
+          if(!match)continue;
+          const eta=etaMap.get(Number(row.broadcast_id)+":"+String(row.channel_slug||""));
+          mineRows.push({
+            channel:broadcastLabel(row.channel_slug),...match,
+            etaMinutes:Number.isFinite(Number(eta?.estimated_wait_minutes))
+              ?Number(eta.estimated_wait_minutes):null
+          });
         }
-        if (!Array.isArray(queue)) continue;
-
-        const currentIdx = Number(row.current_idx ?? -1);
-        const positions = queue
-          .map((entry, index) =>
-            String(entry?.nickname || "").trim().toLowerCase() === target ? index : -1
-          )
-          .filter((index) => index >= 0);
-
-        if (!positions.length) continue;
-
-        const future = positions.filter((index) => index >= currentIdx);
-        const position = future.length ? Math.min(...future) : Math.max(...positions);
-        const ahead = position - currentIdx;
-        const eta = etaMap.get(
-          Number(row.broadcast_id) + ":" + String(row.channel_slug || "")
-        );
-        mineRows.push({
-          channel: broadcastLabel(row.channel_slug),
-          position,
-          ahead,
-          etaMinutes: Number.isFinite(Number(eta?.estimated_wait_minutes))
-            ? Number(eta.estimated_wait_minutes)
-            : null
-        });
       }
-
-      if (!mineRows.length) {
-        mine.className = "my-queue";
-        mine.textContent = "👤 내 대기 없음";
-      } else {
-        mine.className = mineRows.some((x) => x.ahead === 0)
-          ? "my-queue turn"
-          : "my-queue on";
-        const lines = mineRows.map((x) => {
-          if (x.ahead === 0) return "👤 " + x.channel + " · 지금 내 차례";
-          if (x.ahead < 0) return "👤 " + x.channel + " · 순서 지나감";
-          const etaText = x.etaMinutes !== null && x.etaMinutes > 0
-            ? " · 약 " + x.etaMinutes + "분"
-            : "";
-          return "👤 " + x.channel + " · " + (x.position + 1) + "번째 · 앞 " + x.ahead + "명" + etaText;
+      if(!nickname){
+        mine.className="my-queue";
+        mine.innerHTML='👤 <a href="./queue.html">순번 현황에서 내 닉네임 등록하기</a>';
+      }else if(!mineRows.length){
+        mine.className="my-queue";
+        mine.textContent="👤 등록한 닉네임의 대기열 기록 없음 · 순번 현황에서 확인";
+      }else{
+        mine.className=mineRows.some(x=>x.ahead===0)?"my-queue turn":"my-queue on";
+        const lines=mineRows.map(x=>{
+          const extra=x.count>1?" · 같은 닉네임 "+x.count+"건 (가장 가까운 차례)":"";
+          if(x.ahead===null)return "👤 "+x.channel+" · "+x.position+"번째 · 순번 시작 전"+extra;
+          if(x.ahead===0)return "👤 "+x.channel+" · 지금 내 차례로 관측"+extra;
+          if(x.ahead<0)return "👤 "+x.channel+" · 순서 지나감"+extra;
+          // User-specific ETA is computed on queue.html using this user's
+          // matched position, never from a broadcast-wide wait value.
+          return "👤 "+x.channel+" · "+x.position+"번째 · 앞 "+x.ahead+"명"+extra;
         });
-        const needsEta = mineRows.some((x) => x.ahead > 0 && !(x.etaMinutes !== null && x.etaMinutes > 0));
-        mine.innerHTML = lines.map(esc).join("<br>") +
-          (needsEta ? '<br><span class="status-muted">⏱ 예상시간 계산 중</span>' : "");
+        mine.innerHTML=lines.map(esc).join("<br>")+
+          '<br><a href="./queue.html">⏱ 내 예상시간 자세히 보기</a>';
       }
-    }
-    updateStatusCompact();
+    }    updateStatusCompact();
   } catch (e) {
     activeBroadcastChannels = [];
     broadcastCheckFailed = true;
