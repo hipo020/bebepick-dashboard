@@ -186,11 +186,55 @@ function basketSummary(){
    startedAt:timingStartedAt,stats:timingStats,events:timingEvents,
    note:'Browser observation only. LIVE/stock observed time is not actual opening time. Click called is not order accepted. Contains no order number, token, account information, or message body.'};
  }
+ // Keep only bounded public-state diagnostics; do not save order numbers, payment
+ // data, cookies or site DOM. Local storage survives tab closure and payapp navigation.
+ let timingHistory=[],selectedHistoryId='',timingStorageOk=true,lastSavedReport=null;
+ try{
+  const value=JSON.parse(localStorage.getItem(TIMING_HISTORY_KEY)||'[]');
+  if(Array.isArray(value))timingHistory=value.filter(x=>x&&x.kind==='bebepick-quick-order-timing-v24'&&x.store===STORE&&typeof x.startedAt==='string'&&Array.isArray(x.events)).slice(0,TIMING_HISTORY_LIMIT);
+ }catch(e){}
+ function historyRow(x){
+  const dt=Date.parse(x.startedAt);
+  const date=Number.isFinite(dt)?new Date(dt).toLocaleString('ko-KR'):'시간 미확인';
+  return date+' · '+(x.watchMode||'SKU')+' · '+(x.events||[]).length+'건';
+ }
+ function renderTimingHistory(){
+  if(!controls.timingHistory)return;
+  const previouslySelected=selectedHistoryId;
+  controls.timingHistory.textContent='';
+  const current=document.createElement('option');current.value='';current.textContent='현재 기록';
+  controls.timingHistory.appendChild(current);
+  timingHistory.forEach(x=>{
+   const o=document.createElement('option');o.value=x.startedAt;o.textContent=historyRow(x);
+   controls.timingHistory.appendChild(o);
+  });
+  if(previouslySelected&&timingHistory.some(x=>x.startedAt===previouslySelected))
+   controls.timingHistory.value=previouslySelected;
+  else selectedHistoryId='';
+  controls.timingPersistStatus.textContent=timingStorageOk?
+   '✅ 자동 저장 ON · '+timingHistory.length+'회 보관 · 브라우저/채널별 최근 8회':
+   '⚠ 브라우저 저장 실패 · 저장 공간·시크릿 모드를 확인하고 JSON으로 내려받아 줘';
+ }
+ function saveTimingSnapshot(){
+  if(!timingStartedAt)return;
+  const report=timingReport(),payload=JSON.stringify(report);
+  try{
+   sessionStorage.setItem(TIMING_KEY,payload);
+  }catch(e){}
+  try{
+   localStorage.setItem(TIMING_KEY,payload);
+   const index=timingHistory.findIndex(x=>x.startedAt===report.startedAt);
+   if(index>=0)timingHistory.splice(index,1);
+   timingHistory.unshift(report);
+   timingHistory.length=Math.min(TIMING_HISTORY_LIMIT,timingHistory.length);
+   localStorage.setItem(TIMING_HISTORY_KEY,JSON.stringify(timingHistory));
+   timingStorageOk=true;lastSavedReport=report;
+  }catch(e){timingStorageOk=false;}
+  renderTimingHistory();
+ }
  function persistTimingSoon(){
   if(timingPersistTimer!==null)return;
-  timingPersistTimer=setTimeout(()=>{timingPersistTimer=null;
-   try{sessionStorage.setItem(TIMING_KEY,JSON.stringify(timingReport()));}catch(e){}
-  },300);
+  timingPersistTimer=setTimeout(()=>{timingPersistTimer=null;saveTimingSnapshot();},300);
  }
  function timingRender(){
   const recent=timingEvents.slice(-15);
@@ -253,21 +297,57 @@ function basketSummary(){
   if(!timingActive)return;
   timingMark('stopped',detail||'종료');timingActive=false;
   if(timingPersistTimer!==null){clearTimeout(timingPersistTimer);timingPersistTimer=null;}
-  try{sessionStorage.setItem(TIMING_KEY,JSON.stringify(timingReport()));}catch(e){}
+  saveTimingSnapshot();
  }
  function timingExport(){
-  // Export only already-observed timings; contains no response body, order number, or authorization.
-  return JSON.stringify(timingReport(),null,2);
+  // Selected prior run or current live run; never includes response body/order number.
+  const chosen=selectedHistoryId?timingHistory.find(x=>x.startedAt===selectedHistoryId):null;
+  return JSON.stringify(chosen||timingReport(),null,2);
  }
  try{
-  const last=JSON.parse(sessionStorage.getItem(TIMING_KEY)||'null');
-  if(last&&last.kind==='bebepick-quick-order-timing-v22'&&last.store===STORE&&Array.isArray(last.events)){
-   timingEvents=last.events.slice(0,260);timingStats=last.stats||timingStats;
+  let last=null;
+  try{last=JSON.parse(sessionStorage.getItem(TIMING_KEY)||'null');}catch(e){}
+  if(!last||last.kind!=='bebepick-quick-order-timing-v24'||last.store!==STORE){
+   try{last=JSON.parse(localStorage.getItem(TIMING_KEY)||'null');}catch(e){}
+  }
+  if(!last&&timingHistory.length)last=timingHistory[0];
+  if(last&&last.kind==='bebepick-quick-order-timing-v24'&&last.store===STORE&&Array.isArray(last.events)){
+   timingEvents=last.events.slice(-260);
+   timingStats=last.stats&&typeof last.stats==='object'?last.stats:timingStats;
    timingSku=String(last.sku||'');timingCycle=Number(last.intervalSeconds)||8;
-   timingMode=String(last.mode||'');timingStartedAt=String(last.startedAt||'');
-   timingRender();controls.timingSummary.textContent+=' · 이전 페이지 기록 (새 시작 시 초기화)';
+   timingMode=String(last.mode||'');timingPayAppRequested=last.payAppAutoOpenRequested===true;
+   timingStartedAt=String(last.startedAt||'');
+   lastSavedReport=last;
+   timingRender();
+   controls.timingSummary.textContent+=' · 지난 실행 기록 (새 대기 시작 시 초기화)';
   }
  }catch(e){}
+ renderTimingHistory();
+ controls.timingHistoryView.onclick=()=>{
+  selectedHistoryId=controls.timingHistory.value||'';
+  if(!selectedHistoryId){
+   timingRender();
+   message('🗃️ 현재 자동주문 기록 표시 중');
+   return;
+  }
+  const saved=timingHistory.find(x=>x.startedAt===selectedHistoryId);
+  if(!saved){message('⚠ 선택한 이전 기록을 찾지 못했어');return;}
+  const states=(saved.events||[]).slice(-20).map(x=>
+   new Date(x.at).toLocaleTimeString('ko-KR')+' · '+(TIMING_LABELS[x.event]||x.event)+
+    (x.detail?' · '+x.detail:'')).join('\\n');
+  controls.timingSummary.textContent=historyRow(saved)+' · '+(saved.mode||'');
+  controls.timingLog.textContent=states||'기록된 이벤트 없음';
+  message('✅ '+historyRow(saved)+' · 복사/JSON 저장 가능');
+ };
+ controls.timingHistoryClear.onclick=()=>{
+  if(!confirm('이 브라우저의 '+(STORE==='main'?'베베픽':'베베픽플러스')+' 자동주문 진단 기록 '+timingHistory.length+'회를 모두 삭제할까? 인형 등록이나 실제 주문내역은 바뀌지 않아.'))return;
+  if(timingActive){message('⚠ 현재 감시 중에는 기록 삭제 불가 · 먼저 중지해 줘');return;}
+  timingHistory=[];selectedHistoryId='';lastSavedReport=null;timingEvents=[];timingStartedAt=null;
+  try{localStorage.removeItem(TIMING_HISTORY_KEY);localStorage.removeItem(TIMING_KEY);sessionStorage.removeItem(TIMING_KEY);timingStorageOk=true;}
+  catch(e){timingStorageOk=false;}
+  controls.timingLog.textContent='저장된 기록 없음';controls.timingSummary.textContent='기록이 삭제됐어. 다음 대기부터 자동으로 보관해.';
+  renderTimingHistory();message('🗑️ 브라우저에 보관된 진단 기록 삭제 완료');
+ };
  el('#qTimingCopy',panel).onclick=async()=>{
   const data=timingExport();
   try{await navigator.clipboard.writeText(data);message('📋 속도 기록 복사 완료 · 채팅에 붙여넣어 줘');}
