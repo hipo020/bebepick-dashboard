@@ -69,3 +69,33 @@ test('read-only snapshots are collected around the existing single final click',
  assert.match(src,/if\(since>=2000\)timingOnce\('submit_state_2s',finalConsentSnapshot\(\)\)/);
  assert.match(src,/timingOnce\('submit_state_5s',finalConsentSnapshot\(\)\)/);
 });
+
+test('official final-confirm arm window is respected before single order click',()=>{
+ const begin=src.indexOf('const finalReadyAge=Date.now()-finalAgreeAt;');
+ const end=src.indexOf('if(ok.disabled||!all.checked||!box.isConnected)',begin);
+ assert.ok(begin>0&&end>begin,'required consent delay guard must precede button checks');
+ const fragment=src.slice(begin,end);
+ assert.doesNotMatch(fragment,/\.click\s*\(|fetch\s*\(|dispatchEvent|XMLHttpRequest/);
+ const run=age=>{
+  const marks=[];
+  const context={
+   Date:{now:()=>5000},
+   finalAgreeAt:5000-age,
+   timingOnce:(...args)=>marks.push(args)
+  };
+  const result=new Function('ctx','with(ctx){return (function(){'+fragment+' return "ready";})()}')(context);
+  return {result,marks};
+ };
+ for(const age of [0,200,699,700,899]){
+  const v=run(age);assert.equal(v.result,undefined,'must not continue at '+age+'ms');
+  assert.equal(v.marks[0][0],'final_arm_wait');
+ }
+ for(const age of [900,950,1400]){
+  const v=run(age);assert.equal(v.result,'ready','can continue after 900ms');
+  assert.equal(v.marks[0][0],'final_arm_elapsed');
+ }
+ const wizard=src.slice(src.indexOf('function watchWizard(){'),src.indexOf('function submitAfterClickShape(){'));
+ assert.ok(wizard.indexOf('if(finalReadyAge<900)')<wizard.indexOf('try{ok.click();}'));
+ assert.equal((wizard.match(/ok\.click\(\)/g)||[]).length,1,'order is never retried');
+ assert.match(wizard,/if\(recentSubmit\(\)\)\{abortWizard\('중복 주문 요청 방지'\)/);
+});
