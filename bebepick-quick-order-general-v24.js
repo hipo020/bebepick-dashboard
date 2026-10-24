@@ -53,7 +53,7 @@ function basketSummary(){
  let cycle=allowed.includes(+pref.cycle)?+pref.cycle:(allowed.includes(+oldPref.interval)?+oldPref.interval:8);
  let open=['개봉','미개봉','카드개봉'].includes(pref.open)?pref.open:'개봉';
  let storage=['보관','발송'].includes(pref.storage)?pref.storage:'보관';
- let cartProgress=null,cartPrepared=false,awaitingCatalog=false,autoPay=false,autoOrder=false,dryRun=true,active=false,polling=false,confirmed=false,completed=false,payArmed=false,payDone=false,tries=0,timer=null,controllers=new Set(),catalog=[],lastResults=null,triggerMode='',confirmedAt=0,routeBusy=false,lastRouteAt=0,cartTimer=null,uiTimer=null,payWatchTimer=null,payLastObservation='',lastWindowOk=null,wizardTimer=null,wizardStage=0,wizardStart=0,finalAgreeAt=0,submitClicked=false,manualSubmitObserved=false,submitAttemptAt=0,submitResourceBaseline=0,payDeadline=0,oldPayOrder='';
+ let cartProgress=null,cartPrepared=false,awaitingCatalog=false,autoPay=false,autoOrder=false,dryRun=true,active=false,polling=false,confirmed=false,completed=false,payArmed=false,payDone=false,tries=0,timer=null,controllers=new Set(),catalog=[],lastResults=null,triggerMode='',confirmedAt=0,routeBusy=false,lastRouteAt=0,cartTimer=null,uiTimer=null,payWatchTimer=null,payLastObservation='',lastWindowOk=null,wizardTimer=null,submitRetryTimer=null,wizardStage=0,wizardStart=0,finalAgreeAt=0,submitClicked=false,manualSubmitObserved=false,submitAttemptAt=0,submitResourceBaseline=0,payDeadline=0,oldPayOrder='';
 
  function el(q,root){return (root||document).querySelector(q);}
  function savePref(){try{localStorage.setItem(PREF_KEY,JSON.stringify({sku,option,cycle,open,storage,items,watchMode,nameCandidates,backgroundWatch}));}catch(e){}}
@@ -164,6 +164,10 @@ function basketSummary(){
   agree_step1:'1단계 확인/계속 클릭 호출', final_visible:'최종 주문 확인 단계 표시',
   final_arm_wait:'공식 최종 주문 가능 시간 대기 (최소 700ms 보호 지연 존중)',
   final_arm_elapsed:'공식 최종 확인 대기 완료 · 주문 완료 아님',
+  submit_retry_armed:'첫 클릭 후 동일 확인창 유지 · 900ms 후 조건부 재확인 예약',
+  submit_retry_click:'첫 클릭 미수락 정황 · 동일 공식 확인창에서 후속 클릭 1회',
+  submit_retry_skipped:'후속 클릭 안전조건 미충족 · 재시도 생략',
+  submit_retry_error:'후속 클릭 호출 오류 · 공식 주문내역 확인 필요',
   dry_run_stop:'무전송 시험 · 최종 주문 클릭 생략',
   submit_preflight_state:'최종 버튼 클릭 직전 화면 상태 (읽기 전용)',
   submit_after_call_state:'최종 버튼 클릭 반환 직후 화면 상태 (읽기 전용)',
@@ -412,6 +416,7 @@ function basketSummary(){
  function stop(){backgroundNotify('watch-stop');if(uiTimer)clearInterval(uiTimer);uiTimer=null;if(payWatchTimer)clearInterval(payWatchTimer);payWatchTimer=null;timingStop('감시 또는 안전장치 중지');active=false;confirmed=false;if(timer)clearTimeout(timer);timer=null;
    if(cartTimer)clearInterval(cartTimer);cartTimer=null;cartProgress=null;
    if(wizardTimer)clearInterval(wizardTimer);wizardTimer=null;
+   if(submitRetryTimer)clearTimeout(submitRetryTimer);submitRetryTimer=null;
    controllers.forEach(c=>c.abort());controllers.clear();polling=false;payArmed=false;autoOrder=false;
   }
   function endPolling(){backgroundNotify('watch-stop');if(uiTimer)clearInterval(uiTimer);uiTimer=null;active=false;if(timer)clearTimeout(timer);timer=null;controllers.forEach(c=>c.abort());controllers.clear();polling=false;}
@@ -926,8 +931,8 @@ function basketSummary(){
   if(autoOrder&&!dryRun){
    if(recentSubmit()){message('⚠ 최근 주문 요청 이력이 있어 · 주문내역 확인 후 새로고침해 줘');return;}
    const realConsent=armedMode==='names'?
-    '⚠ 실제 주문번호 자동 생성 허용\n\n이름 후보 '+nameCandidates.length+'종 중 판매 가능으로 확인된 1종을 자동 선택해 주문할 수 있어. 어느 후보가 선택될지는 아직 확정되지 않았어.\n\n'+nameCandidates.map((c,i)=>(i+1)+'. '+c.name+' · '+(c.option==='fullbox'?'풀박스':'낱개')+' ×'+c.qty).join('\n')+'\n\n개봉 '+open+' · 받는 방법 '+storage+'\n\n공식 주문 확인 2단계를 거쳐 최종 주문번호 생성 버튼을 최대 1번 누를 수 있어. 결제 승인은 자동으로 하지 않아. 미결제·취소 제재가 생길 수 있으므로 후보 모두 실제로 구매할 의사가 있는지 확인해 줘. 동의할까?':
-    '⚠ 여러 인형 실제 주문 자동 생성 확인\n\n'+summaryItems()+'\n\n개봉 '+open+' · 받는 방법 '+storage+'\n공식 주문 확인 2단계를 거쳐 최종 주문을 최대 1번 생성해. 결제 승인은 직접 진행해야 해. 진행할까?';
+    '⚠ 실제 주문번호 자동 생성 허용\n\n이름 후보 '+nameCandidates.length+'종 중 판매 가능으로 확인된 1종을 자동 선택해 주문할 수 있어. 어느 후보가 선택될지는 아직 확정되지 않았어.\n\n'+nameCandidates.map((c,i)=>(i+1)+'. '+c.name+' · '+(c.option==='fullbox'?'풀박스':'낱개')+' ×'+c.qty).join('\n')+'\n\n개봉 '+open+' · 받는 방법 '+storage+'\n\n공식 주문 확인 2단계를 거쳐 최종 주문 확인창에서 700ms 경과 후 1회 클릭하고, 사이트가 동일 확인창을 그대로 유지했을 때만 900ms 경과 후 최대 1회 더 눌러. 확인창이 사라지면 다시 누르지 않아. 결제 승인은 자동으로 하지 않아. 미결제·취소 제재가 생길 수 있으므로 후보 모두 실제로 구매할 의사가 있는지 확인해 줘. 동의할까?':
+    '⚠ 여러 인형 실제 주문 자동 생성 확인\n\n'+summaryItems()+'\n\n개봉 '+open+' · 받는 방법 '+storage+'\n공식 주문 확인 2단계를 거쳐 700ms 뒤 1회 클릭해. 같은 확인창이 그대로 남아 있을 때만 900ms 뒤 같은 버튼을 최대 1회 더 눌러. 주문 생성은 한 번만 시도하며 결제 승인은 직접 진행해야 해. 진행할까?';
    const planDetail=armedMode==='mixed'?
     '통합 주문: 기존 SKU '+items.length+'줄 ('+quantityText(countQuantities(items,x=>x.option))+') 전체 + 신상 후보 중 1종'+String.fromCharCode(10)+
     '기존 목록: '+items.map(x=>x.sku+' ×'+x.qty).join(', ')+String.fromCharCode(10)+
@@ -984,7 +989,9 @@ function basketSummary(){
  };
  [controls.opt,controls.cycle,controls.open,controls.storage].forEach(e=>e.addEventListener('change',saveSettings));
  // Capture trusted human taps separately from synthetic .click(). A click event
- // alone does not prove the vendor accepted an order, and we never auto-retry.
+ // alone does not prove the vendor accepted an order. Any same-modal follow-up
+ // below is possible only because the saved official app.js removes the OC dialog
+ // synchronously on acceptance (before the asynchronous order request starts).
  document.addEventListener('click',event=>{
   if(!completed||dryRun||!event.target||typeof event.target.closest!=='function')return;
   const btn=event.target.closest('[data-oc="ok"]');
@@ -1022,7 +1029,20 @@ function basketSummary(){
    ' · 버튼활성='+(button&&button.disabled===false?'Y':'N')+
    ' · aria차단='+(button?.getAttribute('aria-disabled')==='true'?'Y':'N');
  }
- function abortWizard(why){timingMark('safety_stop',why+' · '+wizardShape());if(wizardTimer)clearInterval(wizardTimer);wizardTimer=null;autoOrder=false;payArmed=false;message('⛔ 자동 주문 중단 · '+why);}
+ // Official orderConfirm.finish(true) synchronously removes this exact dialog
+ // before resolving the promise. If the exact original dialog remains, the
+ // site's final button was NOT accepted. Never retry after a modal transition.
+ function canRetrySameOfficialDialog(box,ok,all){
+  if(!autoOrder||dryRun||!submitClicked||document.hidden||manualSubmitObserved||payDone)return false;
+  if(!box?.isConnected||!ok?.isConnected||!all?.isConnected||ok.disabled||ok.getAttribute('aria-disabled')==='true'||!all.checked)return false;
+  if(el('.oc[role="alertdialog"] .oc-box')!==box||box.querySelector('[data-oc="ok"]')!==ok||box.querySelector('#ocAll')!==all)return false;
+  if(box.querySelector('#ocConv')||box.querySelector('#ocConv2')||box.querySelector('[data-oc-agree="convert"]'))return false;
+  const fs=box.querySelector('#ocStorage2'),fo=box.querySelector('#ocOpen2');
+  if(!fs||!fo||!matchesStorage(fs.textContent)||fo.textContent.trim()!==open)return false;
+  if(namedMode()&&!lockedCandidateValid())return false;
+  return expected();
+ }
+ function abortWizard(why){timingMark('safety_stop',why+' · '+wizardShape());if(wizardTimer)clearInterval(wizardTimer);wizardTimer=null;if(submitRetryTimer)clearTimeout(submitRetryTimer);submitRetryTimer=null;autoOrder=false;payArmed=false;message('⛔ 자동 주문 중단 · '+why);}
  function watchWizard(){
   if(!autoOrder||submitClicked||!wizardTimer)return;
   if(namedMode()&&!lockedCandidateValid()){abortWizard('이름 후보와 상품코드 불일치');return;}
@@ -1061,13 +1081,13 @@ function basketSummary(){
   }
   if(wizardStage!==2){timingOnce('wizard_state_wait','최종 화면 감지 · 내부 단계='+wizardStage+' · '+wizardShape());return;}
   if(Date.now()-finalAgreeAt>4000){abortWizard('최종 주문 버튼 활성화 시간 초과');return;}
-  // Official site's orderConfirm step2 arms its OK handler only 700ms after render.
-  // A DOM-enabled button can still silently ignore an earlier .click(). Respect
-  // that minimum with a conservative 900ms wait AFTER the final agreement; never
-  // bypass the site's guard, synthesize trusted input, or retry order submission.
+  // The official handler ignores clicks before its 700ms arming timestamp.
+  // Begin at >=700ms after final agreement (later than step2 construction).
+  // A *second* click at >=900ms is permitted ONLY when the exact same modal
+  // remained synchronously after the first click (no accepted order flow).
   const finalReadyAge=Date.now()-finalAgreeAt;
-  if(finalReadyAge<900){timingOnce('final_arm_wait','공식 700ms 최소 대기 준수 · 900ms 안정화');return;}
-  timingOnce('final_arm_elapsed','최종 동의 후 '+finalReadyAge+'ms 경과 · 이후 공식 버튼 1회만 시도');
+  if(finalReadyAge<700){timingOnce('final_arm_wait','공식 최종창 최소 700ms 대기');return;}
+  timingOnce('final_arm_elapsed','최종 동의 후 '+finalReadyAge+'ms 경과 · 공식 버튼 1차 시도');
   if(ok.disabled||!all.checked||!box.isConnected){timingOnce('wizard_state_wait','최종 버튼 비활성 또는 동의 미완료 · '+wizardShape());return;}
   if(recentSubmit()){abortWizard('중복 주문 요청 방지');return;}
   if(namedMode()&&!lockedCandidateValid()){abortWizard('최종 주문 전에 상품명·SKU가 변경됨');return;}
@@ -1098,6 +1118,22 @@ function basketSummary(){
    return;
   }
   timingOnce('submit_after_call_state',finalConsentSnapshot());
+  // Never infer first-click failure from a missing payment panel or slow network.
+  // The official handler calls finish(true), removing its dialog synchronously.
+  // Only the *unchanged* original dialog proves that the first click was ignored.
+  if(submitAttemptAt-finalAgreeAt<900&&canRetrySameOfficialDialog(box,ok,all)){
+   timingOnce('submit_retry_armed','첫 클릭 후 공식 최종창 그대로 · 최종 동의 후 900ms에 1회 후속 확인');
+   submitRetryTimer=setTimeout(()=>{
+    submitRetryTimer=null;
+    if(Date.now()-finalAgreeAt<900||!canRetrySameOfficialDialog(box,ok,all)){
+     timingOnce('submit_retry_skipped','창 변경/숨김/직접 클릭/옵션 변경/동의 해제 등 안전조건 확인');
+     return;
+    }
+    timingOnce('submit_retry_click','같은 최종 확인창 유지 · 공식 700ms 조건 경과 · 후속 클릭 최대 1회');
+    try{ok.click();}
+    catch(e){timingMark('submit_retry_error','DOM 클릭 오류 · '+String(e?.name||'Error'));}
+   },Math.max(0,finalAgreeAt+900-Date.now()));
+  }
   // MutationObserver alone cannot detect 15-second timeouts when the site DOM stays unchanged.
   if(payWatchTimer)clearInterval(payWatchTimer);
   payWatchTimer=setInterval(()=>{
