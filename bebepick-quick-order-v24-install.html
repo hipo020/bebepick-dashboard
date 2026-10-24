@@ -20,7 +20,7 @@ textarea{box-sizing:border-box;width:100%;min-height:105px;border:1px solid #d7c
 <h2>지원하는 세 감시 방식</h2><p class="note">🧸 새 통합 모드: 기존 SKU(총 5개 등) 전부 + 신상 이름 후보 중 확인된 한 종류를 함께 주문 준비해. 기본은 무전송 시험이야. 별도로 PAYAPP 이동을 선택하고 시작 시 승인한 경우에만 실제 주문번호를 만들고 PAYAPP 이동을 시도해. 현재 브라우저 장바구니 5개가 도우미 SKU 목록에 없다면 `장바구니를 기존 SKU 목록으로 가져오기`를 눌러 확인한 다음 통합을 선택해.</p><p class="note">🔎 모바일 UI 정리: 이름 후보와 기존 SKU는 별도 저장 목록이야. 두 화면을 동시에 주문하지 않고, 선택한 감시 방식만 주문 대상으로 사용해. <strong>화면 아래 기존 SKU 목록과 이 브라우저에 저장된 사이트 장바구니를 따로 확인</strong>할 수 있어. 이전 북마크는 반드시 새 코드로 교체해 줘.</p>
 <p class="note"><strong>① 이름 후보 중 1종 주문:</strong> 공식 SKU를 몰라도 인형 이름을 20종까지 미리 등록해. 이름이 띄어쓰기 제외 정확히 일치하고 공식 매장/재고 조건이 맞는 상품 1종을 자동 선택해. 여러 후보가 한 번에 판매 가능하면 등록한 우선순위를 따라. 비슷한 이름은 일치로 보지 않아. 같은 이름의 SKU가 여러 개면 그 후보는 자동 선택하지 않아.</p>
 <p class="note"><strong>② 기존 여러 SKU 모두 주문:</strong> v2.3과 똑같이 상품코드를 지정하고 여러 인형·수량을 담아 선택 상품이 모두 판매 가능할 때 주문해. 이름 후보와 SKU를 합쳐 주문하려면 ③ 통합 모드를 사용해.</p>
-<p class="note"><strong>③ 기존 SKU + 신상 통합 주문:</strong> 현재 장바구니 수량을 확인하고, 등록한 기존 SKU 전부와 새로 발견된 이름 후보 중 한 종류를 함께 준비해. 중복 상품이나 수량 불일치 시 중단해.</p><p class="note"><strong>📱 갤럭시 beta.37 원터치 연동:</strong> 기존 SKU/수량과 신상 이름 후보를 등록한 크롬 북마크에서 <strong>🚀 갤럭시 앱으로 인형 목록 한 번에 보내기</strong>를 누르면 앱을 열어 확인 후 저장해. 복사·붙여넣기 없이 설정만 전달하고 실제 주문을 생성하지 않아. 앱 설치가 먼저 필요해.</p><p class="note"><strong>🧸 더 간결해진 모바일 북마크:</strong> 인형 수량·감시 방식·주요 시작 버튼은 그대로 보이고, 상품코드 직접 입력·PAYAPP 실제 주문 설정·PC 감시는 접어서 열 수 있어. 감시 주기 1·2·3·4·5·8·10·15·30초를 선택할 수 있어(60초 제거). 1~2초는 서버 요청 과부하·차단 위험이 있어 시작 시 추가 확인을 받아. 처음에는 3~5초를 권장해.</p><h2>설치 방법</h2>
+<p class="note"><strong>③ 기존 SKU + 신상 통합 주문:</strong> 현재 장바구니 수량을 확인하고, 등록한 기존 SKU 전부와 새로 발견된 이름 후보 중 한 종류를 함께 준비해. 중복 상품이나 수량 불일치 시 중단해.</p><p class="note"><strong>📱 갤럭시 beta.37 원터치 연동:</strong> 기존 SKU/수량과 신상 이름 후보를 등록한 크롬 북마크에서 <strong>🚀 갤럭시 앱으로 인형 목록 한 번에 보내기</strong>를 누르면 앱을 열어 확인 후 저장해. 복사·붙여넣기 없이 설정만 전달하고 실제 주문을 생성하지 않아. 앱 설치가 먼저 필요해.</p><p class="note"><strong>🧸 더 간결해진 모바일 북마크:</strong> 인형 수량·감시 방식·주요 시작 버튼은 그대로 보이고, 상품코드 직접 입력·PAYAPP 실제 주문 설정·PC 감시는 접어서 열 수 있어. 감시 주기 1·2·3·4·5·8·10·15·30초를 선택할 수 있어(60초 제거). 1~2초는 서버 요청 과부하·차단 위험이 있어 시작 시 추가 확인을 받아. 처음에는 3~5초를 권장해.</p><p class="note"><strong>💙 PAYAPP 전체동의 → 다음 (별도 실행):</strong> 공식 PAYAPP 결제 페이지가 열리면 <strong>같은 북마크를 다시 한 번 실행</strong>해 줘. 약관을 읽고 확인하면 해당 화면의 전체동의(필요한 경우)와 다음을 각각 최대 1회 클릭하는 보조 기능이 실행돼. 결제수단·카드정보·결제 승인은 건드리지 않아. <strong>베베픽에서 PAYAPP으로 넘어가면 자동 실행이 이어지지 않는 브라우저 보안 제한</strong>이 있어. 갤럭시에서 테스트되지 않은 결제창 구조면 자동 클릭 없이 중단할 수 있어.</p><h2>설치 방법</h2>
 <ol>
 <li>아래 <strong>북마크 코드 복사</strong>를 눌러.</li>
 <li>PC·갤럭시 크롬에서 새 북마크를 만들고 북마크 <strong>주소</strong>를 복사한 코드로 바꿔.</li>
@@ -40,8 +40,55 @@ textarea{box-sizing:border-box;width:100%;min-height:105px;border:1px solid #d7c
 </section></main>
 <script>
 (function(){
- const src="https://hipo020.github.io/bebepick-dashboard/bebepick-quick-order-general-v24.js?v=20261024-v24-compact-fastcycles-v07";
- const code="javascript:(function(){var s=document.createElement('script');s.src="+JSON.stringify(src)+";s.onerror=function(){alert('베베픽 v2.4 로드 실패')};document.documentElement.appendChild(s)})()";
+ function payappTermsNext(){
+ 'use strict';
+ // Inline-only: no network, storage, card-data access or payment approval.
+ if(location.hostname!=='payapp.kr'||!/^\/WEBPAY_INPUT\//.test(location.pathname)){
+  alert('공식 PAYAPP 결제 동의 화면에서만 실행할 수 있어.');return;
+ }
+ const txt=(document.body?.innerText||'').replace(/\s+/g,'');
+ if(!txt.includes('PAYAPP')||!txt.includes('전체동의')||!txt.includes('전자금융거래')||!txt.includes('개인정보')){
+  alert('PAYAPP 전체동의·다음 화면이 아니어서 중지했어.');return;
+ }
+ const clean=e=>String(e.innerText||e.value||e.textContent||'').replace(/\s+/g,'').trim();
+ const visible=e=>!!e&&e.isConnected&&getComputedStyle(e).display!=='none'&&getComputedStyle(e).visibility!=='hidden';
+ const findNext=()=>{
+  const all=[...document.querySelectorAll('button,input[type="button"],input[type="submit"],[role="button"],a')]
+   .filter(e=>visible(e)&&clean(e)==='다음');
+  return all.length===1?all[0]:null;
+ };
+ const next=findNext();
+ if(!next){alert('PAYAPP 다음 버튼을 정확히 찾지 못했어. 직접 진행해 줘.');return;}
+ if(!confirm('PAYAPP 전자금융거래 약관·개인정보 처리방침을 읽고 동의했어?\n\n확인을 누르면 필요한 경우 전체동의를 선택하고 다음 버튼을 1회 눌러. 카드 입력·결제 승인·결제수단 선택은 자동으로 하지 않아.'))return;
+ const enabled=e=>visible(e)&&!e.disabled&&e.getAttribute('aria-disabled')!=='true';
+ let clicked=false;
+ const tryNext=()=>{
+  if(clicked)return true;
+  const e=findNext();
+  if(!enabled(e))return false;
+  clicked=true;e.click();return true;
+ };
+ const boxes=[...document.querySelectorAll('input[type="checkbox"]')];
+ const allChecked=boxes.length>=2&&boxes.every(b=>b.checked);
+ if(!allChecked&&!enabled(next)){
+  const labels=[...document.querySelectorAll('label,[role="checkbox"],button,div,span')]
+   .filter(e=>visible(e)&&clean(e)==='전체동의');
+  const target=labels.sort((a,b)=>(a.textContent||'').length-(b.textContent||'').length)[0];
+  if(!target){alert('전체동의 버튼을 찾지 못했어. 직접 확인해 줘.');return;}
+  target.click();
+ }
+ if(tryNext())return;
+ let count=0;
+ const timer=setInterval(()=>{
+  count++;
+  if(tryNext()||count>=12){
+   clearInterval(timer);
+   if(!clicked)alert('다음 버튼이 활성화되지 않았어. 약관을 직접 확인해 줘.');
+  }
+ },150);
+}
+ const src="https://hipo020.github.io/bebepick-dashboard/bebepick-quick-order-general-v24.js?v=20261024-v24-payapp-manual-resume-v08";
+ const code="javascript:(function(){if(location.hostname==='payapp.kr'){("+payappTermsNext.toString()+")();return;}var s=document.createElement('script');s.src="+JSON.stringify(src)+";s.onerror=function(){alert('베베픽 v2.4 로드 실패')};document.documentElement.appendChild(s)})()";
  document.getElementById("bookmark").value=code;
  document.getElementById("copy").onclick=async()=>{
   try{await navigator.clipboard.writeText(code);document.getElementById("status").textContent="✅ 복사했어! 북마크 주소에 붙여넣으면 돼.";}
