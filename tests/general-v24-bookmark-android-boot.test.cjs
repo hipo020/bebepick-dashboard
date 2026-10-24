@@ -24,7 +24,7 @@ test('main store launcher injects only the known helper source, no extra clicks'
   documentElement:{appendChild:(s)=>created.push(s)}};
  const code=bookmarkCode();
  new Function('location','document','window','alert',code.slice(11))(
-  {hostname:'bebepick.me',pathname:'/plus'},doc,{__bbpGeneralQuickV24:true},e=>errors.push(e)
+  {hostname:'bebepick.me',pathname:'/plus'},doc,{},e=>errors.push(e)
  );
  assert.equal(created.length,1);
  assert.match(script.src,/^https:\/\/hipo020\.github\.io\/bebepick-dashboard\/bebepick-quick-order-general-v24\.js\?v=/);
