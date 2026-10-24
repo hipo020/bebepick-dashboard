@@ -162,6 +162,8 @@ function basketSummary(){
   cart_panel:'공식 장바구니 패널 표시', option_ok:'개봉/보관 옵션 확인',
   checkout_click:'주문 확인창 열기 클릭 호출', confirm_visible:'주문 확인창 표시',
   agree_step1:'1단계 확인/계속 클릭 호출', final_visible:'최종 주문 확인 단계 표시',
+  final_arm_wait:'공식 최종 주문 가능 시간 대기 (최소 700ms 보호 지연 존중)',
+  final_arm_elapsed:'공식 최종 확인 대기 완료 · 주문 완료 아님',
   dry_run_stop:'무전송 시험 · 최종 주문 클릭 생략',
   submit_preflight_state:'최종 버튼 클릭 직전 화면 상태 (읽기 전용)',
   submit_after_call_state:'최종 버튼 클릭 반환 직후 화면 상태 (읽기 전용)',
@@ -1059,6 +1061,13 @@ function basketSummary(){
   }
   if(wizardStage!==2){timingOnce('wizard_state_wait','최종 화면 감지 · 내부 단계='+wizardStage+' · '+wizardShape());return;}
   if(Date.now()-finalAgreeAt>4000){abortWizard('최종 주문 버튼 활성화 시간 초과');return;}
+  // Official site's orderConfirm step2 arms its OK handler only 700ms after render.
+  // A DOM-enabled button can still silently ignore an earlier .click(). Respect
+  // that minimum with a conservative 900ms wait AFTER the final agreement; never
+  // bypass the site's guard, synthesize trusted input, or retry order submission.
+  const finalReadyAge=Date.now()-finalAgreeAt;
+  if(finalReadyAge<900){timingOnce('final_arm_wait','공식 700ms 최소 대기 준수 · 900ms 안정화');return;}
+  timingOnce('final_arm_elapsed','최종 동의 후 '+finalReadyAge+'ms 경과 · 이후 공식 버튼 1회만 시도');
   if(ok.disabled||!all.checked||!box.isConnected){timingOnce('wizard_state_wait','최종 버튼 비활성 또는 동의 미완료 · '+wizardShape());return;}
   if(recentSubmit()){abortWizard('중복 주문 요청 방지');return;}
   if(namedMode()&&!lockedCandidateValid()){abortWizard('최종 주문 전에 상품명·SKU가 변경됨');return;}
