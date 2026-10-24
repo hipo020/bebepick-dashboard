@@ -37,7 +37,7 @@ test('multiple equal nicknames choose nearest unpassed turn, never first past tu
  assert.equal(second.ahead,1);
  assert.equal(third.position,5);
  assert.equal(passed.position,5);
- assert.equal(passed.ahead,-1);
+ assert.equal(passed.ahead,-2); // current_idx=6 is zero-based (7th), previous match was 5th
  assert.equal(first.count,3);
 });
 test('no queue data, malformed data and missing current index never invent a turn',()=>{
