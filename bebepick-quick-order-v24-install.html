@@ -20,19 +20,29 @@ textarea{box-sizing:border-box;width:100%;min-height:105px;border:1px solid #d7c
 <h2>지원하는 세 감시 방식</h2><p class="note">🧸 새 통합 모드: 기존 SKU(총 5개 등) 전부 + 신상 이름 후보 중 확인된 한 종류를 함께 주문 준비해. 기본은 무전송 시험이야. 별도로 PAYAPP 이동을 선택하고 시작 시 승인한 경우에만 실제 주문번호를 만들고 PAYAPP 이동을 시도해. 현재 브라우저 장바구니 5개가 도우미 SKU 목록에 없다면 `장바구니를 기존 SKU 목록으로 가져오기`를 눌러 확인한 다음 통합을 선택해.</p><p class="note">🔎 모바일 UI 정리: 이름 후보와 기존 SKU는 별도 저장 목록이야. 두 화면을 동시에 주문하지 않고, 선택한 감시 방식만 주문 대상으로 사용해. <strong>화면 아래 기존 SKU 목록과 이 브라우저에 저장된 사이트 장바구니를 따로 확인</strong>할 수 있어. 이전 북마크는 반드시 새 코드로 교체해 줘.</p>
 <p class="note"><strong>① 이름 후보 중 1종 주문:</strong> 공식 SKU를 몰라도 인형 이름을 20종까지 미리 등록해. 이름이 띄어쓰기 제외 정확히 일치하고 공식 매장/재고 조건이 맞는 상품 1종을 자동 선택해. 여러 후보가 한 번에 판매 가능하면 등록한 우선순위를 따라. 비슷한 이름은 일치로 보지 않아. 같은 이름의 SKU가 여러 개면 그 후보는 자동 선택하지 않아.</p>
 <p class="note"><strong>② 기존 여러 SKU 모두 주문:</strong> v2.3과 똑같이 상품코드를 지정하고 여러 인형·수량을 담아 선택 상품이 모두 판매 가능할 때 주문해. 이름 후보와 SKU를 합쳐 주문하려면 ③ 통합 모드를 사용해.</p>
-<p class="note"><strong>③ 기존 SKU + 신상 통합 주문:</strong> 현재 장바구니 수량을 확인하고, 등록한 기존 SKU 전부와 새로 발견된 이름 후보 중 한 종류를 함께 준비해. 중복 상품이나 수량 불일치 시 중단해.</p><p class="note"><strong>📱 갤럭시 beta.37 원터치 연동:</strong> 기존 SKU/수량과 신상 이름 후보를 등록한 크롬 북마크에서 <strong>🚀 갤럭시 앱으로 인형 목록 한 번에 보내기</strong>를 누르면 앱을 열어 확인 후 저장해. 복사·붙여넣기 없이 설정만 전달하고 실제 주문을 생성하지 않아. 앱 설치가 먼저 필요해.</p><p class="note"><strong>🧸 더 간결해진 모바일 북마크:</strong> 인형 수량·감시 방식·주요 시작 버튼은 그대로 보이고, 상품코드 직접 입력·PAYAPP 실제 주문 설정·PC 감시는 접어서 열 수 있어. 감시 주기 1·2·3·4·5·8·10·15·30초를 선택할 수 있어(60초 제거). 1~2초는 서버 요청 과부하·차단 위험이 있어 시작 시 추가 확인을 받아. 처음에는 3~5초를 권장해.</p><p class="note"><strong>💙 PAYAPP 전체동의 → 다음 (별도 실행):</strong> 공식 PAYAPP 결제 페이지가 열리면 <strong>같은 북마크를 다시 한 번 실행</strong>해 줘. 약관을 읽고 확인하면 해당 화면의 전체동의(필요한 경우)와 다음을 각각 최대 1회 클릭하는 보조 기능이 실행돼. 결제수단·카드정보·결제 승인은 건드리지 않아. <strong>베베픽에서 PAYAPP으로 넘어가면 자동 실행이 이어지지 않는 브라우저 보안 제한</strong>이 있어. 갤럭시에서 테스트되지 않은 결제창 구조면 자동 클릭 없이 중단할 수 있어.</p><h2>설치 방법</h2>
+<p class="note"><strong>③ 기존 SKU + 신상 통합 주문:</strong> 현재 장바구니 수량을 확인하고, 등록한 기존 SKU 전부와 새로 발견된 이름 후보 중 한 종류를 함께 준비해. 중복 상품이나 수량 불일치 시 중단해.</p><p class="note"><strong>📱 갤럭시 beta.37 원터치 연동:</strong> 기존 SKU/수량과 신상 이름 후보를 등록한 크롬 북마크에서 <strong>🚀 갤럭시 앱으로 인형 목록 한 번에 보내기</strong>를 누르면 앱을 열어 확인 후 저장해. 복사·붙여넣기 없이 설정만 전달하고 실제 주문을 생성하지 않아. 앱 설치가 먼저 필요해.</p><p class="note"><strong>🧸 더 간결해진 모바일 북마크:</strong> 인형 수량·감시 방식·주요 시작 버튼은 그대로 보이고, 상품코드 직접 입력·PAYAPP 실제 주문 설정·PC 감시는 접어서 열 수 있어. 감시 주기 1·2·3·4·5·8·10·15·30초를 선택할 수 있어(60초 제거). 1~2초는 서버 요청 과부하·차단 위험이 있어 시작 시 추가 확인을 받아. 처음에는 3~5초를 권장해.</p><p class="note"><strong>💙 PAYAPP 전체동의 → 다음 (별도 실행):</strong> 공식 PAYAPP 결제 페이지가 열리면 별도로 저장한 <strong>PAYAPP 동의</strong> 북마크를 주소창에서 찾아 실행해 줘. 약관을 읽고 확인하면 해당 화면의 전체동의(필요한 경우)와 다음을 각각 최대 1회 클릭하는 보조 기능이 실행돼. 결제수단·카드정보·결제 승인은 건드리지 않아. <strong>베베픽에서 PAYAPP으로 넘어가면 자동 실행이 이어지지 않는 브라우저 보안 제한</strong>이 있어. 갤럭시에서 테스트되지 않은 결제창 구조면 자동 클릭 없이 중단할 수 있어.</p><h2>설치 방법</h2>
 <ol>
-<li>아래 <strong>북마크 코드 복사</strong>를 눌러.</li>
+<li>아래 <strong>베베픽 실행 코드 복사</strong>를 눌러. 북마크 이름을 <strong>베베픽 실행</strong>으로 정해.</li>
 <li>PC·갤럭시 크롬에서 새 북마크를 만들고 북마크 <strong>주소</strong>를 복사한 코드로 바꿔.</li>
 <li><a href="https://bebepick.me/plus">베베픽 플러스</a> 또는 <a href="https://bebepick.me/live">베베픽</a> 주문 페이지에 로그인해 둬.</li>
-<li>기존 v2.2.2 등 주문 도우미가 떠 있다면 공식 페이지를 한 번 새로고침하고, 새 v2.4 북마크를 실행해. 이전 실주문 v2.3과 진단 v2.3.1/v2.3.2를 같은 탭에서 동시에 사용하지 마.</li>
+<li>갤럭시에서 북마크 목록을 눌렀을 때 아무 반응이 없다면 <strong>주소창에서 북마크 이름 검색 → 북마크 추천을 선택</strong>해 줘. 기존 v2.2.2 등 주문 도우미가 떠 있다면 공식 페이지를 한 번 새로고침하고, 새 v2.4 북마크를 실행해. 이전 실주문 v2.3과 진단 v2.3.1/v2.3.2를 같은 탭에서 동시에 사용하지 마.</li>
 <li><strong>감시 방식</strong>을 선택해. 이름 후보 모드라면 정확한 이름을 적고 <strong>후보 수량·낱개/풀박스</strong>를 정해 <strong>＋ 이름 후보 등록</strong>을 반복해. 후보는 ↑↓로 우선순위 조정 가능해. 이미 진단 v2.3.2에 입력한 후보는 처음 실행 시 가져오지만 실주문 모드를 자동 ON하지는 않아.</li>
 <li>기존 SKU 모드라면 인형 검색 → 구매 단위/수량 → <strong>＋ 인형 추가</strong>로 여러 SKU를 목록에 담아.</li><li><strong>개봉·보관</strong> 옵션을 선택해 (한 주문의 전체 상품에 동일하게 적용).</li><li><strong>무전송 시험</strong>을 유지한 채 먼저 시험해. 실제 주문번호는 생성되지 않아. 실제 주문까지 원할 때만 <strong>공식 동의 2단계 및 최종 주문 자동 클릭</strong>을 켜고 무전송 시험을 끈 뒤 상세 내용을 확인하고 승인해.</li>
 <li>영상처럼 PAYAPP까지 이동하고 싶을 때는 <strong>⚡ 영상처럼 PAYAPP 결제 페이지까지 자동 이동</strong>을 별도로 선택해. 무전송 시험이 꺼지는 실제 주문 모드이므로 경고창을 읽고 승인해야 해. 주문번호 확인 후 공식 결제하기 버튼을 최대 1회 클릭해. 크롬 팝업 차단으로 새 창이 안 열릴 수 있고, 결제는 직접 승인해야 해.</li><li>결과는 도우미 아래 <strong>⏱️ 자동주문 구간별 속도 기록</strong>에서 확인해. 복사하거나 JSON으로 저장할 수 있어.</li>
 </ol>
-<p><button id="copy" type="button">📋 북마크 코드 복사</button></p>
+<p class="note"><strong>📱 갤럭시 크롬:</strong> 베베픽 페이지에서 주소창에 <strong>베베픽 실행</strong>이라고 입력한 후 아래 표시되는 <strong>🔖 북마크 추천 항목</strong>을 눌러 줘. 일반 북마크 목록에서 열면 JavaScript가 실행되지 않을 수 있어. 반드시 북마크 주소가 <code>javascript:</code>로 시작해야 해.</p>
+<h3>① 베베픽 실행 북마크 (필수 · 짧은 코드)</h3>
+<p><button id="copy" type="button">📋 베베픽 실행 코드 복사</button></p>
 <p id="status" role="status" class="muted"></p>
-<textarea id="bookmark" readonly aria-label="북마크 코드"></textarea>
+<textarea id="bookmark" readonly aria-label="짧은 베베픽 북마크 코드"></textarea>
+<details style="margin-top:14px"><summary><strong>② PAYAPP 전체동의 → 다음 보조 북마크 (선택)</strong></summary>
+<p class="muted">이전과 달리 <strong>PAYAPP 동의</strong>라는 별도 북마크로 만들어 줘. PAYAPP 화면에서만 사용하고 약관을 읽고 승인한 뒤 실행해. 결제수단·카드번호·최종 승인은 수동이야.</p>
+<button id="copy-payapp" type="button">💙 PAYAPP 동의 코드 복사</button><p id="payapp-status" class="muted"></p>
+<textarea id="payapp-bookmark" readonly aria-label="PAYAPP 동의 북마크 코드"></textarea></details>
+<details style="margin-top:14px"><summary><strong>③ 북마크 실행 확인용 (진단)</strong></summary>
+<p class="muted">베베픽 실행 북마크가 여전히 반응이 없다면 <strong>베베픽 진단</strong>이라는 새 북마크에 아래 코드를 넣고 주소창에서 이름 검색 → 북마크 추천을 선택해. 확인 창이 뜨는지로 크롬 실행 문제를 구분해.</p>
+<button id="copy-check" type="button">🧪 진단용 코드 복사</button><p id="check-status" class="muted"></p>
+<textarea id="check-bookmark" readonly aria-label="북마크 실행 진단 코드"></textarea></details>
 <p class="note"><strong>🗃️ 자동주문 기록 자동 저장:</strong> 대기 시작부터 300ms 단위로 진단 기록을 브라우저 저장 공간에 보관하고, 최근 8번의 기록을 PAYAPP 이동 또는 탭 종료 후에도 남겨. '⏱️ 자동주문 구간별 속도 기록'을 펼쳐 지난 기록 보기·복사·JSON 저장·삭제를 할 수 있어. 채널별·브라우저별 저장이며 로그인을 바꾸거나 Chrome 데이터를 삭제하면 사라질 수 있으니 중요한 기록은 JSON 파일로 보관해. 카드/주문번호/주소는 기록하지 않아. '네, 이대로 주문' 대기 및 중단 시 체크박스/버튼 활성 여부도 구조 정보만 기록해.</p><h2>기록되는 단계</h2>
 <p class="note">서버 조회 시간 · PAYAPP 자동 이동 ON/OFF 상태 · 실제 주문 후 새 주문번호·공식 결제 버튼 대기 결과 · 이름 후보별 발견·SKU 선택 · 최초 판매 가능 발견 · 장바구니 준비 · 재고+주문 조건 충족 · 공식 화면 반영 대기 · 장바구니 열기 · 주문 확인창 진입 · 무전송 시험 종료</p>
 <p class="note"><strong>안전장치:</strong> 무전송 시험 기본 · 미래에 어느 이름 후보가 선택될지 모른다는 점을 실주문 승인창에서 고지, 수량/재고/장바구니 재검증, 주문 1회 클릭·중복 방지. 기존 주문의 보관/배송 방식 변경 경고나 사이트 제한이 감지되면 자동 중단. PAYAPP 이동은 기본 OFF이며 명시 동의가 있어야 공식 버튼을 최대 1회 클릭해. PAYAPP 화면의 어떤 결제 승인 버튼도 누르지 않아. 로그의 DOM 클릭 기록은 주문 접수 성공을 의미하지 않아.</p>
@@ -58,14 +68,22 @@ textarea{box-sizing:border-box;width:100%;min-height:105px;border:1px solid #d7c
  agree.click();if(go())return;
  let n=0;const timer=setInterval(()=>{if(go()||++n>=12)clearInterval(timer)},150);
 }
- const src="https://hipo020.github.io/bebepick-dashboard/bebepick-quick-order-general-v24.js?v=20261024-v24-short-mobile-v10";
+ const src="https://hipo020.github.io/bebepick-dashboard/bebepick-quick-order-general-v24.js?v=20261024-v24-minimal-launch-v11";
  // Chrome Android bookmark URL: never embed raw line breaks or // comments.
  const compactPayApp=payappTermsNext.toString().replace(/^[ \t]*\/\/[^\r\n]*/gm,'').replace(/\r?\n[ \t]*/g,'');
- const code="javascript:(function(){if(location.hostname==='payapp.kr'){("+compactPayApp+")();return;}var s=document.createElement('script');s.src="+JSON.stringify(src)+";s.onerror=function(){alert('도우미 불러오기 실패')};s.onload=function(){if(!window.__bbpGeneralQuickV24)alert('도우미 실행 실패')};document.documentElement.appendChild(s)})()";
- document.getElementById("bookmark").value=code;
- document.getElementById("copy").onclick=async()=>{
-  try{await navigator.clipboard.writeText(code);document.getElementById("status").textContent="✅ 복사했어! 북마크 주소에 붙여넣으면 돼.";}
-  catch(e){const t=document.getElementById("bookmark");t.focus();t.select();document.getElementById("status").textContent="복사가 차단됐어. 선택된 코드를 직접 복사해 줘.";}
+ // Use a SHORT independent launcher on bebepick.me. Android Chrome often
+ // does not execute long bookmark URLs consistently. Keep PAYAPP separate.
+ const mainCode="javascript:(function(){if(location.hostname!=='bebepick.me'||!['/plus','/plus/','/live','/live/'].includes(location.pathname)){alert('베베픽 주문 페이지에서 실행해 줘');return}if(window.__bbpGeneralQuickV24){window.__bbpGeneralQuickV24.show();return}var s=document.createElement('script');s.src="+JSON.stringify(src)+";s.onerror=function(){alert('베베픽 스크립트 불러오기 실패')};s.onload=function(){if(!window.__bbpGeneralQuickV24)alert('도우미 실행 실패 · 화면 다시 열어줘')};document.documentElement.appendChild(s)})()";
+ const payCode="javascript:("+compactPayApp+")()";
+ const checkCode="javascript:(function(){alert('🧸 북마크 실행 확인 · '+location.hostname)})()";
+ const set=(id,v)=>{document.getElementById(id).value=v};
+ set('bookmark',mainCode);set('payapp-bookmark',payCode);set('check-bookmark',checkCode);
+ const copy=async(code,id,field)=>{
+  try{await navigator.clipboard.writeText(code);document.getElementById(id).textContent='✅ 복사 완료 · 북마크 주소를 교체해 줘';}
+  catch(e){const el=document.getElementById(field);el.focus();el.select();document.getElementById(id).textContent='클립보드 차단 · 선택된 코드를 직접 복사해 줘';}
  };
+ document.getElementById('copy').onclick=()=>copy(mainCode,'status','bookmark');
+ document.getElementById('copy-payapp').onclick=()=>copy(payCode,'payapp-status','payapp-bookmark');
+ document.getElementById('copy-check').onclick=()=>copy(checkCode,'check-status','check-bookmark');
 })();
 </script></body></html>

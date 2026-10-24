@@ -31,15 +31,21 @@ function simulate({host='payapp.kr',path='/WEBPAY_INPUT/test',title='PAYAPP 전�
   payappFunction();return events;
  }finally{Object.assign(global,original);}
 }
-test('installer generated Chrome bookmarklet contains the same-domain payment helper without remote payment-domain code fetch',()=>{
- const bookmark={value:''},status={textContent:''},copy={onclick:null};
- const doc={getElementById:id=>id==='bookmark'?bookmark:id==='status'?status:copy};
- new Function('document','navigator',script)(doc,{clipboard:{writeText:()=>Promise.resolve()}});
- assert.match(bookmark.value,/^javascript:/);
- assert.match(bookmark.value,/if\(location\.hostname==='payapp\.kr'\)/);
- assert.match(bookmark.value,/function payappTermsNext\(\)/);
- assert.match(bookmark.value,/bebepick-quick-order-general-v24\.js/);
- assert.doesNotThrow(()=>new Function(bookmark.value.slice('javascript:'.length)));
+test('installer generates independent short store and payment bookmarks',()=>{
+ const fields={};
+ const ids=['bookmark','payapp-bookmark','check-bookmark','status','payapp-status','check-status','copy','copy-payapp','copy-check'];
+ for(const id of ids)fields[id]={value:'',textContent:'',onclick:null};
+ new Function('document','navigator',script)({getElementById:id=>fields[id]},{clipboard:{writeText:()=>Promise.resolve()}});
+ const mainCode=fields.bookmark.value,payCode=fields['payapp-bookmark'].value,checkCode=fields['check-bookmark'].value;
+ assert.match(mainCode,/^javascript:/);assert.ok(mainCode.length<700);
+ assert.doesNotMatch(mainCode,/function payappTermsNext/);
+ assert.match(mainCode,/bebepick-quick-order-general-v24\.js/);
+ assert.match(payCode,/^javascript:/);assert.match(payCode,/function payappTermsNext\(\)/);
+ assert.match(checkCode,/북마크 실행 확인/);
+ for(const c of [mainCode,payCode,checkCode]){
+  assert.doesNotThrow(()=>new Function(c.slice('javascript:'.length)));
+  assert.equal(c.includes('\\n'),false);
+ }
 });
 test('payment consent and next require explicit one-time user interaction; no payment data touched',()=>{
  assert.deepEqual(simulate(),['next-click']);
