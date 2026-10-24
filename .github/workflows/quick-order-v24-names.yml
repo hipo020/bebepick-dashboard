@@ -7,6 +7,7 @@ on:
       - 'bebepick-quick-order-v24-install.html'
       - 'tests/general-fast-order-v24-names.test.mjs'
       - 'tests/general-v24-payapp-one-tap-terms.test.cjs'
+      - 'tests/general-v24-bookmark-android-boot.test.cjs'
       - '.github/workflows/quick-order-v24-names.yml'
   pull_request:
     paths:
@@ -14,6 +15,7 @@ on:
       - 'bebepick-quick-order-v24-install.html'
       - 'tests/general-fast-order-v24-names.test.mjs'
       - 'tests/general-v24-payapp-one-tap-terms.test.cjs'
+      - 'tests/general-v24-bookmark-android-boot.test.cjs'
       - '.github/workflows/quick-order-v24-names.yml'
 jobs:
   test:
@@ -23,6 +25,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Android Chrome single-line bookmark bootstrap regression
+        run: node --test tests/general-v24-bookmark-android-boot.test.cjs
       - name: PAYAPP manual bookmark consent and first-site DOM diagnostics
         run: node --test tests/general-v24-payapp-one-tap-terms.test.cjs
       - name: v2.4 name candidates and legacy v2.3/2.3.1/2.3.2 regressions
