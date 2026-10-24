@@ -73,7 +73,7 @@ textarea{box-sizing:border-box;width:100%;min-height:105px;border:1px solid #d7c
  const compactPayApp=payappTermsNext.toString().replace(/^[ \t]*\/\/[^\r\n]*/gm,'').replace(/\r?\n[ \t]*/g,'');
  // Use a SHORT independent launcher on bebepick.me. Android Chrome often
  // does not execute long bookmark URLs consistently. Keep PAYAPP separate.
- const mainCode="javascript:(function(){if(location.hostname!=='bebepick.me'||!/^\\/(plus|live)\\/?$/.test(location.pathname)){alert('베베픽 주문 페이지에서 실행해 줘');return}if(window.__bbpGeneralQuickV24){window.__bbpGeneralQuickV24.show();return}var s=document.createElement('script');s.src="+JSON.stringify(src)+";s.onerror=function(){alert('베베픽 스크립트 불러오기 실패')};s.onload=function(){if(!window.__bbpGeneralQuickV24)alert('도우미 실행 실패 · 화면 다시 열어줘')};document.documentElement.appendChild(s)})()";
+ const mainCode="javascript:(function(){if(location.hostname!=='bebepick.me'||!['/plus','/plus/','/live','/live/'].includes(location.pathname)){alert('베베픽 주문 페이지에서 실행해 줘');return}if(window.__bbpGeneralQuickV24){window.__bbpGeneralQuickV24.show();return}var s=document.createElement('script');s.src="+JSON.stringify(src)+";s.onerror=function(){alert('베베픽 스크립트 불러오기 실패')};s.onload=function(){if(!window.__bbpGeneralQuickV24)alert('도우미 실행 실패 · 화면 다시 열어줘')};document.documentElement.appendChild(s)})()";
  const payCode="javascript:("+compactPayApp+")()";
  const checkCode="javascript:(function(){alert('🧸 북마크 실행 확인 · '+location.hostname)})()";
  const set=(id,v)=>{document.getElementById(id).value=v};
