@@ -10,6 +10,15 @@ on:
       - "queue-nickname.test.cjs"
       - "index.html"
       - ".github/workflows/queue-progress-smoke.yml"
+  pull_request:
+    paths:
+      - "queue.html"
+      - "queue-estimator.js"
+      - "queue-estimator.test.cjs"
+      - "queue-nickname.js"
+      - "queue-nickname.test.cjs"
+      - "index.html"
+      - ".github/workflows/queue-progress-smoke.yml"
   workflow_dispatch:
 
 jobs:
