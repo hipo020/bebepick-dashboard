@@ -40,3 +40,32 @@ test('post-click diagnostics fire after 2 and 5 seconds without extra click',()=
  assert.match(src,/mini\.textContent='⚠ 최종 주문 클릭 후 화면 전환 미확인/);
  assert.match(src,/payArmed&&Date\.now\(\)>payDeadline/);
 });
+
+test('read-only consent snapshots record flags without touching the form',()=>{
+ const start=src.indexOf('function finalConsentSnapshot(){');
+ const end=src.indexOf('function abortWizard(',start);
+ assert.ok(start>0&&end>start);
+ const code=src.slice(start,end);
+ assert.doesNotMatch(code,/\.click\s*\(|dispatchEvent|fetch\s*\(|XMLHttpRequest|\.value\b|textContent|innerHTML|localStorage|sessionStorage/);
+ const read=({present=true,checked=true,disabled=false,ariaDisabled=false}={})=>{
+  const dialog=present?{
+   isConnected:true,
+   querySelector:q=>q==='#ocAll'?{checked}:q==='[data-oc="ok"]'?{disabled,getAttribute:key=>key==='aria-disabled'?(ariaDisabled?'true':'false'):null}:null
+  }:null;
+  return new Function('ctx','with(ctx){'+code+' return finalConsentSnapshot();}')({
+   el:()=>dialog
+  });
+ };
+ assert.equal(read(),'창유지=Y · 동의체크=Y · 버튼활성=Y · aria차단=N');
+ assert.equal(read({checked:false,disabled:true,ariaDisabled:true}),'창유지=Y · 동의체크=N · 버튼활성=N · aria차단=Y');
+ assert.equal(read({present:false}),'창유지=N · 동의체크=N · 버튼활성=N · aria차단=N');
+});
+
+test('read-only snapshots are collected around the existing single final click',()=>{
+ const wizard=src.slice(src.indexOf('function watchWizard(){'),src.indexOf('function submitAfterClickShape(){'));
+ assert.ok(wizard.indexOf("timingOnce('submit_preflight_state'")<wizard.indexOf('try{ok.click();}'));
+ assert.ok(wizard.indexOf("timingOnce('submit_after_call_state'")>wizard.indexOf('try{ok.click();}'));
+ assert.equal((wizard.match(/ok\.click\(\)/g)||[]).length,1);
+ assert.match(src,/if\(since>=2000\)timingOnce\('submit_state_2s',finalConsentSnapshot\(\)\)/);
+ assert.match(src,/timingOnce\('submit_state_5s',finalConsentSnapshot\(\)\)/);
+});
