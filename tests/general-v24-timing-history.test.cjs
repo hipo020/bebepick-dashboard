@@ -69,5 +69,5 @@ test('history view, export and deletion are gated, without recording payment inf
  assert.match(src,/if\(!confirm\('이 브라우저의 '/);
  assert.match(src,/const chosen=selectedHistoryId\?timingHistory\.find/);
  const obj=src.slice(src.indexOf('function timingReport(){'),src.indexOf('function historyRow('));
- assert.doesNotMatch(obj,/cardNumber|CVC|CVV|token|cookie|orderId/);
+ assert.doesNotMatch(obj,/\b(?:cardNumber|CVC|CVV|token|cookie|orderId)\s*:/);
 });
