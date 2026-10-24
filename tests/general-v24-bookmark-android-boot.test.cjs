@@ -4,7 +4,9 @@ const {test}=require('node:test'), assert=require('node:assert/strict'),
 const html=fs.readFileSync(path.join(__dirname,'..','bebepick-quick-order-v24-install.html'),'utf8');
 const body=(html.match(/<script>([\s\S]*?)<\/script>/)||[])[1];
 function bookmarkCode(){
- const controls={bookmark:{value:''},copy:{onclick:null},status:{textContent:''}};
+ const controls={};
+ for(const id of ['bookmark','payapp-bookmark','check-bookmark','copy','copy-payapp','copy-check','status','payapp-status','check-status'])
+  controls[id]={value:'',onclick:null,textContent:''};
  new Function('document','navigator',body)({getElementById:k=>controls[k]}, {clipboard:{writeText:async()=>{}}});
  return controls.bookmark.value;
 }
