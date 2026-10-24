@@ -21,7 +21,7 @@ function scenario({
   querySelector:(q)=>q==='[data-act="pay-card"]'?btn:null
  };
  const c={
-  submitClicked:true,manualSubmitObserved:false,payDone:false,payArmed:auto,payDeadline:Date.now()+15000-ageMs,
+  submitClicked:true,manualSubmitObserved:false,submitAttemptAt:Date.now(),payDone:false,payArmed:auto,payDeadline:Date.now()+15000-ageMs,
   oldPayOrder:before,payLastObservation:'',document:{hidden},mini:{textContent:''},folded:false,
   el:(selector)=>selector==='.panel[data-sheet="pay"]'?sheet:null,
   getComputedStyle:()=>({display:'block'}),
