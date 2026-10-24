@@ -8,10 +8,10 @@ function bookmarkCode(){
  new Function('document','navigator',body)({getElementById:k=>controls[k]}, {clipboard:{writeText:async()=>{}}});
  return controls.bookmark.value;
 }
-test('Samsung Chrome bookmark must be a single line and under 1900 chars',()=>{
+test('Samsung Chrome bookmark must be a single line and under 700 chars',()=>{
  const code=bookmarkCode();
  assert.ok(code.startsWith('javascript:'),'Chrome bookmark must retain protocol');
- assert.equal(code.length<1900,true,'Mobile URL is excessively long: '+code.length);
+ assert.equal(code.length<700,true,'Mobile URL is excessively long: '+code.length);
  assert.equal(/[\r\n]/.test(code),false,'Raw newlines in Android Chrome bookmark URLs may be removed');
  assert.doesNotMatch(code,/\/\/ Inline-only|\/\/ Data-only|\/\/ Never/);
  assert.doesNotThrow(()=>new Function(code.slice('javascript:'.length)));
@@ -41,4 +41,16 @@ test('bootstrap has a user-visible failure on load error, not a silent empty scr
  assert.equal(typeof script.onload,'function');
  script.onerror();
  assert.ok(messages.length>0);
+});
+
+test('PayApp remains a separate opt-in bookmark, and tiny diagnostic confirms Chrome javascript execution',()=>{
+ const fields={};for(const id of ['bookmark','payapp-bookmark','check-bookmark','status','payapp-status','check-status','copy','copy-payapp','copy-check'])fields[id]={value:'',textContent:'',onclick:null};
+ new Function('document','navigator',body)({getElementById:k=>fields[k]},{clipboard:{writeText:async()=>{}}});
+ assert.match(fields['payapp-bookmark'].value,/payappTermsNext/);
+ assert.ok(fields['payapp-bookmark'].value.length>fields.bookmark.value.length);
+ assert.doesNotMatch(fields.bookmark.value,/payappTermsNext/);
+ assert.match(fields['check-bookmark'].value,/^javascript:/);
+ let msg='';
+ new Function('location','alert',fields['check-bookmark'].value.slice(11))({hostname:'bebepick.me'},x=>{msg=x});
+ assert.match(msg,/북마크 실행 확인/);
 });
