@@ -6,6 +6,9 @@ on:
       - "queue.html"
       - "queue-estimator.js"
       - "queue-estimator.test.cjs"
+      - "queue-nickname.js"
+      - "queue-nickname.test.cjs"
+      - "index.html"
       - ".github/workflows/queue-progress-smoke.yml"
   workflow_dispatch:
 
@@ -17,8 +20,8 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
-      - name: Verify queue estimation with fixture tests
-        run: node --test queue-estimator.test.cjs
+      - name: Verify queue estimates, saved nickname matching, and read-only UI
+        run: node --test queue-estimator.test.cjs queue-nickname.test.cjs
       - name: Check production queue API with public anon JWT
         run: |
           python3 - <<'PY'
