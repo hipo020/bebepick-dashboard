@@ -11,6 +11,7 @@ on:
       - 'tests/general-v24-panel-render.test.cjs'
       - 'tests/general-v24-compact-ui.test.cjs'
       - 'tests/general-v24-timing-history.test.cjs'
+      - 'tests/general-v24-submit-origin.test.cjs'
       - 'tests/general-v24-android-direct-import.test.cjs'
       - 'tests/general-v24-payapp-handoff.test.cjs'
       - '.github/workflows/pc-background-watch.yml'
@@ -25,6 +26,7 @@ on:
       - 'tests/general-v24-panel-render.test.cjs'
       - 'tests/general-v24-compact-ui.test.cjs'
       - 'tests/general-v24-timing-history.test.cjs'
+      - 'tests/general-v24-submit-origin.test.cjs'
       - 'tests/general-v24-android-direct-import.test.cjs'
       - 'tests/general-v24-payapp-handoff.test.cjs'
       - '.github/workflows/pc-background-watch.yml'
@@ -58,6 +60,8 @@ jobs:
         run: node --test tests/general-v24-compact-ui.test.cjs
       - name: Durable timing history and final-confirmation diagnostic tests
         run: node --test tests/general-v24-timing-history.test.cjs
+      - name: Detect manual versus synthetic final confirmation clicks
+        run: node --test tests/general-v24-submit-origin.test.cjs
       - name: Package Chrome extension
         run: cd chrome-background-watch && zip -q -9 ../bebepick-pc-background-watch-v01.zip manifest.json background.js bridge.js checks.js README.md
       - uses: actions/upload-artifact@v4
