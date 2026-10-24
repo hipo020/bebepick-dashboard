@@ -163,6 +163,10 @@ function basketSummary(){
   checkout_click:'주문 확인창 열기 클릭 호출', confirm_visible:'주문 확인창 표시',
   agree_step1:'1단계 확인/계속 클릭 호출', final_visible:'최종 주문 확인 단계 표시',
   dry_run_stop:'무전송 시험 · 최종 주문 클릭 생략',
+  submit_preflight_state:'최종 버튼 클릭 직전 화면 상태 (읽기 전용)',
+  submit_after_call_state:'최종 버튼 클릭 반환 직후 화면 상태 (읽기 전용)',
+  submit_state_2s:'최종 버튼 클릭 2초 뒤 동의/버튼 상태 (읽기 전용)',
+  submit_state_5s:'최종 버튼 클릭 5초 뒤 동의/버튼 상태 (읽기 전용)',
   submit_click:'자동 최종 주문 버튼 DOM 클릭 시도 (성공 확인 아님)',
   submit_dom_event:'자동 최종 주문 클릭 이벤트 전달 확인 (서버 접수 아님)',
   submit_post_2s:'최종 자동 클릭 2초 뒤 공식 화면 관찰',
@@ -1006,6 +1010,16 @@ function basketSummary(){
    ' · 최종 체크='+(box?.querySelector('#ocAll')?.checked===true?'Y':'N')+
    ' · 최종 버튼 활성='+(box?.querySelector('[data-oc="ok"]')?.disabled===false?'Y':'N');
  }
+ // Read-only DOM state flags: no form values, order numbers, tokens, or mutations.
+ function finalConsentSnapshot(){
+  const dialog=el('.oc[role="alertdialog"] .oc-box');
+  const consent=dialog?.querySelector('#ocAll');
+  const button=dialog?.querySelector('[data-oc="ok"]');
+  return '창유지='+(dialog?.isConnected?'Y':'N')+
+   ' · 동의체크='+(consent?.checked===true?'Y':'N')+
+   ' · 버튼활성='+(button&&button.disabled===false?'Y':'N')+
+   ' · aria차단='+(button?.getAttribute('aria-disabled')==='true'?'Y':'N');
+ }
  function abortWizard(why){timingMark('safety_stop',why+' · '+wizardShape());if(wizardTimer)clearInterval(wizardTimer);wizardTimer=null;autoOrder=false;payArmed=false;message('⛔ 자동 주문 중단 · '+why);}
  function watchWizard(){
   if(!autoOrder||submitClicked||!wizardTimer)return;
@@ -1065,6 +1079,7 @@ function basketSummary(){
   message(payArmed?
    '📨 공식 주문 요청 버튼 1회 클릭 · 주문번호 확인 시 결제하기 1회 자동 이동 시도 (결제 승인 수동)':
    '📨 공식 주문 버튼 1회 클릭 · 결제 직전 화면 확인해 줘 (페이앱 자동 실행 OFF)');
+  timingOnce('submit_preflight_state',finalConsentSnapshot());
   timingOnce('submit_click','스크립트 .click() 시도 · 자동 주문 완료가 아님');
   try{ok.click();}
   catch(e){
@@ -1073,6 +1088,7 @@ function basketSummary(){
    message('⚠ 자동 클릭 명령 중 오류 · 실제 주문 여부를 공식 화면에서 확인해 줘');
    return;
   }
+  timingOnce('submit_after_call_state',finalConsentSnapshot());
   // MutationObserver alone cannot detect 15-second timeouts when the site DOM stays unchanged.
   if(payWatchTimer)clearInterval(payWatchTimer);
   payWatchTimer=setInterval(()=>{
@@ -1108,8 +1124,10 @@ function basketSummary(){
   if(!submitClicked||payDone)return;
   const since=submitAttemptAt?Date.now()-submitAttemptAt:0;
   if(since>=2000)timingOnce('submit_post_2s',submitAfterClickShape());
+  if(since>=2000)timingOnce('submit_state_2s',finalConsentSnapshot());
   if(since>=5000){
    timingOnce('submit_stalled_5s',submitAfterClickShape());
+   timingOnce('submit_state_5s',finalConsentSnapshot());
    if(!manualSubmitObserved){
     mini.textContent='⚠ 최종 주문 클릭 후 화면 전환 미확인 · 직접 확인';
     message('⚠ 자동 최종 클릭 이벤트는 전달됐지만 주문 화면 전환이 확인되지 않아 · 공식 화면에서 확인해 줘');
