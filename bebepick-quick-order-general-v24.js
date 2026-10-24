@@ -53,7 +53,7 @@ function basketSummary(){
  let cycle=allowed.includes(+pref.cycle)?+pref.cycle:(allowed.includes(+oldPref.interval)?+oldPref.interval:8);
  let open=['개봉','미개봉','카드개봉'].includes(pref.open)?pref.open:'개봉';
  let storage=['보관','발송'].includes(pref.storage)?pref.storage:'보관';
- let cartProgress=null,cartPrepared=false,awaitingCatalog=false,autoPay=false,autoOrder=false,dryRun=true,active=false,polling=false,confirmed=false,completed=false,payArmed=false,payDone=false,tries=0,timer=null,controllers=new Set(),catalog=[],lastResults=null,triggerMode='',confirmedAt=0,routeBusy=false,lastRouteAt=0,cartTimer=null,uiTimer=null,payWatchTimer=null,payLastObservation='',lastWindowOk=null,wizardTimer=null,wizardStage=0,wizardStart=0,finalAgreeAt=0,submitClicked=false,manualSubmitObserved=false,payDeadline=0,oldPayOrder='';
+ let cartProgress=null,cartPrepared=false,awaitingCatalog=false,autoPay=false,autoOrder=false,dryRun=true,active=false,polling=false,confirmed=false,completed=false,payArmed=false,payDone=false,tries=0,timer=null,controllers=new Set(),catalog=[],lastResults=null,triggerMode='',confirmedAt=0,routeBusy=false,lastRouteAt=0,cartTimer=null,uiTimer=null,payWatchTimer=null,payLastObservation='',lastWindowOk=null,wizardTimer=null,wizardStage=0,wizardStart=0,finalAgreeAt=0,submitClicked=false,manualSubmitObserved=false,submitAttemptAt=0,submitResourceBaseline=0,payDeadline=0,oldPayOrder='';
 
  function el(q,root){return (root||document).querySelector(q);}
  function savePref(){try{localStorage.setItem(PREF_KEY,JSON.stringify({sku,option,cycle,open,storage,items,watchMode,nameCandidates,backgroundWatch}));}catch(e){}}
@@ -165,6 +165,8 @@ function basketSummary(){
   dry_run_stop:'무전송 시험 · 최종 주문 클릭 생략',
   submit_click:'자동 최종 주문 버튼 DOM 클릭 시도 (성공 확인 아님)',
   submit_dom_event:'자동 최종 주문 클릭 이벤트 전달 확인 (서버 접수 아님)',
+  submit_post_2s:'최종 자동 클릭 2초 뒤 공식 화면 관찰',
+  submit_stalled_5s:'최종 자동 클릭 5초 뒤 주문 화면 미전환 경고',
   submit_manual_click:'사용자가 최종 주문 버튼 직접 클릭 (자동 클릭 성공과 구분)',
   submit_click_error:'자동 최종 주문 DOM 클릭 시도 중 오류',
   pay_panel_origin:'주문번호 표시 출처 점검 (자동/수동 판정)',
@@ -1050,6 +1052,10 @@ function basketSummary(){
   const prior=el('.panel[data-sheet="pay"]');
   const m=(prior&&prior.textContent||'').match(/\bBP[A-Z0-9]{8,}\b/);
   oldPayOrder=m?m[0]:'';
+  submitAttemptAt=Date.now();
+  // Performance entries are observed read-only; do not collect or export URL/query,
+  // authentication headers, request/response body or order reference.
+  try{submitResourceBaseline=performance.getEntriesByType('resource').length;}catch(e){submitResourceBaseline=0;}
   submitClicked=true;
   try{sessionStorage.setItem('bbp_general_v2_submit_'+STORE,JSON.stringify({at:Date.now(),items:chosenItems(),store:STORE}));}catch(e){}
   clearInterval(wizardTimer);wizardTimer=null;
@@ -1075,10 +1081,40 @@ function basketSummary(){
    if(payDone){clearInterval(payWatchTimer);payWatchTimer=null;}
   },250);
  }
+ // Read-only post-click evidence. Request counting is best effort, not proof of
+ // server acceptance: browsers may omit/evict entries or privacy-limit timing.
+ function submitAfterClickShape(){
+  const dialog=el('.oc[role="alertdialog"] .oc-box');
+  const next=dialog?.querySelector('[data-oc="ok"]');
+  let requestEvidence='?';
+  try{
+   const resources=performance.getEntriesByType('resource').slice(submitResourceBaseline);
+   const matching=resources.filter(e=>{
+    try{
+     const path=new URL(e.name,location.href).pathname;
+     return /\/(?:rpc|functions\/v1)\//.test(path)&&/(order|checkout|payment|pay)/i.test(path);
+    }catch(error){return false;}
+   });
+   requestEvidence=matching.length>0?'Y':'N';
+  }catch(e){}
+  return '최종창='+(dialog&&dialog.isConnected?'Y':'N')+
+   ' · 최종버튼='+(next?'Y':'N')+
+   ' · 주문요청 흔적='+requestEvidence+
+   ' · 사용자 클릭='+(manualSubmitObserved?'Y':'N');
+ }
  // Only the official payment button may be clicked once, after a newly created
  // order is visibly confirmed in the official pay sheet. Never interact with PAYAPP itself.
  function watchPrePayment(){
   if(!submitClicked||payDone)return;
+  const since=submitAttemptAt?Date.now()-submitAttemptAt:0;
+  if(since>=2000)timingOnce('submit_post_2s',submitAfterClickShape());
+  if(since>=5000&&!el('.panel[data-sheet="pay"]')){
+   timingOnce('submit_stalled_5s',submitAfterClickShape());
+   if(!manualSubmitObserved){
+    mini.textContent='⚠ 최종 주문 클릭 후 화면 전환 미확인 · 직접 확인';
+    message('⚠ 자동 최종 클릭 이벤트는 전달됐지만 주문 화면 전환이 확인되지 않아 · 공식 화면에서 확인해 줘');
+   }
+  }
   if(payArmed&&Date.now()>payDeadline){
    payArmed=false;payDone=true;
    timingMark('pay_handoff_timeout','자동 이동 제한시간 초과 · '+(payLastObservation||'공식 새 주문번호 미확인'));
