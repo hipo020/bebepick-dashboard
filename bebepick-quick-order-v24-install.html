@@ -41,54 +41,27 @@ textarea{box-sizing:border-box;width:100%;min-height:105px;border:1px solid #d7c
 <script>
 (function(){
  function payappTermsNext(){
- 'use strict';
- // Inline-only: no network, storage, card-data access or payment approval.
- if(location.hostname!=='payapp.kr'||!/^\/WEBPAY_INPUT\//.test(location.pathname)){
-  alert('공식 PAYAPP 결제 동의 화면에서만 실행할 수 있어.');return;
- }
- const txt=(document.body?.innerText||'').replace(/\s+/g,'');
- if(!txt.includes('PAYAPP')||!txt.includes('전체동의')||!txt.includes('전자금융거래')||!txt.includes('개인정보')){
-  alert('PAYAPP 전체동의·다음 화면이 아니어서 중지했어.');return;
- }
- const clean=e=>String(e.innerText||e.value||e.textContent||'').replace(/\s+/g,'').trim();
- const visible=e=>!!e&&e.isConnected&&getComputedStyle(e).display!=='none'&&getComputedStyle(e).visibility!=='hidden';
- const findNext=()=>{
-  const all=[...document.querySelectorAll('button,input[type="button"],input[type="submit"],[role="button"],a')]
-   .filter(e=>visible(e)&&clean(e)==='다음');
-  return all.length===1?all[0]:null;
- };
- const next=findNext();
- if(!next){alert('PAYAPP 다음 버튼을 정확히 찾지 못했어. 직접 진행해 줘.');return;}
- if(!confirm('PAYAPP 전자금융거래 약관·개인정보 처리방침을 읽고 동의했어?\n\n확인을 누르면 필요한 경우 전체동의를 선택하고 다음 버튼을 1회 눌러. 카드 입력·결제 승인·결제수단 선택은 자동으로 하지 않아.'))return;
- const enabled=e=>visible(e)&&!e.disabled&&e.getAttribute('aria-disabled')!=='true';
- let clicked=false;
- const tryNext=()=>{
-  if(clicked)return true;
-  const e=findNext();
-  if(!enabled(e))return false;
-  clicked=true;e.click();return true;
- };
- const boxes=[...document.querySelectorAll('input[type="checkbox"]')];
- const allChecked=boxes.length>=2&&boxes.every(b=>b.checked);
- if(!allChecked&&!enabled(next)){
-  const labels=[...document.querySelectorAll('label,[role="checkbox"],button,div,span')]
-   .filter(e=>visible(e)&&clean(e)==='전체동의');
-  const target=labels.sort((a,b)=>(a.textContent||'').length-(b.textContent||'').length)[0];
-  if(!target){alert('전체동의 버튼을 찾지 못했어. 직접 확인해 줘.');return;}
-  target.click();
- }
- if(tryNext())return;
- let count=0;
- const timer=setInterval(()=>{
-  count++;
-  if(tryNext()||count>=12){
-   clearInterval(timer);
-   if(!clicked)alert('다음 버튼이 활성화되지 않았어. 약관을 직접 확인해 줘.');
-  }
- },150);
+ if(location.hostname!=='payapp.kr'||!/^\/WEBPAY_INPUT\//.test(location.pathname)){alert('PAYAPP 동의 화면에서 실행해 줘');return}
+ const t=(document.body?.innerText||'').replace(/\s+/g,'');
+ if(!['PAYAPP','전체동의','전자금융거래','개인정보'].every(x=>t.includes(x))){alert('동의 화면을 찾지 못했어');return}
+ const clean=e=>String(e.innerText||e.value||e.textContent||'').replace(/\s+/g,'');
+ const shown=e=>e&&e.isConnected&&getComputedStyle(e).display!=='none'&&getComputedStyle(e).visibility!=='hidden';
+ const next=()=>[...document.querySelectorAll('button,input[type="button"],input[type="submit"],[role="button"],a')].filter(e=>shown(e)&&clean(e)==='다음');
+ if(next().length!==1){alert('다음 버튼 확인 불가');return}
+ if(!confirm('전자금융거래 약관·개인정보 처리방침을 읽고 동의했어? 확인하면 전체동의 후 다음을 눌러. 카드 입력과 결제 승인은 수동이야.'))return;
+ const button=next()[0];let clicked=false;
+ const go=()=>{if(clicked||!shown(button)||button.disabled||button.getAttribute('aria-disabled')==='true')return false;clicked=true;button.click();return true};
+ const check=[...document.querySelectorAll('input[type="checkbox"]')];
+ if(check.length>=2&&check.every(x=>x.checked)&&go())return;
+ const agree=[...document.querySelectorAll('label,[role="checkbox"],button,div,span')].find(e=>shown(e)&&clean(e)==='전체동의');
+ if(!agree){alert('전체동의 버튼 확인 불가');return}
+ agree.click();if(go())return;
+ let n=0;const timer=setInterval(()=>{if(go()||++n>=12)clearInterval(timer)},150);
 }
- const src="https://hipo020.github.io/bebepick-dashboard/bebepick-quick-order-general-v24.js?v=20261024-v24-history-v09";
- const code="javascript:(function(){if(location.hostname==='payapp.kr'){("+payappTermsNext.toString()+")();return;}var s=document.createElement('script');s.src="+JSON.stringify(src)+";s.onerror=function(){alert('베베픽 v2.4 로드 실패')};document.documentElement.appendChild(s)})()";
+ const src="https://hipo020.github.io/bebepick-dashboard/bebepick-quick-order-general-v24.js?v=20261024-v24-short-mobile-v10";
+ // Chrome Android bookmark URL: never embed raw line breaks or // comments.
+ const compactPayApp=payappTermsNext.toString().replace(/^[ \t]*\/\/[^\r\n]*/gm,'').replace(/\r?\n[ \t]*/g,'');
+ const code="javascript:(function(){if(location.hostname==='payapp.kr'){("+compactPayApp+")();return;}var s=document.createElement('script');s.src="+JSON.stringify(src)+";s.onerror=function(){alert('도우미 불러오기 실패')};s.onload=function(){if(!window.__bbpGeneralQuickV24)alert('도우미 실행 실패')};document.documentElement.appendChild(s)})()";
  document.getElementById("bookmark").value=code;
  document.getElementById("copy").onclick=async()=>{
   try{await navigator.clipboard.writeText(code);document.getElementById("status").textContent="✅ 복사했어! 북마크 주소에 붙여넣으면 돼.";}
