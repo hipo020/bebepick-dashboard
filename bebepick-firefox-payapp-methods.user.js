@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         베베픽 · PAYAPP 결제수단 선택 도우미 (카드입력 기본)
 // @namespace    https://hipo020.github.io/bebepick-dashboard/
-// @version      0.1.0
+// @version      0.1.1
 // @description  PAYAPP 공식 결제 화면에서 결제 경로를 직접 선택. 카드정보·인증·결제승인은 수동.
 // @match        https://payapp.kr/WEBPAY_INPUT/*
 // @run-at       document-idle
@@ -37,11 +37,11 @@
  let chosen=stored(), lastActionStage='',lastActionMode='';
  const host=document.createElement('div');
  host.id='bbpPayappMethodHelper';
- host.style.cssText='position:fixed;right:8px;top:10px;z-index:2147483629;font-family:system-ui,sans-serif;max-width:calc(100vw - 16px);';
+ host.style.cssText='position:fixed;left:10px;top:68px;z-index:2147483646;font-family:system-ui,sans-serif;max-width:calc(100vw - 20px);';
  const shadow=host.attachShadow({mode:'open'});
  const style=document.createElement('style');
  style.textContent='*{box-sizing:border-box}button,select{font:inherit}button{border:0;cursor:pointer;border-radius:10px;padding:9px 11px}#launcher{background:#7453a5;color:#fff;font-size:12px;font-weight:750;box-shadow:0 3px 12px #0003}#panel{width:min(310px,calc(100vw - 20px));background:#fff;color:#34263e;border:1px solid #decfed;border-radius:14px;padding:14px;box-shadow:0 8px 28px #0003;margin-top:7px;line-height:1.55}h2{font-size:15px;margin:0 0 9px}p{font-size:12px;margin:7px 0}select{width:100%;border:1px solid #d6c7eb;border-radius:10px;background:white;color:#34263e;padding:10px;font-size:14px}#go{width:100%;margin-top:9px;background:#7653aa;color:white;font-weight:700}#status{color:#6c547e}#notice{color:#a13a50}#close{float:right;background:#f3edfa;color:#604482;font-size:12px;padding:5px 9px}#panel[hidden]{display:none}';
- const launch=document.createElement('button');launch.type='button';launch.id='launcher';launch.textContent='💳 결제 방식';
+ const launch=document.createElement('button');launch.type='button';launch.id='launcher';launch.textContent='💳 결제 방식';launch.title='PAYAPP 결제수단 선택 보조 도구 · 화면 왼쪽 위';
  const panel=document.createElement('section');panel.id='panel';panel.hidden=true;panel.setAttribute('aria-label','결제수단 선택 보조 도구');
  const close=document.createElement('button');close.type='button';close.id='close';close.textContent='닫기';
  const title=document.createElement('h2');title.textContent='결제수단 선택 도우미';
