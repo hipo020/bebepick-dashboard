@@ -7,6 +7,8 @@ on:
       - 'bebepick-quick-order-v24-install.html'
       - 'bebepick-firefox-one-tap.user.js'
       - 'tests/firefox-one-tap-launcher.test.cjs'
+      - 'bebepick-firefox-payapp-methods.user.js'
+      - 'tests/firefox-payapp-methods.test.cjs'
       - 'tests/general-fast-order-v24-names.test.mjs'
       - 'tests/general-v24-payapp-one-tap-terms.test.cjs'
       - 'tests/general-v24-postclick-observation.test.cjs'
@@ -19,6 +21,8 @@ on:
       - 'bebepick-quick-order-v24-install.html'
       - 'bebepick-firefox-one-tap.user.js'
       - 'tests/firefox-one-tap-launcher.test.cjs'
+      - 'bebepick-firefox-payapp-methods.user.js'
+      - 'tests/firefox-payapp-methods.test.cjs'
       - 'tests/general-fast-order-v24-names.test.mjs'
       - 'tests/general-v24-payapp-one-tap-terms.test.cjs'
       - 'tests/general-v24-postclick-observation.test.cjs'
@@ -35,6 +39,8 @@ jobs:
           node-version: '22'
       - name: 'Firefox Android one-tap launcher: route restrictions, no auto-submit'
         run: node --test tests/firefox-one-tap-launcher.test.cjs
+      - name: Firefox PAYAPP payment method chooser safety
+        run: node --test tests/firefox-payapp-methods.test.cjs
       - name: Android Chrome single-line bookmark bootstrap regression
         run: node --test tests/general-v24-bookmark-android-boot.test.cjs
       - name: PAYAPP manual bookmark consent and first-site DOM diagnostics
