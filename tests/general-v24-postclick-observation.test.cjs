@@ -43,7 +43,7 @@ test('post-click diagnostics fire after 2 and 5 seconds without new automatic re
 
 test('read-only consent snapshots record flags without touching the form',()=>{
  const start=src.indexOf('function finalConsentSnapshot(){');
- const end=src.indexOf('function abortWizard(',start);
+ const end=src.indexOf('function canRetrySameOfficialDialog(',start);
  assert.ok(start>0&&end>start);
  const code=src.slice(start,end);
  assert.doesNotMatch(code,/\.click\s*\(|dispatchEvent|fetch\s*\(|XMLHttpRequest|\.value\b|textContent|innerHTML|localStorage|sessionStorage/);
