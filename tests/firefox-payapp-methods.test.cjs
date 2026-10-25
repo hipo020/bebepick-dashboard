@@ -171,6 +171,7 @@ test('auto-selection skips terms, hidden tabs, unknown and ambiguous checkout sc
  x.mutate();x.runTimers();
  assert.equal(a.clicked,undefined);assert.equal(b.clicked,undefined);
  x.buttons.length=0;
+ x.label('결제방식 선택');
  const card=x.label('신용/체크 카드');
  x.document.hidden=true;x.mutate();x.runTimers();
  assert.equal(card.clicked,undefined);
