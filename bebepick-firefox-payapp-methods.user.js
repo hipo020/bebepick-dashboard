@@ -1,9 +1,10 @@
 // ==UserScript==
 // @name         베베픽 · PAYAPP 결제수단 선택 도우미 (카드입력 기본)
 // @namespace    https://hipo020.github.io/bebepick-dashboard/
-// @version      0.2.0
+// @version      0.3.0
 // @description  PAYAPP 결제수단 자동 선택은 사전 동의한 경우에만. 약관·카드정보·인증·결제 승인은 수동.
 // @match        https://payapp.kr/WEBPAY_INPUT/*
+// @match        https://payapp.kr/homepage/*
 // @run-at       document-idle
 // @noframes
 // @grant        none
@@ -13,8 +14,10 @@
 
 (function(){
  'use strict';
+ const checkout=/^\/WEBPAY_INPUT\//.test(location.pathname);
+ const presetPage=/^\/homepage\//.test(location.pathname);
  if(location.protocol!=='https:'||location.hostname!=='payapp.kr'||
-    !/^\/WEBPAY_INPUT\//.test(location.pathname)||window.top!==window.self)return;
+    (!checkout&&!presetPage)||window.top!==window.self)return;
 
  // No card information, passwords, identity data, PINs, CVC, page URLs or
  // payment metadata are read, cached, copied, logged or sent by this helper.
@@ -40,6 +43,50 @@
  // Never apply saved mode to a checkout until the user enables auto navigation.
  const readAuto=()=>{try{return localStorage.getItem(AUTO_KEY)==='on';}catch{return false;}};
  let autoNavigate=readAuto(),autoTimer=null;
+ // The official PAYAPP home (/homepage/) and checkout (/WEBPAY_INPUT/)
+ // share payapp.kr localStorage. Configure method preference in advance.
+ // No checkout or payment request is created by visiting the homepage.
+ if(presetPage){
+  const box=document.createElement('section');
+  box.id='bbpPayappPresetPanel';
+  box.style.cssText='position:fixed;left:10px;top:76px;z-index:2147483646;width:min(310px,calc(100vw - 20px));background:#fff;color:#352941;border:2px solid #cab4e7;border-radius:16px;padding:15px;box-shadow:0 6px 24px #0003;font:13px/1.55 system-ui,sans-serif';
+  const title=document.createElement('h2');title.textContent='💳 베베픽 PAYAPP 사전 설정';title.style.cssText='margin:0 0 7px;font-size:16px';
+  const intro=document.createElement('p');intro.textContent='주문이 닫혀 있어도 결제 경로를 미리 설정할 수 있어. 카드번호 직접입력이 기본값이야.';
+  const label=document.createElement('label');label.textContent='선호 결제수단';
+  const method=document.createElement('select');method.id='bbpPresetMethod';
+  method.style.cssText='display:block;width:100%;padding:10px;margin:6px 0;border:1px solid #ccb6dc;border-radius:9px;background:#fff;color:#333;font:inherit';
+  for(const c of choices){
+   const option=document.createElement('option');option.value=c.id;option.textContent=c.name;method.appendChild(option);
+  }
+  method.value=chosen;
+  const autoLabel=document.createElement('label');autoLabel.style.cssText='display:flex;align-items:center;gap:8px;margin-top:10px';
+  const auto=document.createElement('input');auto.type='checkbox';auto.id='bbpPresetAuto';auto.checked=autoNavigate;
+  const autoText=document.createElement('span');autoText.textContent='다음 결제부터 결제수단 경로 자동 선택';
+  autoLabel.append(auto,autoText);
+  const saveButton=document.createElement('button');saveButton.type='button';saveButton.id='bbpPresetSave';saveButton.textContent='설정 저장';
+  saveButton.style.cssText='display:block;width:100%;padding:11px;margin:11px 0 5px;border:0;border-radius:10px;background:#7553a9;color:#fff;font-weight:750';
+  const state=document.createElement('p');state.id='bbpPresetStatus';state.setAttribute('role','status');
+  state.textContent='선택한 결제수단과 자동 선택 ON/OFF만 저장해.';
+  const detail=document.createElement('p');detail.textContent='카드정보·비밀번호·본인확인 정보는 저장하지 않아. 약관 동의, 카드 입력, 결제 승인은 수동이야.';
+  detail.style.cssText='font-size:11px;color:#71677d';
+  box.append(title,intro,label,method,autoLabel,saveButton,state,detail);
+  (document.body||document.documentElement).appendChild(box);
+  saveButton.addEventListener('click',()=>{
+   if(!choices.some(c=>c.id===method.value)){state.textContent='지원하지 않는 결제수단이야.';return;}
+   try{
+    localStorage.setItem(PREF_KEY,method.value);
+    if(auto.checked)localStorage.setItem(AUTO_KEY,'on');
+    else localStorage.removeItem(AUTO_KEY);
+    if(localStorage.getItem(PREF_KEY)!==method.value||readAuto()!==!!auto.checked)
+     throw Error('저장 확인 실패');
+    chosen=method.value;autoNavigate=!!auto.checked;
+    state.textContent='✅ 사전 설정 저장 완료 · '+choices.find(c=>c.id===chosen).name+' · 자동 선택 '+(autoNavigate?'ON':'OFF');
+   }catch{
+    state.textContent='⚠ 저장 실패. 같은 Firefox 일반 탭에서 열고 사이트 저장 권한을 확인해 줘.';
+   }
+  });
+  return;
+ }
  const host=document.createElement('div');
  host.id='bbpPayappMethodHelper';
  host.style.cssText='position:fixed;left:10px;top:68px;z-index:2147483646;font-family:system-ui,sans-serif;max-width:calc(100vw - 20px);';

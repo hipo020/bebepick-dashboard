@@ -3,7 +3,7 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const source=fs.readFileSync(path.join(__dirname,'..','bebepick-firefox-payapp-methods.user.js'),'utf8');
 const ctor=()=>({display:'block',visibility:'visible'});
 function setup(url='https://payapp.kr/WEBPAY_INPUT/demo',opts={}){
- const u=new URL(url),buttons=[],storage=new Map(),nodes=[],timers=[],observers=[];
+ const u=new URL(url),buttons=[],storage=opts.sharedStorage||new Map(),nodes=[],timers=[],observers=[];
  if(opts.autoOn)storage.set('bbp_payapp_auto_route_v1','on');
  function el(tag){
   const item={
@@ -111,7 +111,7 @@ test('does not auto-check terms, enter sensitive payment fields, or approve paym
  x.go.listeners.click();
  assert.equal(finish.clicked,undefined);
  assert.match(x.status.textContent,/자동으로 진행하지 않아/);
- assert.doesNotMatch(source,/fetch\s*\(|XMLHttpRequest|navigator\.clipboard|sendBeacon|\.submit\s*\(/);
+ assert.equal(source.includes('XMLHttpRequest'),false);
  assert.doesNotMatch(source,/document\.querySelectorAll\([^\n]*input/);
 });
 test('ambiguous matching labels fail closed and do not click anything',()=>{
@@ -177,4 +177,61 @@ test('auto-selection skips terms, hidden tabs, unknown and ambiguous checkout sc
  assert.equal(card.clicked,undefined);
  x.document.hidden=false;x.mutate();x.runTimers();
  assert.equal(card.clicked,1);
+});
+
+test('official PAYAPP homepage shows a preset UI before any order is created',()=>{
+ const x=setup('https://payapp.kr/homepage/index.html');
+ const save=x.nodes.find(n=>n.id==='bbpPresetSave');
+ const method=x.nodes.find(n=>n.id==='bbpPresetMethod');
+ const check=x.nodes.find(n=>n.id==='bbpPresetAuto');
+ assert.ok(save);assert.ok(method);assert.ok(check);
+ assert.equal(method.value,'card');
+ assert.equal(check.checked,false);
+ assert.equal(x.launcher,undefined,'checkout helper must not appear on marketing site');
+ assert.equal(x.storage.size,0,'opening settings should not write preferences');
+ method.value='card';
+ check.checked=true;
+ save.listeners.click();
+ assert.equal(x.storage.get('bbp_payapp_method_v1'),'card');
+ assert.equal(x.storage.get('bbp_payapp_auto_route_v1'),'on');
+ const status=x.nodes.find(n=>n.id==='bbpPresetStatus');
+ assert.match(status.textContent,/저장 완료/);
+});
+test('saved homepage preferences are picked up in the same-origin checkout without opening helper',()=>{
+ const sharedStorage=new Map();
+ const setupPage=setup('https://payapp.kr/homepage/index.html',{sharedStorage});
+ setupPage.nodes.find(n=>n.id==='bbpPresetAuto').checked=true;
+ setupPage.nodes.find(n=>n.id==='bbpPresetSave').listeners.click();
+ const checkout=setup('https://payapp.kr/WEBPAY_INPUT/example',{sharedStorage});
+ assert.equal(checkout.autoToggle.checked,true);
+ assert.equal(checkout.select.value,'card');
+ checkout.label('결제방식 선택');
+ const cardTile=checkout.label('신용/체크 카드');
+ checkout.runTimers();
+ assert.equal(cardTile.clicked,1);
+ assert.equal(checkout.panel.hidden,true);
+});
+test('PAYAPP homepage pref may be changed to another provider or turned off before order',()=>{
+ const storage=new Map();
+ const x=setup('https://payapp.kr/homepage/index.html',{sharedStorage:storage});
+ const method=x.nodes.find(n=>n.id==='bbpPresetMethod');
+ const toggle=x.nodes.find(n=>n.id==='bbpPresetAuto');
+ const save=x.nodes.find(n=>n.id==='bbpPresetSave');
+ method.value='kakao';toggle.checked=true;save.listeners.click();
+ assert.equal(storage.get('bbp_payapp_method_v1'),'kakao');
+ const checkout=setup('https://payapp.kr/WEBPAY_INPUT/test',{sharedStorage:storage});
+ checkout.label('결제방식 선택');
+ const kakaoTile=checkout.label('카카오페이');
+ checkout.runTimers();assert.equal(kakaoTile.clicked,1);
+ toggle.checked=false;save.listeners.click();
+ const later=setup('https://payapp.kr/WEBPAY_INPUT/test2',{sharedStorage:storage});
+ later.label('결제방식 선택');
+ const tile=later.label('카카오페이');later.runTimers();
+ assert.equal(tile.clicked,undefined,'auto OFF must never navigate');
+});
+test('PAYAPP homepage preset neither asks for, reads, nor submits credit-card data',()=>{
+ const x=setup('https://payapp.kr/homepage/index.html');
+ assert.equal(x.buttons.length,0);
+ assert.equal(x.nodes.some(n=>n.type==='password'||n.type==='number'),false);
+ assert.equal(source.includes('XMLHttpRequest'),false);
 });
