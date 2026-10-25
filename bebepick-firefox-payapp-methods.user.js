@@ -155,7 +155,7 @@
   lastActionStage=which;lastActionMode=chosen;
   // ONLY vendor payment-method navigation. No terms, card fields, PIN or pay button.
   dest.click();
-  status.textContent=(isAutomatic?'✅ 설정된 결제수단 자동 선택':'선택 항목을 1회 눌렀어')+' · 다음 화면에서 본인이 결제 정보를 확인해 줘.';
+  status.textContent=(isAutomatic?'✅ 설정된 결제수단 자동 선택':'선택 항목을 1회 눌렀어')+' · 결제 완료는 아니야. 다음 화면에서 본인이 결제 정보를 확인해 줘.';
   return true;
  }
  go.addEventListener('click',()=>navigateCurrentStep(false));
