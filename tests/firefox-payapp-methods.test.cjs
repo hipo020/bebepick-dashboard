@@ -41,6 +41,11 @@ function setup(url='https://payapp.kr/WEBPAY_INPUT/demo'){
  function label(text,tag='div'){const x=el(tag);x.textContent=text;buttons.push(x);return x;}
  return {launcher,panel,select,go,status,storage,label,buttons,nodes};
 }
+test('checkout helper launcher is visible away from a right-side floating overlay',()=>{
+ assert.match(source,/position:fixed;left:10px;top:68px/);
+ assert.match(source,/z-index:2147483646/);
+ assert.doesNotMatch(source,/position:fixed;right:8px;top:10px/);
+});
 test('userscript is parsed and narrowly restricted to official PAYAPP checkout',()=>{
  assert.doesNotThrow(()=>new vm.Script(source));
  assert.match(source,/\/\/ @match\s+https:\/\/payapp\.kr\/WEBPAY_INPUT\/\*/);
