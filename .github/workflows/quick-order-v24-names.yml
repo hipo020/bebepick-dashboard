@@ -5,6 +5,8 @@ on:
     paths:
       - 'bebepick-quick-order-general-v24.js'
       - 'bebepick-quick-order-v24-install.html'
+      - 'bebepick-firefox-one-tap.user.js'
+      - 'tests/firefox-one-tap-launcher.test.cjs'
       - 'tests/general-fast-order-v24-names.test.mjs'
       - 'tests/general-v24-payapp-one-tap-terms.test.cjs'
       - 'tests/general-v24-postclick-observation.test.cjs'
@@ -15,6 +17,8 @@ on:
     paths:
       - 'bebepick-quick-order-general-v24.js'
       - 'bebepick-quick-order-v24-install.html'
+      - 'bebepick-firefox-one-tap.user.js'
+      - 'tests/firefox-one-tap-launcher.test.cjs'
       - 'tests/general-fast-order-v24-names.test.mjs'
       - 'tests/general-v24-payapp-one-tap-terms.test.cjs'
       - 'tests/general-v24-postclick-observation.test.cjs'
@@ -29,6 +33,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: 'Firefox Android one-tap launcher: route restrictions, no auto-submit'
+        run: node --test tests/firefox-one-tap-launcher.test.cjs
       - name: Android Chrome single-line bookmark bootstrap regression
         run: node --test tests/general-v24-bookmark-android-boot.test.cjs
       - name: PAYAPP manual bookmark consent and first-site DOM diagnostics
