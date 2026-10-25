@@ -10,8 +10,8 @@ const begin = html.indexOf('function isRecentRestock(p) {');
 const end = html.indexOf('function isSpecialProduct(p) {',begin);
 assert.ok(begin > 0 && end > begin, 'existing stock classifier source must remain available');
 const compiled = html.slice(begin,end);
-const {isUpcomingCandidate, isLargeExistingRestock} = vm.runInNewContext(
-  compiled + '\n;({isUpcomingCandidate,isLargeExistingRestock})',
+const {isUpcomingCandidate, isLargeExistingRestock, isUpcomingTabCandidate} = vm.runInNewContext(
+  compiled + '\n;({isUpcomingCandidate,isLargeExistingRestock,isUpcomingTabCandidate})',
   {Date,Number,Math}
 );
 const now = Date.now(), HOUR = 3600000;
@@ -38,6 +38,7 @@ test('an existing item increasing from 2 to 12 (+10) is a restock, not upcoming'
  const p=old({current_stock:12,last_increase_qty:10,last_increase_at:ago(1)});
  assert.equal(isLargeExistingRestock(p),true);
  assert.equal(isUpcomingCandidate(p),false);
+ assert.equal(isUpcomingTabCandidate(p),true, 'same tab must include the restock estimate');
 });
 
 test('threshold is relative +10 (not 10 in absolute current inventory)',()=>{
@@ -69,10 +70,33 @@ test('restock exclusion requires recent increase timestamp with positive recorde
  assert.equal(isUpcomingCandidate(old({last_increase_qty:'not-a-number',last_increase_at:ago(1)})),true);
 });
 
-test('only one existing upcoming filter, and descriptive restock badge has no new category',()=>{
- assert.match(html,/data-f="upcoming"[^>]*>/);
- assert.match(html,/if \(filter === "upcoming" && !isUpcomingCandidate\(p\)\) return false/);
+test('the single upcoming tab contains both categories without a new filter',()=>{
+ const newProduct=fresh();
+ const oldRestock=old({current_stock:26,last_increase_qty:15,last_increase_at:ago(1)});
+ const oldHidden=old({current_stock:4,hidden_recent_with_stock:true});
+ assert.equal(isUpcomingCandidate(newProduct),true);
+ assert.equal(isUpcomingTabCandidate(newProduct),true);
+ assert.equal(isUpcomingCandidate(oldRestock),false);
+ assert.equal(isUpcomingTabCandidate(oldRestock),true);
+ assert.equal(isUpcomingTabCandidate(oldHidden),true);
+ assert.equal(isUpcomingTabCandidate(old({state:'available',last_increase_qty:15,last_increase_at:ago(1)})),false);
+ assert.equal(isUpcomingTabCandidate(old({current_stock:0,last_increase_qty:15,last_increase_at:ago(1)})),false);
+ assert.equal(isUpcomingTabCandidate(old({hidden_recent_with_stock:false,last_increase_qty:9,last_increase_at:ago(1)})),false);
+});
+test('a restock-only old product is in the filter despite no new-product signal',()=>{
+ const p=old({hidden_recent_with_stock:false,last_increase_qty:10,last_increase_at:ago(1)});
+ assert.equal(isUpcomingCandidate(p),false);
+ assert.equal(isUpcomingTabCandidate(p),true);
+});
+test('single tab shows labels and category counts that respect the current search',()=>{
+ assert.equal((html.match(/data-f="upcoming"/g)||[]).length,1);
+ assert.match(html,/if \(filter === "upcoming" && !isUpcomingTabCandidate\(p\)\) return false/);
+ assert.match(html,/const upcoming = baseProducts\.filter\(\(p\) => isUpcomingTabCandidate\(p\)\)\.length/);
+ assert.match(html,/list\.filter\(isUpcomingCandidate\)\.length/);
+ assert.match(html,/list\.filter\(\(p\) => p\.state === "hidden"/);
  assert.doesNotMatch(html,/data-f="large_restock"/);
- assert.match(html,/기존 상품 재입고 추정/);
+ assert.match(html,/👀 미공개 신상추정/);
+ assert.match(html,/🔄 재입고 추정 · 최근 \+/);
+ assert.match(html,/prep restock-prep/);
  assert.match(html,/const LARGE_RESTOCK_INCREASE = 10/);
 });
