@@ -24,6 +24,11 @@ textarea{box-sizing:border-box;width:100%;min-height:105px;border:1px solid #d7c
 ② <a href="./bebepick-firefox-one-tap.user.js">원터치 버튼 사용자 스크립트 설치</a> →
 ③ Firefox에서 <a href="https://bebepick.me/plus">베베픽 플러스</a> 또는 <a href="https://bebepick.me/live">베베픽</a>을 열고 <strong>🧸 주문 도우미</strong> 한 번 눌러.
 <p class="muted" style="margin-top:8px">💳 카드결제 시험: Firefox 설정의 ‘결제 수단 저장 및 자동 입력’ 기능이 한국 기기에서 제공된다면 브라우저 자체 보안 저장소로만 설정해. PAYAPP 결제창에서 카드 자동완성/간편결제가 실제로 작동하는지는 별도 확인이 필요해. 우리 스크립트는 카드번호·유효기간·CVC를 읽거나 저장하거나 입력하지 않아. 최종 결제 승인은 직접 진행해.</p>
+</div><div class="note" style="margin-top:14px;border:1px solid #d8e1fb;background:#f2f6ff">
+<strong>💳 Firefox PAYAPP 결제수단 선택 도우미 (선택 설치 · 시험판)</strong><br>
+기본은 <strong>카드번호 직접입력</strong>이고, ISP/안심클릭·네이버페이·카카오페이·토스페이·스마일페이·페이코·애플페이·계좌이체로 바꿀 수 있어.<br>
+Firefox + Tampermonkey에서 <a href="./bebepick-firefox-payapp-methods.user.js">PAYAPP 결제 경로 선택 도우미 설치</a>를 눌러 별도 사용자 스크립트를 설치해 줘. 공식 PAYAPP 결제 페이지에서 <strong>💳 결제 방식</strong> 버튼을 누르고 선호 방식을 선택한 다음, 화면을 확인해 <strong>현재 화면에서 선택한 경로로 이동</strong>을 직접 눌러. PAYAPP 화면에서 항목을 정확하게 한 개 찾았을 때만 1회 이동을 시도하고, 찾지 못하면 직접 골라야 해. <strong>전자금융거래 약관 동의·카드정보 입력·본인인증·최종 결제 승인은 자동으로 하지 않아.</strong><br>
+이 스크립트는 payapp.kr의 결제 경로 페이지에만 적용되고, 카드번호·유효기간·CVC·비밀번호·생년월일을 읽거나 저장하지 않아. 선택한 <em>결제 방식의 이름</em>만 브라우저에 저장돼. Firefox의 내장 카드 자동완성을 사용할 수 있다면 별도 설정하고, PAYAPP의 분리된 입력칸에서 실제 작동하는지는 확인해 줘. <strong>기기에서 결제 성공까지 검증되지 않았고, PAYAPP 화면 구조가 다르면 자동 선택이 동작하지 않을 수 있어.</strong>
 </div><h2>지원하는 세 감시 방식</h2><p class="note">🧸 새 통합 모드: 기존 SKU(총 5개 등) 전부 + 신상 이름 후보 중 확인된 한 종류를 함께 주문 준비해. 기본은 무전송 시험이야. 별도로 PAYAPP 이동을 선택하고 시작 시 승인한 경우에만 실제 주문번호를 만들고 PAYAPP 이동을 시도해. 현재 브라우저 장바구니 5개가 도우미 SKU 목록에 없다면 `장바구니를 기존 SKU 목록으로 가져오기`를 눌러 확인한 다음 통합을 선택해.</p><p class="note">🔎 모바일 UI 정리: 이름 후보와 기존 SKU는 별도 저장 목록이야. 두 화면을 동시에 주문하지 않고, 선택한 감시 방식만 주문 대상으로 사용해. <strong>화면 아래 기존 SKU 목록과 이 브라우저에 저장된 사이트 장바구니를 따로 확인</strong>할 수 있어. 이전 북마크는 반드시 새 코드로 교체해 줘.</p>
 <p class="note"><strong>① 이름 후보 중 1종 주문:</strong> 공식 SKU를 몰라도 인형 이름을 20종까지 미리 등록해. 이름이 띄어쓰기 제외 정확히 일치하고 공식 매장/재고 조건이 맞는 상품 1종을 자동 선택해. 여러 후보가 한 번에 판매 가능하면 등록한 우선순위를 따라. 비슷한 이름은 일치로 보지 않아. 같은 이름의 SKU가 여러 개면 그 후보는 자동 선택하지 않아.</p>
 <p class="note"><strong>② 기존 여러 SKU 모두 주문:</strong> v2.3과 똑같이 상품코드를 지정하고 여러 인형·수량을 담아 선택 상품이 모두 판매 가능할 때 주문해. 이름 후보와 SKU를 합쳐 주문하려면 ③ 통합 모드를 사용해.</p>
