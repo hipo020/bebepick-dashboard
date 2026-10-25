@@ -1308,8 +1308,28 @@ function isRecentRestock(p) {
   return Number.isFinite(t) && Date.now() - t <= 24 * 60 * 60 * 1000;
 }
 
+const LARGE_RESTOCK_INCREASE = 10;
+
+// A stock increase is relative to a previously observed quantity, NOT the
+// absolute stock on the product. Keep initial newly-created products eligible
+// for "신상추정" even if they are first observed with a large stock quantity.
+// Only a recent, recorded +10 (or more) on an older product is a restock hint.
+function isLargeExistingRestock(p) {
+  if (!p || !isRecentRestock(p)) return false;
+  const delta = Number(p.last_increase_qty);
+  if (!Number.isFinite(delta) || delta < LARGE_RESTOCK_INCREASE) return false;
+  const created = p.source_created_at ? new Date(p.source_created_at).getTime() : NaN;
+  // Preserve the existing 72-hour new-product window over restock heuristics.
+  const newlyCreated = Number.isFinite(created) &&
+    Date.now() >= created && Date.now() - created <= 72 * 60 * 60 * 1000;
+  return !newlyCreated;
+}
+
 function isUpcomingCandidate(p) {
   if (p.state !== "hidden" || Number(p.current_stock) <= 0) return false;
+  // Additional exclusion only; existing "hidden recent with stock" and
+  // 72-hour registration criteria below are unchanged.
+  if (isLargeExistingRestock(p)) return false;
   if (p.hidden_recent_with_stock === true) return true;
   const t = p.source_created_at ? new Date(p.source_created_at).getTime() : NaN;
   return Number.isFinite(t) && Date.now() - t <= 72 * 60 * 60 * 1000;
@@ -2212,7 +2232,9 @@ function render() {
       : "";
     const prepBadge = isUpcomingCandidate(p)
       ? '<div class="prep">👀 미공개 신상추정 · 최근 등록</div>'
-      : "";
+      : p.state === "hidden" && Number(p.current_stock) > 0 && isLargeExistingRestock(p)
+        ? '<div class="meta trend up">🔄 기존 상품 재입고 추정 · 최근 +' + fmt(p.last_increase_qty) + '개</div>'
+        : "";
     const etaMinutes = Number(p.estimated_sellout_minutes);
     const eta = Number.isFinite(etaMinutes) && etaMinutes > 0 && etaMinutes <= 720
       ? '<div class="meta trend out">⏱ 현재 속도면 약 ' + esc(durationText(etaMinutes * 60)) + ' 내 품절 예상</div>'

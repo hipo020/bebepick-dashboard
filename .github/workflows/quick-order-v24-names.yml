@@ -4,6 +4,8 @@ on:
     branches: [main]
     paths:
       - 'bebepick-quick-order-general-v24.js'
+      - 'index.html'
+      - 'tests/upcoming-restock-threshold.test.cjs'
       - 'bebepick-quick-order-v24-install.html'
       - 'bebepick-firefox-one-tap.user.js'
       - 'tests/firefox-one-tap-launcher.test.cjs'
@@ -18,6 +20,8 @@ on:
   pull_request:
     paths:
       - 'bebepick-quick-order-general-v24.js'
+      - 'index.html'
+      - 'tests/upcoming-restock-threshold.test.cjs'
       - 'bebepick-quick-order-v24-install.html'
       - 'bebepick-firefox-one-tap.user.js'
       - 'tests/firefox-one-tap-launcher.test.cjs'
@@ -37,6 +41,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: 'Stock dashboard upcoming estimator: existing item +10 restock rule'
+        run: node --test tests/upcoming-restock-threshold.test.cjs
       - name: 'Firefox Android one-tap launcher: route restrictions, no auto-submit'
         run: node --test tests/firefox-one-tap-launcher.test.cjs
       - name: Firefox PAYAPP payment method chooser safety
