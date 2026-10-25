@@ -19,13 +19,15 @@ function simulate({trusted,completed=true,dryRun=false,submitClicked=true,wizard
  }});
  return {ctx,marks,notices,timers};
 }
-test('v2.4 still compiles and does not automatically retry final order',()=>{
+test('v2.4 still compiles and allows only one guarded same-modal follow-up after ignored final click',()=>{
  assert.doesNotThrow(()=>new Function(src));
  const wizard=src.slice(src.indexOf('function watchWizard(){'),src.indexOf('function watchPrePayment(){'));
  assert.match(wizard,/timingOnce\('submit_click','스크립트 \.click\(\) 시도/);
  assert.match(wizard,/try\{ok\.click\(\);\}/);
  assert.match(wizard,/submitClicked=true/);
- assert.equal((wizard.match(/ok\.click\(\)/g)||[]).length,1);
+ assert.match(wizard,/canRetrySameOfficialDialog\(box,ok,all\)/);
+ assert.match(wizard,/submitAttemptAt-finalAgreeAt<900/);
+ assert.equal((wizard.match(/ok\.click\(\)/g)||[]).length,2);
 });
 test('synthetic click event is NOT marked as human input',()=>{
  const t=simulate({trusted:false});

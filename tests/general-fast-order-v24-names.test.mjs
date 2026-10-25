@@ -80,7 +80,8 @@ test('actual order is opt-in, newly confirmed payment-page handoff is a separate
  assert.match(wizard,/if\(dryRun\)/);
  assert.match(wizard,/recentSubmit\(\)/);
  assert.match(wizard,/submitClicked=true/);
- assert.equal((wizard.match(/\bok\.click\(\)/g)||[]).length,1);
+ assert.equal((wizard.match(/\bok\.click\(\)/g)||[]).length,2);
+  assert.match(wizard,/submitAttemptAt-finalAgreeAt<900&&canRetrySameOfficialDialog\(box,ok,all\)/);
  assert.match(src,/payArmed=autoPay&&!dryRun/);
  assert.doesNotMatch(src,/paymentApproval|payappFormSubmit/);
 });

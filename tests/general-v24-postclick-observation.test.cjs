@@ -17,7 +17,7 @@ test('read-only post-click probe compiles and never clicks or submits anything',
  assert.doesNotThrow(()=>new Function(src));
  assert.doesNotMatch(code,/\.click\s*\(|fetch\s*\(|XMLHttpRequest|localStorage|sessionStorage|authorization/);
  const wizard=src.slice(src.indexOf('function watchWizard(){'),src.indexOf('function submitAfterClickShape(){'));
- assert.equal((wizard.match(/ok\.click\(\)/g)||[]).length,1);
+ assert.equal((wizard.match(/ok\.click\(\)/g)||[]).length,2);
 });
 test('detects only count of order-related resource timing entries after snapshot',()=>{
  const result=run({recent:['https://bebepick.me/app.js','https://eqytdtxemjlygnobhiio.supabase.co/rest/v1/rpc/create_order'],baseline:1});
@@ -33,7 +33,7 @@ test('manual click origin and modal presence are captured without user informati
  assert.match(run({hasDialog:false,human:true}),/최종창=N.*사용자 클릭=Y/);
  assert.match(run({hasDialog:true,human:false}),/최종창=Y.*사용자 클릭=N/);
 });
-test('post-click diagnostics fire after 2 and 5 seconds without extra click',()=>{
+test('post-click diagnostics fire after 2 and 5 seconds without new automatic repeated polling clicks',()=>{
  assert.match(src,/if\(since>=2000\)timingOnce\('submit_post_2s',submitAfterClickShape\(\)\)/);
  assert.match(src,/if\(since>=5000\)\{/);
  assert.match(src,/timingOnce\('submit_stalled_5s',submitAfterClickShape\(\)\)/);
@@ -43,7 +43,7 @@ test('post-click diagnostics fire after 2 and 5 seconds without extra click',()=
 
 test('read-only consent snapshots record flags without touching the form',()=>{
  const start=src.indexOf('function finalConsentSnapshot(){');
- const end=src.indexOf('function abortWizard(',start);
+ const end=src.indexOf('function canRetrySameOfficialDialog(',start);
  assert.ok(start>0&&end>start);
  const code=src.slice(start,end);
  assert.doesNotMatch(code,/\.click\s*\(|dispatchEvent|fetch\s*\(|XMLHttpRequest|\.value\b|textContent|innerHTML|localStorage|sessionStorage/);
@@ -61,16 +61,16 @@ test('read-only consent snapshots record flags without touching the form',()=>{
  assert.equal(read({present:false}),'창유지=N · 동의체크=N · 버튼활성=N · aria차단=N');
 });
 
-test('read-only snapshots are collected around the existing single final click',()=>{
+test('read-only snapshots are collected around the existing guarded initial click',()=>{
  const wizard=src.slice(src.indexOf('function watchWizard(){'),src.indexOf('function submitAfterClickShape(){'));
  assert.ok(wizard.indexOf("timingOnce('submit_preflight_state'")<wizard.indexOf('try{ok.click();}'));
  assert.ok(wizard.indexOf("timingOnce('submit_after_call_state'")>wizard.indexOf('try{ok.click();}'));
- assert.equal((wizard.match(/ok\.click\(\)/g)||[]).length,1);
+ assert.equal((wizard.match(/ok\.click\(\)/g)||[]).length,2);
  assert.match(src,/if\(since>=2000\)timingOnce\('submit_state_2s',finalConsentSnapshot\(\)\)/);
  assert.match(src,/timingOnce\('submit_state_5s',finalConsentSnapshot\(\)\)/);
 });
 
-test('official final-confirm arm window is respected before single order click',()=>{
+test('official final-confirm 700ms arm window is respected before the first click',()=>{
  const begin=src.indexOf('const finalReadyAge=Date.now()-finalAgreeAt;');
  const end=src.indexOf('if(ok.disabled||!all.checked||!box.isConnected)',begin);
  assert.ok(begin>0&&end>begin,'required consent delay guard must precede button checks');
@@ -86,16 +86,16 @@ test('official final-confirm arm window is respected before single order click',
   const result=new Function('ctx','with(ctx){return (function(){'+fragment+' return "ready";})()}')(context);
   return {result,marks};
  };
- for(const age of [0,200,699,700,899]){
+ for(const age of [0,200,699]){
   const v=run(age);assert.equal(v.result,undefined,'must not continue at '+age+'ms');
   assert.equal(v.marks[0][0],'final_arm_wait');
  }
- for(const age of [900,950,1400]){
+ for(const age of [700,750,899,900,950,1400]){
   const v=run(age);assert.equal(v.result,'ready','can continue after 900ms');
   assert.equal(v.marks[0][0],'final_arm_elapsed');
  }
  const wizard=src.slice(src.indexOf('function watchWizard(){'),src.indexOf('function submitAfterClickShape(){'));
- assert.ok(wizard.indexOf('if(finalReadyAge<900)')<wizard.indexOf('try{ok.click();}'));
- assert.equal((wizard.match(/ok\.click\(\)/g)||[]).length,1,'order is never retried');
+ assert.ok(wizard.indexOf('if(finalReadyAge<700)')<wizard.indexOf('try{ok.click();}'));
+ assert.equal((wizard.match(/ok\.click\(\)/g)||[]).length,2,'only same-dialog follow-up permitted');
  assert.match(wizard,/if\(recentSubmit\(\)\)\{abortWizard\('중복 주문 요청 방지'\)/);
 });
