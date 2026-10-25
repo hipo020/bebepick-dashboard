@@ -1,13 +1,10 @@
 // ==UserScript==
 // @name         베베픽 v2.4 · Firefox 원터치 실행
 // @namespace    https://hipo020.github.io/bebepick-dashboard/
-// @version      1.0.0
+// @version      1.1.0
 // @description  베베픽 공식 주문 화면에 도우미 열기 버튼만 표시합니다. 자동주문/결제 시작 없음.
 // @author       Bebepick dashboard
-// @match        https://bebepick.me/live
-// @match        https://bebepick.me/live/
-// @match        https://bebepick.me/plus
-// @match        https://bebepick.me/plus/
+// @match        https://bebepick.me/*
 // @run-at       document-idle
 // @noframes
 // @grant        none
@@ -23,8 +20,11 @@
  const BUTTON_ID='bbpFirefoxOneTapLauncher';
  const SCRIPT_ID='bbpFirefoxOneTapHelperSource';
 
- if(location.protocol!=='https:'||location.hostname!==VALID_HOST||!VALID_PATHS.has(location.pathname)||window.top!==window.self)return;
- if(document.getElementById(BUTTON_ID))return;
+ if(location.protocol!=='https:'||location.hostname!==VALID_HOST||window.top!==window.self)return;
+ if(window.__bbpFirefoxOneTapLauncherInstalled)return;
+ window.__bbpFirefoxOneTapLauncherInstalled=true;
+ const officialRoute=()=>location.protocol==='https:'&&location.hostname===VALID_HOST&&VALID_PATHS.has(location.pathname);
+
 
  const button=document.createElement('button');
  button.id=BUTTON_ID;
@@ -32,12 +32,12 @@
  button.textContent='🧸 주문 도우미';
  button.setAttribute('aria-label','베베픽 v2.4 주문 도우미 열기');
  button.title='탭하면 기존 v2.4 창을 열어. 실제 주문 시작은 별도 동의가 필요해.';
- button.style.cssText='position:fixed;top:34%;right:8px;z-index:2147483640;max-width:132px;min-height:41px;padding:8px 11px;border:1px solid #e7c8ff;border-radius:14px;background:#7752ad;color:#fff;box-shadow:0 4px 15px #24113f55;font:700 12px/1.4 system-ui,-apple-system,sans-serif;touch-action:manipulation;cursor:pointer;';
+ button.style.cssText='position:fixed;top:34%;left:8px;z-index:2147483640;max-width:132px;min-height:41px;padding:8px 11px;border:1px solid #e7c8ff;border-radius:14px;background:#7752ad;color:#fff;box-shadow:0 4px 15px #24113f55;font:700 12px/1.4 system-ui,-apple-system,sans-serif;touch-action:manipulation;cursor:pointer;';
 
  // No order, payment or card fields are accessed by this launcher.
  // The remote helper is loaded ONLY after the user's direct tap.
  button.addEventListener('click',()=>{
-  if(location.protocol!=='https:'||location.hostname!==VALID_HOST||!VALID_PATHS.has(location.pathname))return;
+  if(!officialRoute()||!button.isConnected)return;
   if(typeof window.__bbpGeneralQuickV24?.show==='function'){
    window.__bbpGeneralQuickV24.show();
    return;
@@ -68,5 +68,27 @@
   },{once:true});
   (document.head||document.documentElement).appendChild(script);
  });
- (document.body||document.documentElement).appendChild(button);
+ // The store may render /plus or /live without a full navigation and may
+ // replace its app root after userscripts run. Re-attach only our *launcher*
+ // when an official route is visible. No orders, product polls or clicks.
+ function syncLauncher(){
+  if(!officialRoute()){
+   if(button.isConnected)button.remove();
+   return;
+  }
+  if(!document.body)return;
+  const existing=document.getElementById(BUTTON_ID);
+  if(existing&&existing!==button)return;
+  if(!button.isConnected)document.body.appendChild(button);
+ }
+ syncLauncher();
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',syncLauncher,{once:true});
+ // Event-driven repair rather than a continuous network or DOM polling loop.
+ if(typeof MutationObserver==='function'){
+  const observer=new MutationObserver(syncLauncher);
+  observer.observe(document.documentElement,{childList:true,subtree:true});
+ }
+ window.addEventListener('pageshow',syncLauncher);
+ window.addEventListener('popstate',syncLauncher);
+ window.addEventListener('hashchange',syncLauncher);
 })();
