@@ -2,8 +2,9 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
 const source=fs.readFileSync(path.join(__dirname,'..','bebepick-firefox-payapp-methods.user.js'),'utf8');
 const ctor=()=>({display:'block',visibility:'visible'});
-function setup(url='https://payapp.kr/WEBPAY_INPUT/demo'){
- const u=new URL(url),buttons=[],storage=new Map(),nodes=[];
+function setup(url='https://payapp.kr/WEBPAY_INPUT/demo',opts={}){
+ const u=new URL(url),buttons=[],storage=new Map(),nodes=[],timers=[],observers=[];
+ if(opts.autoOn)storage.set('bbp_payapp_auto_route_v1','on');
  function el(tag){
   const item={
    tagName:tag.toUpperCase(),children:[],parentElement:null,hidden:false,isConnected:true,
@@ -24,22 +25,35 @@ function setup(url='https://payapp.kr/WEBPAY_INPUT/demo'){
   return item;
  }
  const body=el('body');
+ const docEvents={},winEvents={};
  const document={
-  body,documentElement:body,createElement:el,
-  querySelectorAll:()=>buttons
+  body,documentElement:body,createElement:el,hidden:false,
+  querySelectorAll:()=>buttons,
+  addEventListener:(name,fn)=>{docEvents[name]=fn;}
  };
  const window={};window.top=window;window.self=window;
+ window.addEventListener=(name,fn)=>{winEvents[name]=fn;};
+ class MutationObserver{
+  constructor(fn){this.fn=fn;observers.push(this);}
+  observe(){}
+ }
+ const setTimeout=fn=>{timers.push(fn);return timers.length;};
+ const clearTimeout=()=>{};
+ function runTimers(){let attempts=0;while(timers.length){if(++attempts>10)throw Error('unbounded timer scheduling');timers.shift()();}}
+ const mutate=()=>{for(const obs of observers)obs.fn();};
  const context={
   location:{hostname:u.hostname,protocol:u.protocol,pathname:u.pathname},
   document,window,getComputedStyle:ctor,
-  localStorage:{getItem:k=>storage.get(k)??null,setItem:(k,v)=>storage.set(k,v)},
+  localStorage:{getItem:k=>storage.get(k)??null,setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)},
+  setTimeout,clearTimeout,MutationObserver,
  };
  vm.runInNewContext(source,context);
  const launcher=nodes.find(x=>x.id==='launcher'),panel=nodes.find(x=>x.id==='panel');
  const select=nodes.find(x=>x.tagName==='SELECT');
  const go=nodes.find(x=>x.id==='go'),status=nodes.find(x=>x.id==='status');
  function label(text,tag='div'){const x=el(tag);x.textContent=text;buttons.push(x);return x;}
- return {launcher,panel,select,go,status,storage,label,buttons,nodes};
+ const autoToggle=nodes.find(x=>x.type==='checkbox');
+ return {launcher,panel,select,go,status,storage,label,buttons,nodes,autoToggle,runTimers,mutate,document};
 }
 test('checkout helper launcher is visible away from a right-side floating overlay',()=>{
  assert.match(source,/position:fixed;left:10px;top:68px/);
@@ -108,4 +122,59 @@ test('ambiguous matching labels fail closed and do not click anything',()=>{
  assert.equal(c1.clicked,undefined);
  assert.equal(c2.clicked,undefined);
  assert.match(x.status.textContent,/정확히 하나만 찾지 못했어/);
+});
+
+test('automation is opt-in and does not navigate payment methods until enabled once',()=>{
+ const x=setup();
+ const method=x.label('결제방식 선택'),card=x.label('신용/체크 카드');
+ x.runTimers();x.mutate();x.runTimers();
+ assert.equal(card.clicked,undefined);
+ assert.equal(x.autoToggle.checked,false);
+ x.autoToggle.checked=true;x.autoToggle.listeners.change();
+ assert.equal(x.storage.get('bbp_payapp_auto_route_v1'),'on');
+ x.runTimers();
+ assert.equal(card.clicked,1);
+ assert.equal(x.panel.hidden,true,'never requires the helper panel to open');
+ x.mutate();x.runTimers();
+ assert.equal(card.clicked,1,'no repeated click in unchanged stage');
+ x.autoToggle.checked=false;x.autoToggle.listeners.change();
+ assert.equal(x.storage.has('bbp_payapp_auto_route_v1'),false);
+});
+test('opted-in Firefox payment chooser auto-selects default card route across two SPA stages',()=>{
+ const x=setup('https://payapp.kr/WEBPAY_INPUT/demo',{autoOn:true});
+ assert.equal(x.autoToggle.checked,true);
+ x.label('결제방식 선택');
+ const method=x.label('신용/체크 카드');
+ x.runTimers();
+ assert.equal(method.clicked,1);
+ x.buttons.length=0;
+ x.label('결제카드 선택');
+ const manualCard=x.label('카드번호 및 유효기간 입력');
+ x.mutate();x.runTimers();
+ assert.equal(manualCard.clicked,1);
+ x.mutate();x.runTimers();
+ assert.equal(manualCard.clicked,1);
+ x.buttons.length=0;
+ x.label('카드번호');x.label('유효기간');
+ const pay=x.label('결제','button');
+ x.mutate();x.runTimers();
+ assert.equal(pay.clicked,undefined,'payment never gets approved');
+});
+test('auto-selection skips terms, hidden tabs, unknown and ambiguous checkout screens',()=>{
+ const x=setup('https://payapp.kr/WEBPAY_INPUT/demo',{autoOn:true});
+ const terms=x.label('전체동의'),next=x.label('다음');
+ x.runTimers();
+ assert.equal(terms.clicked,undefined);assert.equal(next.clicked,undefined);
+ x.buttons.length=0;
+ x.label('결제방식 선택');
+ const a=x.label('신용/체크 카드'),b=x.label('신용/체크 카드');
+ x.mutate();x.runTimers();
+ assert.equal(a.clicked,undefined);assert.equal(b.clicked,undefined);
+ x.buttons.length=0;
+ x.label('결제방식 선택');
+ const card=x.label('신용/체크 카드');
+ x.document.hidden=true;x.mutate();x.runTimers();
+ assert.equal(card.clicked,undefined);
+ x.document.hidden=false;x.mutate();x.runTimers();
+ assert.equal(card.clicked,1);
 });

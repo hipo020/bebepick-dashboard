@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         베베픽 · PAYAPP 결제수단 선택 도우미 (카드입력 기본)
 // @namespace    https://hipo020.github.io/bebepick-dashboard/
-// @version      0.1.1
-// @description  PAYAPP 공식 결제 화면에서 결제 경로를 직접 선택. 카드정보·인증·결제승인은 수동.
+// @version      0.2.0
+// @description  PAYAPP 결제수단 자동 선택은 사전 동의한 경우에만. 약관·카드정보·인증·결제 승인은 수동.
 // @match        https://payapp.kr/WEBPAY_INPUT/*
 // @run-at       document-idle
 // @noframes
@@ -20,6 +20,7 @@
  // payment metadata are read, cached, copied, logged or sent by this helper.
  // Persist only the harmless preferred payment METHOD in the user's browser.
  const PREF_KEY='bbp_payapp_method_v1';
+ const AUTO_KEY='bbp_payapp_auto_route_v1';
  const choices=[
   {id:'card',name:'💳 카드번호 직접입력 (기본)',route:['신용/체크 카드','신용/체크카드'],sub:['카드번호 및 유효기간 입력']},
   {id:'isp',name:'🔐 ISP/안심클릭',route:['신용/체크 카드','신용/체크카드'],sub:['ISP/안심클릭']},
@@ -35,6 +36,10 @@
  const stored=()=>{try{const id=localStorage.getItem(PREF_KEY);return choices.some(x=>x.id===id)?id:'card';}catch{return 'card';}};
  const save=id=>{try{localStorage.setItem(PREF_KEY,id);}catch{/* private mode */}};
  let chosen=stored(), lastActionStage='',lastActionMode='';
+ // Explicit one-time opt in persists on the PAYAPP origin. Default is OFF.
+ // Never apply saved mode to a checkout until the user enables auto navigation.
+ const readAuto=()=>{try{return localStorage.getItem(AUTO_KEY)==='on';}catch{return false;}};
+ let autoNavigate=readAuto(),autoTimer=null;
  const host=document.createElement('div');
  host.id='bbpPayappMethodHelper';
  host.style.cssText='position:fixed;left:10px;top:68px;z-index:2147483646;font-family:system-ui,sans-serif;max-width:calc(100vw - 20px);';
@@ -45,14 +50,19 @@
  const panel=document.createElement('section');panel.id='panel';panel.hidden=true;panel.setAttribute('aria-label','결제수단 선택 보조 도구');
  const close=document.createElement('button');close.type='button';close.id='close';close.textContent='닫기';
  const title=document.createElement('h2');title.textContent='결제수단 선택 도우미';
- const desc=document.createElement('p');desc.textContent='카드번호 직접입력이 기본이야. 현재 단계의 선택지만 눌러주고, 카드·인증 정보와 최종 결제는 직접 진행해.';
+ const desc=document.createElement('p');desc.textContent='카드번호 직접입력이 기본이야. 약관 동의 후 결제수단을 자동 선택하려면 아래를 처음 한 번 켜줘. 카드정보·인증·최종 결제는 직접 진행해.';
+ const autoLabel=document.createElement('label');
+ autoLabel.style.cssText='display:flex;gap:8px;align-items:center;background:#f4f0fb;padding:9px;border-radius:9px;font-size:12px;font-weight:650';
+ const autoToggle=document.createElement('input');autoToggle.type='checkbox';autoToggle.checked=autoNavigate;
+ const autoText=document.createElement('span');autoText.textContent='다음 결제부터 결제수단 경로 자동 선택 (결제 승인 아님)';
+ autoLabel.append(autoToggle,autoText);
  const select=document.createElement('select');select.setAttribute('aria-label','선호 결제수단');
  for(const c of choices){const opt=document.createElement('option');opt.value=c.id;opt.textContent=c.name;select.appendChild(opt);}
  select.value=chosen;
  const go=document.createElement('button');go.type='button';go.id='go';go.textContent='현재 화면에서 선택한 경로로 이동';
  const status=document.createElement('p');status.id='status';status.setAttribute('role','status');
  const notice=document.createElement('p');notice.id='notice';notice.textContent='🔒 카드번호·유효기간·카드 비밀번호·본인확인 정보를 읽거나 저장하지 않아. 최종 결제 버튼도 누르지 않아.';
- title.appendChild(close);panel.append(title,desc,select,go,status,notice);shadow.append(style,launch,panel);
+ title.appendChild(close);panel.append(title,desc,autoLabel,select,go,status,notice);shadow.append(style,launch,panel);
  (document.body||document.documentElement).appendChild(host);
  launch.addEventListener('click',()=>{panel.hidden=!panel.hidden;if(!panel.hidden)status.textContent=hint();});
  close.addEventListener('click',()=>{panel.hidden=true;});
@@ -60,6 +70,14 @@
   if(!choices.some(x=>x.id===select.value))return;
   chosen=select.value;save(chosen);lastActionStage='';lastActionMode='';
   status.textContent=hint();
+  scheduleAuto();
+ });
+ autoToggle.addEventListener('change',()=>{
+  autoNavigate=!!autoToggle.checked;
+  try{if(autoNavigate)localStorage.setItem(AUTO_KEY,'on');else localStorage.removeItem(AUTO_KEY);}catch{}
+  status.textContent=autoNavigate?'✅ 자동 경로 선택 ON · 공식 약관/결제/인증 버튼은 누르지 않아.':'자동 경로 선택 OFF · 화면에서 직접 선택해 줘.';
+  if(autoNavigate)scheduleAuto();
+  else if(autoTimer!==null){clearTimeout(autoTimer);autoTimer=null;}
  });
 
  // Inspect ONLY visible, static navigation labels and image alt text.
@@ -110,18 +128,52 @@
   if(nearestButton&&norm(nearestButton.textContent)==='결제')return null;
   return el;
  }
- go.addEventListener('click',()=>{
+ function navigateCurrentStep(isAutomatic){
+  if(isAutomatic&&(!autoNavigate||document.hidden))return false;
   const which=stage(),c=choices.find(x=>x.id===chosen)||choices[0];
-  if(which==='card_form'){status.textContent='카드정보 입력·결제 승인은 자동으로 진행하지 않아.';return;}
-  if(which!=='method'&&which!=='card_method'){status.textContent='안전하게 선택할 수 있는 결제방식 화면이 아니야. 직접 확인해 줘.';return;}
-  if(which==='card_method'&&!c.sub){status.textContent='다른 방식이 이미 선택된 화면이야. 뒤로 돌아가서 직접 변경해 줘.';return;}
-  if(lastActionStage===which&&lastActionMode===chosen){status.textContent='같은 화면에서 중복 클릭하지 않을게. 화면 전환을 확인해 줘.';return;}
+  if(which==='card_form'){if(!isAutomatic)status.textContent='카드정보 입력·결제 승인은 자동으로 진행하지 않아.';return false;}
+  if(which!=='method'&&which!=='card_method'){
+   if(!isAutomatic)status.textContent='안전하게 선택할 수 있는 결제방식 화면이 아니야. 직접 확인해 줘.';
+   return false;
+  }
+  if(which==='card_method'&&!c.sub){
+   if(!isAutomatic)status.textContent='다른 방식이 이미 선택된 화면이야. 뒤로 돌아가서 직접 변경해 줘.';
+   return false;
+  }
+  // At most one selection per payment screen stage; never retry because a
+  // network/payment pane is slow or the vendor ignores a synthetic click.
+  if(lastActionStage===which&&lastActionMode===chosen){
+   if(!isAutomatic)status.textContent='같은 화면에서 중복 클릭하지 않을게. 화면 전환을 확인해 줘.';
+   return false;
+  }
   const aliases=which==='method'?c.route:c.sub;
   const dest=findUnique(aliases);
-  if(!dest){status.textContent='이 화면에서 선택 버튼을 정확히 하나만 찾지 못했어. 공식 목록에서 직접 눌러줘.';return;}
+  if(!dest){
+   if(!isAutomatic)status.textContent='이 화면에서 선택 버튼을 정확히 하나만 찾지 못했어. 공식 목록에서 직접 눌러줘.';
+   return false;
+  }
   lastActionStage=which;lastActionMode=chosen;
-  // Navigation-only; NEVER click the final "결제"/submit button.
+  // ONLY vendor payment-method navigation. No terms, card fields, PIN or pay button.
   dest.click();
-  status.textContent='선택 항목을 1회 눌렀어. 다음 화면을 확인해 줘. 결제 완료는 아니야.';
- });
+  status.textContent=(isAutomatic?'✅ 설정된 결제수단 자동 선택':'선택 항목을 1회 눌렀어')+' · 결제 완료는 아니야. 다음 화면에서 본인이 결제 정보를 확인해 줘.';
+  return true;
+ }
+ go.addEventListener('click',()=>navigateCurrentStep(false));
+
+ // A PAYAPP checkout can be an SPA. Once the user enables auto selection,
+ // observe route-screen changes and select only the known safe payment tiles.
+ // Do not open the helper panel, auto-agree to terms, or approve a payment.
+ function scheduleAuto(){
+  if(!autoNavigate||autoTimer!==null||document.hidden)return;
+  autoTimer=setTimeout(()=>{autoTimer=null;navigateCurrentStep(true);},60);
+ }
+ if(typeof MutationObserver==='function'){
+  const observer=new MutationObserver(scheduleAuto);
+  observer.observe(document.body||document.documentElement,{
+   childList:true,subtree:true,attributes:true,attributeFilter:['class','style','hidden']
+  });
+ }
+ document.addEventListener('visibilitychange',scheduleAuto);
+ window.addEventListener('pageshow',scheduleAuto);
+ scheduleAuto();
 })();
