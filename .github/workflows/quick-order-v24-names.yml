@@ -33,7 +33,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Firefox Android one-tap launcher: route restrictions, no auto-submit
+      - name: 'Firefox Android one-tap launcher: route restrictions, no auto-submit'
         run: node --test tests/firefox-one-tap-launcher.test.cjs
       - name: Android Chrome single-line bookmark bootstrap regression
         run: node --test tests/general-v24-bookmark-android-boot.test.cjs
