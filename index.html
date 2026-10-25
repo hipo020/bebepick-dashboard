@@ -87,6 +87,7 @@
     .empty{padding:50px 10px;text-align:center;color:#8a817b}
     .trend{margin-top:3px}.trend.up{color:#238636}.trend.out{color:#a15c00}
     .prep{display:inline-block;margin:0 0 5px;padding:4px 7px;border-radius:999px;background:#fff3cd;color:#7a5a00;font-size:11px;font-weight:750}
+    .prep.restock-prep{background:#e7f4ed;color:#19643c}
     .history-btn{margin-top:7px;border:1px solid #eee5df;border-radius:9px;background:#faf8f6;padding:5px 8px;color:#7a716b;font-size:10.5px}
     .history-panel{grid-column:1/-1;border-top:1px dashed #eee5df;margin-top:2px;padding:9px 4px 2px;font-size:11px;color:#655d57}
     .history-panel[hidden]{display:none}
@@ -308,6 +309,7 @@ body{background:#fffaf6;color:#2d2926}
 .trend.up{color:#238636}
 .trend.out{color:#a15c00}
 .prep{background:#fff3cd;color:#7a5a00}
+.prep.restock-prep{background:#e7f4ed;color:#19643c}
 .history-btn{border:1px solid #eee5df;background:#faf8f6;color:#7a716b}
 .history-panel{border-top:1px dashed #eee5df;color:#655d57}
 .history-row{border-bottom:1px solid #f5efeb}
@@ -1335,6 +1337,13 @@ function isUpcomingCandidate(p) {
   return Number.isFinite(t) && Date.now() - t <= 72 * 60 * 60 * 1000;
 }
 
+// One existing filter combines newly registered hidden items and +10 restock
+// estimates. The two types are mutually exclusive for counting and badges.
+function isUpcomingTabCandidate(p) {
+  if (p.state !== "hidden" || Number(p.current_stock) <= 0) return false;
+  return isUpcomingCandidate(p) || isLargeExistingRestock(p);
+}
+
 function isSpecialProduct(p) {
   return /●/.test(String(p?.name || ""));
 }
@@ -2121,7 +2130,7 @@ function render() {
     if (filter === "unavailable" && p.state === "available") return false;
     if (filter === "hidden" && p.state !== "hidden") return false;
     if (filter === "hidden_stock" && !(p.state === "hidden" && Number(p.current_stock) > 0)) return false;
-    if (filter === "upcoming" && !isUpcomingCandidate(p)) return false;
+    if (filter === "upcoming" && !isUpcomingTabCandidate(p)) return false;
     if (filter === "recent_restock" && !(p.recent_restock_24h ?? isRecentRestock(p))) return false;
     if (q && !normalizeSearch(p.name).includes(q)) return false;
     return true;
@@ -2180,7 +2189,7 @@ function render() {
   const hiddenStock = baseProducts.filter(
     (p) => p.state === "hidden" && Number(p.current_stock) > 0
   ).length;
-  const upcoming = baseProducts.filter((p) => isUpcomingCandidate(p)).length;
+  const upcoming = baseProducts.filter((p) => isUpcomingTabCandidate(p)).length;
 
   if ($("countAvailable")) $("countAvailable").textContent = fmt(available);
   if ($("countAll")) $("countAll").textContent = fmt(baseProducts.length);
@@ -2202,6 +2211,12 @@ function render() {
   })[filter] || "현재";
   $("summary").innerHTML =
     "<span>" + esc(filterLabel) + " <b>" + list.length + "</b>개</span>" +
+    (filter === "upcoming"
+      ? "<span>·</span><span>👀 신상추정 <b>" + fmt(list.filter(isUpcomingCandidate).length) +
+        "</b>개</span><span>·</span><span>🔄 재입고 추정 <b>" +
+        fmt(list.filter((p) => p.state === "hidden" && Number(p.current_stock) > 0 && isLargeExistingRestock(p)).length) +
+        "</b>개</span>"
+      : "") +
     (q ? "<span>·</span><span>검색 결과</span>" : "");
 
   renderCartPreview();
@@ -2233,7 +2248,7 @@ function render() {
     const prepBadge = isUpcomingCandidate(p)
       ? '<div class="prep">👀 미공개 신상추정 · 최근 등록</div>'
       : p.state === "hidden" && Number(p.current_stock) > 0 && isLargeExistingRestock(p)
-        ? '<div class="meta trend up">🔄 기존 상품 재입고 추정 · 최근 +' + fmt(p.last_increase_qty) + '개</div>'
+        ? '<div class="prep restock-prep">🔄 재입고 추정 · 최근 +' + fmt(p.last_increase_qty) + '개</div>'
         : "";
     const etaMinutes = Number(p.estimated_sellout_minutes);
     const eta = Number.isFinite(etaMinutes) && etaMinutes > 0 && etaMinutes <= 720
