@@ -67,9 +67,9 @@ button:disabled{opacity:.5}.event{padding:12px 0;border-top:1px solid #eeeaf3}.e
 <p class="hint">회원가입 성공·카드결제 승인·순번 자동 등록은 이 화면에서 시험하지 않아. 해당 기능의 코드·안내 변화만 별도로 기록해.</p>
 </section>
 <section class="card" aria-labelledby="importantTitle">
-<div class="headrow"><h2 id="importantTitle">🔔 새 홈페이지 LIVE·주문 ON 이력</h2><span class="pill">최근 20건</span></div>
+<div class="headrow"><h2 id="importantTitle">🔔 방송 OFF · 주문 접수 변화 이력</h2><span class="pill">최근 20건</span></div>
 <div id="importantEvents" aria-live="polite"><div class="empty">조회 중…</div></div>
-<p class="hint">새 홈페이지가 LIVE 상태를 OFF→ON으로 표시하거나 공개 주문 접수가 OFF→ON으로 바뀌었을 때만 전용 토픽으로 각각 알림을 보내. 실제 유튜브 LIVE 검증·주문 성공 여부와는 별개야.</p>
+<p class="hint">새 홈페이지의 LIVE 표시가 ON→OFF로 바뀔 때 방송 종료 추정 알림을 보내. 방송 시작 알림은 보내지 않아. 주문 접수 시작·마감 알림은 계속 유지해. 홈페이지 표시와 실제 유튜브 방송 종료는 다를 수 있어.</p>
 </section>
 <section class="card" aria-labelledby="eventTitle">
 <details class="tech-details">
@@ -80,7 +80,7 @@ button:disabled{opacity:.5}.event{padding:12px 0;border-top:1px solid #eeeaf3}.e
 </section>
 <section class="card">
 <h2>알림 기준</h2>
-<p class="hint">기존 인형 알림(신상품·품절·숨김·재입고, 사진·가격·정확한 재고)은 그대로 유지해. 새 홈페이지 전용 푸시는 베베픽/플러스별 LIVE 표시 ON과 주문 접수 ON만 보낼게. OFF 및 상품 변화는 기록으로만 남겨.</p>
+<p class="hint">기존 인형 알림(신상품·품절·숨김·재입고, 사진·가격·정확한 재고)은 그대로 유지해. 새 홈페이지 전용 푸시는 베베픽/플러스별 LIVE 표시 OFF와 주문 접수 시작·마감만 보내. LIVE ON은 이력만 남기고 상품 변화는 푸시하지 않아.</p>
 <p class="hint">TEST 표시 제거, 결제·주문 코드 표식, 회원가입 제한 설정 변경은 모두 이력으로 추적해. <b>회원가입 해제 여부는 공개 인증 서버의 설정 변경으로 판단하지만 별도의 휴대폰 푸시는 보내지 않아.</b></p>
 <p class="hint">처음 확인했을 때는 기준값만 저장하며 알림을 보내지 않아. 회원가입 가능 여부, 실제 결제 성공, 로그인 뒤 상품·가격은 공개 코드만으로 단정하지 않아.</p>
 <p class="hint">전체 감시와 푸시 알림은 서버에서 따로 켜고 끌 수 있어. 이 화면은 읽기 전용이라 다른 방문자가 설정을 바꿀 수 없어.</p>
@@ -154,7 +154,7 @@ function renderPublicSignals(s){
 function render(data){
   $("mode").className="pill"+(data.enabled?"":" wait");
   $("mode").textContent=data.enabled?"감시 ON":"감시 OFF";
-  $("summary").textContent=data.enabled?(data.notify_enabled?"새 홈페이지 LIVE ON·주문 ON만 전용 ntfy 알림 · 토픽 구독은 선택 사항":"감시는 켜짐 · ntfy 알림 OFF"):"감시가 일시 중단돼 있어";
+  $("summary").textContent=data.enabled?(data.notify_enabled?"방송 LIVE 표시 OFF · 주문 접수 시작/마감만 전용 ntfy 알림 · 시작 알림 OFF":"감시는 켜짐 · ntfy 알림 OFF"):"감시가 일시 중단돼 있어";
   const stores=$("stores");stores.replaceChildren();
   for(const store of ["live","plus"]){
     const s=(data.stores||[]).find(x=>x.store===store)||{};

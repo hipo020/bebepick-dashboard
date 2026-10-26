@@ -69,6 +69,8 @@
     .queue-links{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
     .queue-link{display:inline-flex;align-items:center;gap:4px;padding:5px 8px;border:1px solid #d7e8dc;border-radius:999px;background:#f4fbf6;color:#237a3b;text-decoration:none;font-size:10.5px;font-weight:750}
     .queue-link:active{transform:scale(.98)}
+    .queue-tail{font-size:10px;line-height:1.35;opacity:.92;font-weight:650}
+    .queue-tail.wait{opacity:.75;font-weight:500}
     .my-queue.on{color:#7a4b00;font-weight:750}
     .my-queue.turn{color:#c62828;font-weight:800}
     .thumb,.ph{width:82px;height:82px;border-radius:12px;background:#f3eee9}
@@ -1117,6 +1119,54 @@ function broadcastLabel(slug) {
   })[String(slug || "")] || String(slug || "방송");
 }
 
+// Compact, conservative tail estimate on the existing queue-summary response.
+ // Never mistake a user-specific ETA for the time to the last position.
+ // Recorded current_idx is zero-based; last position is one-based.
+function queueTailInfo(row, summary, nowMs = Date.now()) {
+  let data = row?.queue_data;
+  if (typeof data === "string") {
+    try { data = JSON.parse(data); } catch { data = null; }
+  }
+  const fromOfficial = Array.isArray(data) ? data.length : null;
+  const fromSummary = Number(summary?.queue_length);
+  const total = fromOfficial !== null ? fromOfficial
+    : (Number.isSafeInteger(fromSummary) && fromSummary > 0 ? fromSummary : null);
+  if (!Number.isSafeInteger(total) || total <= 0) return {last:null,remainingMinutes:null,kind:"unknown"};
+  const current = Number(row?.current_idx);
+  if (row?.current_idx === null || row?.current_idx === undefined ||
+      !Number.isSafeInteger(current) || current < 0) {
+    return {last:total,remainingMinutes:null,kind:"not_started"};
+  }
+  if (current >= total - 1) return {last:total,remainingMinutes:null,kind:"last_turn"};
+  const sameBroadcast = Number(summary?.broadcast_id) === Number(row?.broadcast_id) &&
+    String(summary?.channel_slug) === String(row?.channel_slug);
+  const summaryTotal = Number(summary?.queue_length);
+  const summaryIndex = Number(summary?.current_idx);
+  const seconds = Number(summary?.seconds_per_person);
+  const observed = Date.parse(String(summary?.observed_at || ""));
+  // No estimate when the summary is old, has changed position or
+  // mismatches the exact official queue size. Do not invent a speed.
+  if (!sameBroadcast || summaryTotal !== total || summaryIndex !== current ||
+      !Number.isFinite(observed) || observed > nowMs + 60000 ||
+      nowMs - observed > 10 * 60 * 1000 ||
+      !Number.isFinite(seconds) || seconds < 10 || seconds > 4 * 3600) {
+    return {last:total,remainingMinutes:null,kind:"insufficient"};
+  }
+  // "To last position": current in-progress slot plus the remaining slots.
+  const minutes = Math.max(1,Math.round((total - current) * seconds / 60));
+  return {last:total,remainingMinutes:minutes,kind:"estimated"};
+}
+function queueTailLabel(info) {
+  if (info.last === null) return "마지막 순번 확인 중";
+  if (info.kind === "last_turn") return "마지막 " + info.last + "번 · 마지막 순번 진행 중";
+  if (info.kind === "estimated") {
+    const mins = info.remainingMinutes;
+    const duration = mins >= 60 ? Math.floor(mins / 60) + "시간 " + (mins % 60) + "분" : mins + "분";
+    return "마지막 " + info.last + "번 · 끝 순번까지 약 " + duration;
+  }
+  return "마지막 " + info.last + "번 · 남은 시간 계산 대기";
+}
+
 function queuePageUrl(slug) {
   return ({
     bebepick: SHOP_URL + "bebepick_que",
@@ -1176,18 +1226,18 @@ async function refreshBroadcastState() {
   if (!el) return;
 
   try {
-    const [queueRes, etaRes] = await Promise.all([
-      liveSb
-        .from("broadcast_queue")
-        .select("broadcast_id,broadcast_name,channel_slug,status,current_idx,queue_data")
-        .eq("status", "active")
-        .order("broadcast_id"),
-      fetch(EDGE_URL + "?api=queue&_=" + Date.now(), { cache: "no-store" })
-        .then((res) => res.ok ? res.json() : ({ broadcasts: [] }))
-        .catch(() => ({ broadcasts: [] }))
-    ]);
-
+    const queueRes = await liveSb
+      .from("broadcast_queue")
+      .select("broadcast_id,broadcast_name,channel_slug,status,current_idx,queue_data")
+      .eq("status", "active")
+      .order("broadcast_id");
     if (queueRes.error) throw queueRes.error;
+    // Avoid a redundant queue-ETA network request when no broadcast exists.
+    const etaRes = (Array.isArray(queueRes.data) && queueRes.data.length)
+      ? await fetch(EDGE_URL + "?api=queue&_=" + Date.now(), { cache: "no-store" })
+          .then((res) => res.ok ? res.json() : ({ broadcasts: [] }))
+          .catch(() => ({ broadcasts: [] }))
+      : { broadcasts: [] };
 
     const channelPriority = { bebepick: 0, bebepick_plus: 1 };
     const rows = (Array.isArray(queueRes.data) ? [...queueRes.data] : [])
@@ -1221,16 +1271,21 @@ async function refreshBroadcastState() {
         .replace(/^(베플|베베픽 플러스|베베픽\+|베베픽)/, "").trim();
       const description = (broadcastName || "방송") + " 순서표 ↗";
       const channelClass = slug === "bebepick_plus" ? " queue-link-plus" : " queue-link-main";
+      const summary = etaMap.get(Number(row.broadcast_id) + ":" + slug);
+      const tail = queueTailInfo(row, summary);
       return '<a class="queue-link' + channelClass + '" href="' + esc(queuePageUrl(slug)) +
         '" target="_blank" rel="noopener"><span class="queue-name">📋 ' +
         esc(channel) + '</span><span class="queue-description">' +
-        esc(description) + '</span></a>';
+        esc(description) + '</span><span class="queue-tail' +
+        (tail.remainingMinutes === null ? ' wait' : '') + '">' +
+        esc(queueTailLabel(tail)) + '</span></a>';
     });
 
     el.className = "broadcast-state live";
     el.innerHTML =
       "🎥 방송중 · 주문번호 생성 가능" +
-      '<div class="queue-links">' + links.join("") + "</div>";
+      '<div class="queue-links">' + links.join("") + "</div>" +
+      '<div class="queue-tail wait" style="margin-top:6px">※ 끝 순번까지 예상은 최근 관측 속도 기준 · 실제 방송 종료 시각과 다를 수 있어</div>';
 
     if (mine) {
       const nickname=BebepickQueueIdentity.read();

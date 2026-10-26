@@ -6,6 +6,7 @@ on:
       - "queue.html"
       - "queue-estimator.js"
       - "queue-estimator.test.cjs"
+      - "tests/queue-tail-compact.test.cjs"
       - "queue-nickname.js"
       - "queue-nickname.test.cjs"
       - "index.html"
@@ -15,6 +16,7 @@ on:
       - "queue.html"
       - "queue-estimator.js"
       - "queue-estimator.test.cjs"
+      - "tests/queue-tail-compact.test.cjs"
       - "queue-nickname.js"
       - "queue-nickname.test.cjs"
       - "index.html"
@@ -30,7 +32,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Verify queue estimates, saved nickname matching, and read-only UI
-        run: node --test queue-estimator.test.cjs queue-nickname.test.cjs
+        run: node --test queue-estimator.test.cjs queue-nickname.test.cjs tests/queue-tail-compact.test.cjs
       - name: Check production queue API with public anon JWT
         run: |
           python3 - <<'PY'
