@@ -235,3 +235,29 @@ test('PAYAPP homepage preset neither asks for, reads, nor submits credit-card da
  assert.equal(x.nodes.some(n=>n.type==='password'||n.type==='number'),false);
  assert.equal(source.includes('XMLHttpRequest'),false);
 });
+
+test('mobile PAYAPP preset has a clear accessible ON/OFF button when the merchant hides checkboxes',()=>{
+ const x=setup('https://payapp.kr/homepage/index.html');
+ const toggle=x.nodes.find(n=>n.id==='bbpPresetAutoSwitch');
+ const check=x.nodes.find(n=>n.id==='bbpPresetAuto');
+ const save=x.nodes.find(n=>n.id==='bbpPresetSave');
+ assert.ok(toggle);
+ assert.match(source, /@version\\s+0\\.3\\.1/);
+ assert.match(source,/visibility:visible!important/);
+ assert.match(source,/Official PAYAPP CSS may hide native checkbox inputs globally/);
+ assert.equal(check.checked,false);
+ assert.equal(toggle.attrs['aria-pressed'],'false');
+ assert.match(toggle.textContent,/자동 선택 OFF/);
+ toggle.listeners.click();
+ assert.equal(check.checked,true);
+ assert.equal(toggle.attrs['aria-pressed'],'true');
+ assert.match(toggle.textContent,/자동 선택 ON/);
+ assert.equal(x.storage.has('bbp_payapp_auto_route_v1'),false,'pressing toggle alone must not save');
+ save.listeners.click();
+ assert.equal(x.storage.get('bbp_payapp_auto_route_v1'),'on');
+ toggle.listeners.click();
+ assert.equal(check.checked,false);
+ assert.match(toggle.textContent,/자동 선택 OFF/);
+ save.listeners.click();
+ assert.equal(x.storage.has('bbp_payapp_auto_route_v1'),false);
+});
