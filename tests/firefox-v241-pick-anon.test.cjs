@@ -13,7 +13,7 @@ test('Firefox helper has valid JavaScript syntax with all option controls',()=>{
  assert.match(src,/v\.note=pick==='셀러픽'\?\{pick:true\}:null/);
  assert.match(src,/v\.anon=display==='익명'/);
  assert.match(src,/data-pick/);
- assert.match(src,/data-anon/);
+ assert.match(src,/#anonRow/);
 });
 const begin=src.indexOf(' function chosenOrderOptionsSnapshot(){');
 const end=src.indexOf(' function staleOfficialUi(reason){',begin);
@@ -27,6 +27,7 @@ function environment(choice='셀러픽',display='익명',hasPick=true,hasAnon=tr
   const btns=values.map((value,i)=>{
    const attrs={['data-'+attribute]:value,'aria-checked':i===0?'true':'false'};
    const b={attrs,disabled:false,classList:{contains:()=>false},getAttribute:k=>attrs[k]??null,
+    hasAttribute:k=>Object.prototype.hasOwnProperty.call(attrs,k),
     setAttribute:(k,v)=>{attrs[k]=String(v);}};
    b.click=()=>{
     btns.forEach(x=>x.attrs['aria-checked']=x===b?'true':'false');
