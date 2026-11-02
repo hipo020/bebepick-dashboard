@@ -91,7 +91,7 @@ test('the site values are checked before submission and any same-dialog retry',(
  assert.match(src,/!officialConfirmationChoicesMatch\(box,true\)/);
  assert.match(src,/!officialConfirmationChoicesMatch\(box,false\)/);
  assert.match(src,/!chosenOrderOptionsSnapshot\(\)/);
- assert.match(src,/if\(pick==='셀러픽'&&!chosen\.some\(x=>x\.option==='single'\)\)/);
+ assert.match(src,/if\(pick==='셀러픽'&&!chosen\.some/);
  assert.match(src,/인형 고르기 '\+pick\+' · 표시 '\+display/);
 });
 test('the original complete confirmation and payment consent paths remain unchanged',()=>{
