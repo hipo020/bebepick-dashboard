@@ -3,7 +3,7 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const source=fs.readFileSync(path.join(__dirname,'..','bebepick-firefox-payapp-methods.user.js'),'utf8');
 const ctor=()=>({display:'block',visibility:'visible'});
 function setup(url='https://payapp.kr/WEBPAY_INPUT/demo',opts={}){
- const u=new URL(url),buttons=[],storage=opts.sharedStorage||new Map(),nodes=[],timers=[],observers=[];
+ const u=new URL(url),buttons=[],storage=opts.sharedStorage||new Map(),gmStorage=opts.sharedGMStorage||new Map(),nodes=[],timers=[],observers=[];
  if(opts.autoOn)storage.set('bbp_payapp_auto_route_v1','on');
  function el(tag){
   const item={
@@ -29,6 +29,7 @@ function setup(url='https://payapp.kr/WEBPAY_INPUT/demo',opts={}){
  const document={
   body,documentElement:body,createElement:el,hidden:false,
   querySelectorAll:()=>buttons,
+  getElementById:(id)=>id==='CardNo1'&&opts.hasCardField?{}:null,
   addEventListener:(name,fn)=>{docEvents[name]=fn;}
  };
  const window={};window.top=window;window.self=window;
@@ -45,6 +46,8 @@ function setup(url='https://payapp.kr/WEBPAY_INPUT/demo',opts={}){
   location:{hostname:u.hostname,protocol:u.protocol,pathname:u.pathname},
   document,window,getComputedStyle:ctor,
   localStorage:{getItem:k=>storage.get(k)??null,setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)},
+  GM_getValue:(k,fallback)=>gmStorage.has(k)?gmStorage.get(k):fallback,
+  GM_setValue:(k,v)=>gmStorage.set(k,v),
   setTimeout,clearTimeout,MutationObserver,
  };
  vm.runInNewContext(source,context);
@@ -53,7 +56,7 @@ function setup(url='https://payapp.kr/WEBPAY_INPUT/demo',opts={}){
  const go=nodes.find(x=>x.id==='go'),status=nodes.find(x=>x.id==='status');
  function label(text,tag='div'){const x=el(tag);x.textContent=text;buttons.push(x);return x;}
  const autoToggle=nodes.find(x=>x.type==='checkbox');
- return {launcher,panel,select,go,status,storage,label,buttons,nodes,autoToggle,runTimers,mutate,document};
+ return {launcher,panel,select,go,status,storage,gmStorage,label,buttons,nodes,autoToggle,runTimers,mutate,document};
 }
 test('checkout helper launcher is visible away from a right-side floating overlay',()=>{
  assert.match(source,/position:fixed;left:10px;top:68px/);
@@ -63,6 +66,9 @@ test('checkout helper launcher is visible away from a right-side floating overla
 test('userscript is parsed and narrowly restricted to official PAYAPP checkout',()=>{
  assert.doesNotThrow(()=>new vm.Script(source));
  assert.match(source,/\/\/ @match\s+https:\/\/payapp\.kr\/WEBPAY_INPUT\/\*/);
+ assert.ok(source.includes('// @match        https://www.payapp.kr/WEBPAY_INPUT/*'));
+ assert.ok(source.includes('// @match        https://www.payapp.kr/WEBPAY_SCKA1/*'));
+ assert.ok(source.includes('// @match        https://www.payapp.kr/homepage/*'));
  for(const url of ['https://payapp.kr/other','http://payapp.kr/WEBPAY_INPUT/abc','https://notpayapp.kr/WEBPAY_INPUT/abc'])
   assert.equal(setup(url).launcher,undefined);
  assert.ok(setup().launcher);
@@ -138,7 +144,7 @@ test('automation is opt-in and does not navigate payment methods until enabled o
  x.mutate();x.runTimers();
  assert.equal(card.clicked,1,'no repeated click in unchanged stage');
  x.autoToggle.checked=false;x.autoToggle.listeners.change();
- assert.equal(x.storage.has('bbp_payapp_auto_route_v1'),false);
+ assert.equal(x.storage.get('bbp_payapp_auto_route_v1'),'off');
 });
 test('opted-in Firefox payment chooser auto-selects default card route across two SPA stages',()=>{
  const x=setup('https://payapp.kr/WEBPAY_INPUT/demo',{autoOn:true});
@@ -242,7 +248,7 @@ test('mobile PAYAPP preset has a clear accessible ON/OFF button when the merchan
  const check=x.nodes.find(n=>n.id==='bbpPresetAuto');
  const save=x.nodes.find(n=>n.id==='bbpPresetSave');
  assert.ok(toggle);
- assert.ok(source.includes('// @version      0.3.1'));
+ assert.ok(source.includes('// @version      0.3.2'));
  assert.match(source,/visibility:visible!important/);
  assert.match(source,/Official PAYAPP CSS may hide native checkbox inputs globally/);
  assert.equal(check.checked,false);
@@ -259,5 +265,53 @@ test('mobile PAYAPP preset has a clear accessible ON/OFF button when the merchan
  assert.equal(check.checked,false);
  assert.match(toggle.textContent,/자동 선택 OFF/);
  save.listeners.click();
- assert.equal(x.storage.has('bbp_payapp_auto_route_v1'),false);
+ assert.equal(x.storage.get('bbp_payapp_auto_route_v1'),'off');
+});
+
+test('www PAYAPP real checkout shows launcher and SCKA1 step is recognized',()=>{
+ const first=setup('https://www.payapp.kr/WEBPAY_INPUT/example');
+ assert.ok(first.launcher,'www payment checkout must inject');
+ first.launcher.listeners.click();
+ assert.match(first.status.textContent,/전체동의 및 다음을 직접/);
+ const card=setup('https://www.payapp.kr/WEBPAY_SCKA1/example',{hasCardField:true,autoOn:true});
+ assert.ok(card.launcher,'card entry page must also inject');
+ card.launcher.listeners.click();
+ assert.match(card.status.textContent,/카드 입력 화면/);
+ const actualCardPay=card.label('결제','button');
+ card.runTimers();
+ assert.equal(actualCardPay.clicked,undefined,'never click payment or read card fields');
+ assert.equal(setup('https://www.payapp.kr/WEBPAY_CKA/example').launcher,undefined,'POST agreement endpoint is not a UI stage');
+});
+test('PAYAPP auto-ON homepage preset transfers from apex to www without sharing localStorage',()=>{
+ const sharedGMStorage=new Map();
+ const apex=setup('https://payapp.kr/homepage/index.html',{sharedGMStorage});
+ apex.nodes.find(n=>n.id==='bbpPresetAutoSwitch').listeners.click();
+ apex.nodes.find(n=>n.id==='bbpPresetSave').listeners.click();
+ assert.equal(sharedGMStorage.get('bbp_payapp_auto_route_v1'),'on');
+ const real=setup('https://www.payapp.kr/WEBPAY_INPUT/example',{sharedGMStorage});
+ assert.equal(real.autoToggle.checked,true);
+ real.label('결제방식 선택');
+ const card=real.label('신용/체크 카드');
+ real.runTimers();
+ assert.equal(card.clicked,1);
+ assert.equal(real.storage.size,0,'www origin should not need homepage localStorage');
+});
+test('www OFF beats stale apex legacy ON and cannot auto-select a payment method',()=>{
+ const gm=new Map([['bbp_payapp_auto_route_v1','off']]);
+ const old=new Map([['bbp_payapp_auto_route_v1','on']]);
+ const x=setup('https://www.payapp.kr/WEBPAY_INPUT/example',{sharedGMStorage:gm,sharedStorage:old});
+ assert.equal(x.autoToggle.checked,false);
+ x.label('결제방식 선택');
+ const card=x.label('신용/체크 카드');
+ x.runTimers();
+ assert.equal(card.clicked,undefined);
+});
+test('older apex ON preference safely migrates into per-userscript cross-host storage',()=>{
+ const old=new Map([['bbp_payapp_auto_route_v1','on'],['bbp_payapp_method_v1','card']]);
+ const gm=new Map();
+ const page=setup('https://payapp.kr/homepage/index.html',{sharedStorage:old,sharedGMStorage:gm});
+ assert.ok(page.nodes.find(n=>n.id==='bbpPresetAutoSwitch'));
+ assert.equal(gm.get('bbp_payapp_auto_route_v1'),'on');
+ const real=setup('https://www.payapp.kr/WEBPAY_INPUT/example',{sharedGMStorage:gm});
+ assert.equal(real.autoToggle.checked,true);
 });

@@ -1,22 +1,28 @@
 // ==UserScript==
 // @name         베베픽 · PAYAPP 결제수단 선택 도우미 (카드입력 기본)
 // @namespace    https://hipo020.github.io/bebepick-dashboard/
-// @version      0.3.1
+// @version      0.3.2
 // @description  PAYAPP 결제수단 자동 선택은 사전 동의한 경우에만. 약관·카드정보·인증·결제 승인은 수동.
 // @match        https://payapp.kr/WEBPAY_INPUT/*
+// @match        https://www.payapp.kr/WEBPAY_INPUT/*
+// @match        https://payapp.kr/WEBPAY_SCKA1/*
+// @match        https://www.payapp.kr/WEBPAY_SCKA1/*
 // @match        https://payapp.kr/homepage/*
+// @match        https://www.payapp.kr/homepage/*
 // @run-at       document-idle
 // @noframes
-// @grant        none
+// @grant        GM_getValue
+// @grant        GM_setValue
 // @downloadURL  https://hipo020.github.io/bebepick-dashboard/bebepick-firefox-payapp-methods.user.js
 // @updateURL    https://hipo020.github.io/bebepick-dashboard/bebepick-firefox-payapp-methods.user.js
 // ==/UserScript==
 
 (function(){
  'use strict';
- const checkout=/^\/WEBPAY_INPUT\//.test(location.pathname);
+ const checkout=/^\/WEBPAY_(?:INPUT|SCKA1)\//.test(location.pathname);
  const presetPage=/^\/homepage\//.test(location.pathname);
- if(location.protocol!=='https:'||location.hostname!=='payapp.kr'||
+ if(location.protocol!=='https:'||
+    !['payapp.kr','www.payapp.kr'].includes(location.hostname)||
     (!checkout&&!presetPage)||window.top!==window.self)return;
 
  // No card information, passwords, identity data, PINs, CVC, page URLs or
@@ -36,22 +42,48 @@
   {id:'bank',name:'계좌이체',route:['계좌이체']}
  ];
  const norm=s=>String(s||'').normalize('NFKC').replace(/\s+/g,'').toLocaleLowerCase();
- const stored=()=>{try{const id=localStorage.getItem(PREF_KEY);return choices.some(x=>x.id===id)?id:'card';}catch{return 'card';}};
- const save=id=>{try{localStorage.setItem(PREF_KEY,id);}catch{/* private mode */}};
+ // PAYAPP uses BOTH payapp.kr and www.payapp.kr. These are different
+ // localStorage origins. Tampermonkey's per-script GM storage bridges them.
+ // Import an older preference only when there is no saved GM preference yet.
+ const hasGM=typeof GM_getValue==='function'&&typeof GM_setValue==='function';
+ const readSetting=key=>{
+  if(hasGM){
+   try{
+    const existing=GM_getValue(key,null);
+    if(existing!==null&&existing!==undefined)return String(existing);
+   }catch{}
+  }
+  try{
+   const legacy=localStorage.getItem(key);
+   if(legacy!==null){
+    if(hasGM){try{GM_setValue(key,legacy);}catch{}}
+    return legacy;
+   }
+  }catch{}
+  return null;
+ };
+ const writeSetting=(key,value)=>{
+  if(hasGM)GM_setValue(key,value);
+  try{localStorage.setItem(key,value);}catch{}
+ };
+ const stored=()=>{const id=readSetting(PREF_KEY);return choices.some(x=>x.id===id)?id:'card';};
+ const save=id=>{try{writeSetting(PREF_KEY,id);}catch{/* keep checkout read-only */}};
  let chosen=stored(), lastActionStage='',lastActionMode='';
- // Explicit one-time opt in persists on the PAYAPP origin. Default is OFF.
- // Never apply saved mode to a checkout until the user enables auto navigation.
- const readAuto=()=>{try{return localStorage.getItem(AUTO_KEY)==='on';}catch{return false;}};
+ // Explicit opt-in; the OFF state must override an older ON saved under
+ // the other hostname. Only payment-method navigation is automated.
+ const readAuto=()=>readSetting(AUTO_KEY)==='on';
+ const saveAuto=on=>{
+  try{writeSetting(AUTO_KEY,on?'on':'off');return readAuto()===on;}catch{return false;}
+ };
  let autoNavigate=readAuto(),autoTimer=null;
- // The official PAYAPP home (/homepage/) and checkout (/WEBPAY_INPUT/)
- // share payapp.kr localStorage. Configure method preference in advance.
- // No checkout or payment request is created by visiting the homepage.
+ // Home and checkout share the Tampermonkey preference even across the
+ // apex/www hostname difference. Opening homepage creates no checkout.
  if(presetPage){
   const box=document.createElement('section');
   box.id='bbpPayappPresetPanel';
   box.style.cssText='position:fixed;left:10px;top:76px;z-index:2147483646;width:min(310px,calc(100vw - 20px));background:#fff;color:#352941;border:2px solid #cab4e7;border-radius:16px;padding:15px;box-shadow:0 6px 24px #0003;font:13px/1.55 system-ui,sans-serif';
   const title=document.createElement('h2');title.textContent='💳 베베픽 PAYAPP 사전 설정';title.style.cssText='margin:0 0 7px;font-size:16px';
-  const intro=document.createElement('p');intro.textContent='주문이 닫혀 있어도 결제 경로를 미리 설정할 수 있어. 카드번호 직접입력이 기본값이야.';
+  const intro=document.createElement('p');intro.textContent='주문이 닫혀 있어도 결제 경로를 미리 설정할 수 있어. 카드번호 직접입력이 기본값이야. 실제 PAYAPP 결제창은 www 주소를 사용해도 설정이 이어져.';
   const label=document.createElement('label');label.textContent='선호 결제수단';
   const method=document.createElement('select');method.id='bbpPresetMethod';
   method.style.cssText='display:block;width:100%;padding:10px;margin:6px 0;border:1px solid #ccb6dc;border-radius:9px;background:#fff;color:#333;font:inherit';
@@ -96,10 +128,8 @@
   saveButton.addEventListener('click',()=>{
    if(!choices.some(c=>c.id===method.value)){state.textContent='지원하지 않는 결제수단이야.';return;}
    try{
-    localStorage.setItem(PREF_KEY,method.value);
-    if(auto.checked)localStorage.setItem(AUTO_KEY,'on');
-    else localStorage.removeItem(AUTO_KEY);
-    if(localStorage.getItem(PREF_KEY)!==method.value||readAuto()!==!!auto.checked)
+    writeSetting(PREF_KEY,method.value);
+    if(!saveAuto(!!auto.checked)||readSetting(PREF_KEY)!==method.value)
      throw Error('저장 확인 실패');
     chosen=method.value;autoNavigate=!!auto.checked;
     state.textContent='✅ 사전 설정 저장 완료 · '+choices.find(c=>c.id===chosen).name+' · 자동 선택 '+(autoNavigate?'ON':'OFF');
@@ -119,7 +149,7 @@
  const panel=document.createElement('section');panel.id='panel';panel.hidden=true;panel.setAttribute('aria-label','결제수단 선택 보조 도구');
  const close=document.createElement('button');close.type='button';close.id='close';close.textContent='닫기';
  const title=document.createElement('h2');title.textContent='결제수단 선택 도우미';
- const desc=document.createElement('p');desc.textContent='카드번호 직접입력이 기본이야. 약관 동의 후 결제수단을 자동 선택하려면 아래를 처음 한 번 켜줘. 카드정보·인증·최종 결제는 직접 진행해.';
+ const desc=document.createElement('p');desc.textContent='자동 선택 ON은 결제수단 버튼만 선택해. 첫 화면의 전체동의와 다음 버튼, 카드 입력·인증·최종 결제는 직접 진행해. 일부 PAYAPP 결제는 약관 다음에 곧바로 카드 입력 화면으로 이동할 수 있어.';
  const autoLabel=document.createElement('label');
  autoLabel.style.cssText='display:flex;gap:8px;align-items:center;background:#f4f0fb;padding:9px;border-radius:9px;font-size:12px;font-weight:650';
  const autoToggle=document.createElement('input');autoToggle.type='checkbox';autoToggle.checked=autoNavigate;
@@ -143,8 +173,12 @@
  });
  autoToggle.addEventListener('change',()=>{
   autoNavigate=!!autoToggle.checked;
-  try{if(autoNavigate)localStorage.setItem(AUTO_KEY,'on');else localStorage.removeItem(AUTO_KEY);}catch{}
-  status.textContent=autoNavigate?'✅ 자동 경로 선택 ON · 공식 약관/결제/인증 버튼은 누르지 않아.':'자동 경로 선택 OFF · 화면에서 직접 선택해 줘.';
+  if(!saveAuto(autoNavigate)){
+   autoNavigate=readAuto();autoToggle.checked=autoNavigate;
+   status.textContent='⚠ 설정 저장을 확인하지 못했어. Tampermonkey 권한을 확인해 줘.';
+   return;
+  }
+  status.textContent=autoNavigate?'✅ 자동 경로 선택 ON · 약관 동의/다음/결제 승인은 직접 눌러줘.':'자동 경로 선택 OFF · 화면에서 직접 선택해 줘.';
   if(autoNavigate)scheduleAuto();
   else if(autoTimer!==null){clearTimeout(autoTimer);autoTimer=null;}
  });
@@ -173,6 +207,10 @@
    .filter(el=>visible(el)&&!el.closest('#bbpPayappMethodHelper'));
  }
  function stage(){
+  // Identify only the existence of fields; never inspect card numbers/values.
+  if(/^\/WEBPAY_SCKA1\//.test(location.pathname)&&
+     typeof document.getElementById==='function'&&document.getElementById('CardNo1'))
+   return 'card_form';
   const labels=new Set(staticNodes().map(labelOf).map(norm).filter(Boolean));
   if(labels.has(norm('결제방식 선택')))return 'method';
   if(labels.has(norm('결제카드 선택')))return 'card_method';
@@ -184,6 +222,8 @@
   if(which==='method')return '결제방식 선택 화면 · '+c.name+' 경로를 선택할 수 있어.';
   if(which==='card_method')return c.sub?'카드결제 세부방식 선택 화면 · '+(chosen==='card'?'카드번호 직접입력':'ISP/안심클릭')+'을 선택해 줘.':'카드 세부방식 화면이야. 직접 확인해 줘.';
   if(which==='card_form')return '카드 입력 화면이야. Firefox 자체 자동완성 또는 직접 입력 후 최종 결제는 본인이 해 줘.';
+  if(/^\/WEBPAY_INPUT\//.test(location.pathname))
+   return '첫 단계는 전체동의 및 다음을 직접 눌러야 해. 이후 결제방식 화면에서 자동 선택을 시도해.';
   return '약관/인증/결제 단계일 수 있어. 공식 화면을 직접 확인해 줘.';
  }
  function findUnique(aliases){
