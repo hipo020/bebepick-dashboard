@@ -118,7 +118,7 @@ test('does not auto-check terms, enter sensitive payment fields, or approve paym
  assert.equal(finish.clicked,undefined);
  assert.match(x.status.textContent,/자동으로 진행하지 않아/);
  assert.equal(source.includes('XMLHttpRequest'),false);
- assert.doesNotMatch(source,/document\.querySelectorAll\([^\n]*input/);
+ assert.doesNotMatch(source,/\.value\s*=\s*.*(?:CardNo|CVC|PIN|비밀번호)/i,'never autofill sensitive card data');
 });
 test('ambiguous matching labels fail closed and do not click anything',()=>{
  const x=setup();
@@ -248,7 +248,7 @@ test('mobile PAYAPP preset has a clear accessible ON/OFF button when the merchan
  const check=x.nodes.find(n=>n.id==='bbpPresetAuto');
  const save=x.nodes.find(n=>n.id==='bbpPresetSave');
  assert.ok(toggle);
- assert.ok(source.includes('// @version      0.3.2'));
+ assert.ok(source.includes('// @version      0.4.0'));
  assert.match(source,/visibility:visible!important/);
  assert.match(source,/Official PAYAPP CSS may hide native checkbox inputs globally/);
  assert.equal(check.checked,false);
@@ -272,7 +272,7 @@ test('www PAYAPP real checkout shows launcher and SCKA1 step is recognized',()=>
  const first=setup('https://www.payapp.kr/WEBPAY_INPUT/example');
  assert.ok(first.launcher,'www payment checkout must inject');
  first.launcher.listeners.click();
- assert.match(first.status.textContent,/전체동의 및 다음을 직접/);
+ assert.match(first.status.textContent,/약관 자동 OFF/);
  const card=setup('https://www.payapp.kr/WEBPAY_SCKA1/example',{hasCardField:true,autoOn:true});
  assert.ok(card.launcher,'card entry page must also inject');
  card.launcher.listeners.click();
@@ -314,4 +314,120 @@ test('older apex ON preference safely migrates into per-userscript cross-host st
  assert.equal(gm.get('bbp_payapp_auto_route_v1'),'on');
  const real=setup('https://www.payapp.kr/WEBPAY_INPUT/example',{sharedGMStorage:gm});
  assert.equal(real.autoToggle.checked,true);
+});
+
+
+test('the first PAYAPP agreement screen exposes one clear explicit consent-and-next button',()=>{
+ const x=setup('https://www.payapp.kr/WEBPAY_INPUT/checkout');
+ const quick=x.nodes.find(n=>n.id==='termsNext');
+ assert.ok(quick);
+ assert.equal(quick.hidden,false);
+ assert.match(quick.textContent,/약관 읽고 동의 → 다음/);
+ assert.equal(quick.attrs['aria-label'],'약관을 읽고 동의하며 다음으로 이동');
+ assert.ok(source.includes('// @version      0.4.0'));
+ const card=setup('https://www.payapp.kr/WEBPAY_SCKA1/card',{hasCardField:true});
+ assert.equal(card.nodes.find(n=>n.id==='termsNext').hidden,true,'the agreement button is never available on card input screen');
+});
+test('one explicit tap triggers one official agreement and next, never on page load',()=>{
+ const x=setup('https://www.payapp.kr/WEBPAY_INPUT/test',{autoOn:true});
+ const quick=x.nodes.find(n=>n.id==='termsNext');
+ const agree=x.label('전체동의','div');
+ x.label('전자금융거래 이용약관');
+ x.label('개인정보 처리방침 동의');
+ const next=x.label('다음','button');
+ const pay=x.label('결제','button');
+ x.runTimers();
+ assert.equal(agree.clicked,undefined,'opted-in payment method selection must not imply financial terms consent');
+ assert.equal(next.clicked,undefined);
+ quick.listeners.click();
+ assert.equal(agree.clicked,1);
+ assert.equal(next.clicked,undefined,'submit must follow the official checkbox handler');
+ x.runTimers();
+ assert.equal(next.clicked,1);
+ assert.equal(pay.clicked,undefined);
+ quick.listeners.click();
+ x.runTimers();
+ assert.equal(agree.clicked,1,'never double-click a legal agreement');
+ assert.equal(next.clicked,1,'never submit the same agreement twice');
+});
+test('a missing or ambiguous PAYAPP agreement or Next button fails safely',()=>{
+ for(const option of ['missing-terms','two-next','no-official-label']){
+  const x=setup('https://www.payapp.kr/WEBPAY_INPUT/test');
+  const quick=x.nodes.find(n=>n.id==='termsNext');
+  const agree=x.label('전체동의');
+  if(option!=='no-official-label'){
+   x.label('전자금융거래 이용약관');x.label('개인정보 처리방침 동의');
+  }
+  const next=x.label('다음','button');
+  if(option==='two-next')x.label('다음','button');
+  if(option==='missing-terms')x.buttons.splice(x.buttons.indexOf(agree),1);
+  quick.listeners.click();x.runTimers();
+  assert.equal(next.clicked,undefined);
+  assert.match(quick.textContent,/⚠/);
+ }
+});
+test('explicit consent helper never triggers on the saved homepage, on unknown or non-HTTPS pages',()=>{
+ assert.equal(setup('https://payapp.kr/homepage/index.html').nodes.some(n=>n.id==='termsNext'),false);
+ assert.equal(setup('https://www.payapp.kr/WEBPAY_CKA/test').nodes.some(n=>n.id==='termsNext'),false);
+ assert.equal(setup('http://www.payapp.kr/WEBPAY_INPUT/test').nodes.some(n=>n.id==='termsNext'),false);
+});
+
+test('terms auto is OFF by default, independent from payment method auto-ON',()=>{
+ const g=new Map([['bbp_payapp_auto_route_v1','on']]);
+ const p=setup('https://www.payapp.kr/WEBPAY_INPUT/order',{sharedGMStorage:g});
+ const agree=p.label('전체동의'),next=p.label('다음','button');
+ p.label('전자금융거래 이용약관');p.label('개인정보 처리방침 동의');
+ p.runTimers();
+ assert.equal(agree.clicked,undefined);assert.equal(next.clicked,undefined);
+ assert.equal(g.has('bbp_payapp_auto_terms_v1'),false);
+});
+test('one-time opt-in on homepage causes automatic agreement and Next on a later www checkout',()=>{
+ const gm=new Map();
+ const home=setup('https://payapp.kr/homepage/index.html',{sharedGMStorage:gm});
+ const consent=home.nodes.find(n=>n.id==='bbpPresetTermsAuto');
+ const save=home.nodes.find(n=>n.id==='bbpPresetSave');
+ assert.ok(consent);
+ assert.equal(consent.attrs['aria-pressed'],'false');
+ consent.listeners.click();
+ assert.equal(consent.attrs['aria-pressed'],'true');
+ assert.equal(gm.has('bbp_payapp_auto_terms_v1'),false,'editing choice does not automatically save');
+ save.listeners.click();
+ assert.equal(gm.get('bbp_payapp_auto_terms_v1'),'on');
+ const p=setup('https://www.payapp.kr/WEBPAY_INPUT/order',{sharedGMStorage:gm});
+ const agree=p.label('전체동의'),next=p.label('다음','button');
+ p.label('전자금융거래 이용약관');p.label('개인정보 처리방침 동의');
+ const pay=p.label('결제','button');
+ p.runTimers();
+ assert.equal(agree.clicked,1);
+ assert.equal(next.clicked,1);
+ assert.equal(pay.clicked,undefined);
+ p.mutate();p.runTimers();
+ assert.equal(agree.clicked,1);
+ assert.equal(next.clicked,1);
+});
+test('auto terms refuses unknown terms, missing Next and card entry / unknown URLs',()=>{
+ const gm=new Map([['bbp_payapp_auto_terms_v1','on']]);
+ const p=setup('https://www.payapp.kr/WEBPAY_INPUT/order',{sharedGMStorage:gm});
+ const agree=p.label('전체동의'),next=p.label('다음','button');
+ p.label('전자금융거래 이용약관');
+ p.label('새로운 개인정보 약관'); // not the recognized standard label
+ p.runTimers();
+ assert.equal(agree.clicked,undefined);assert.equal(next.clicked,undefined);
+ const x=setup('https://www.payapp.kr/WEBPAY_SCKA1/order',{sharedGMStorage:gm,hasCardField:true});
+ const pay=x.label('결제','button');
+ x.runTimers();
+ assert.equal(pay.clicked,undefined);
+});
+test('turning auto terms OFF prevents future automatic agreement despite stale origin setting',()=>{
+ const gm=new Map([['bbp_payapp_auto_terms_v1','on']]);
+ const home=setup('https://payapp.kr/homepage/index.html',{sharedGMStorage:gm});
+ const consent=home.nodes.find(n=>n.id==='bbpPresetTermsAuto');
+ assert.equal(consent.attrs['aria-pressed'],'true');
+ consent.listeners.click();home.nodes.find(n=>n.id==='bbpPresetSave').listeners.click();
+ assert.equal(gm.get('bbp_payapp_auto_terms_v1'),'off');
+ const p=setup('https://www.payapp.kr/WEBPAY_INPUT/order',{sharedGMStorage:gm,sharedStorage:new Map([['bbp_payapp_auto_terms_v1','on']])});
+ const agree=p.label('전체동의'),next=p.label('다음','button');
+ p.label('전자금융거래 이용약관');p.label('개인정보 처리방침 동의');
+ p.runTimers();
+ assert.equal(agree.clicked,undefined);assert.equal(next.clicked,undefined);
 });
