@@ -248,7 +248,7 @@ test('mobile PAYAPP preset has a clear accessible ON/OFF button when the merchan
  const check=x.nodes.find(n=>n.id==='bbpPresetAuto');
  const save=x.nodes.find(n=>n.id==='bbpPresetSave');
  assert.ok(toggle);
- assert.ok(source.includes('// @version      0.3.2'));
+ assert.ok(source.includes('// @version      0.3.3'));
  assert.match(source,/visibility:visible!important/);
  assert.match(source,/Official PAYAPP CSS may hide native checkbox inputs globally/);
  assert.equal(check.checked,false);
@@ -324,7 +324,7 @@ test('the first PAYAPP agreement screen exposes one clear explicit consent-and-n
  assert.equal(quick.hidden,false);
  assert.match(quick.textContent,/약관 읽고 동의 → 다음/);
  assert.equal(quick.attrs['aria-label'],'약관을 읽고 동의하며 다음으로 이동');
- assert.match(source, /@version\\s+0\\.3\\.3/);
+ assert.ok(source.includes('// @version      0.3.3'));
  const card=setup('https://www.payapp.kr/WEBPAY_SCKA1/card',{hasCardField:true});
  assert.equal(card.nodes.find(n=>n.id==='termsNext').hidden,true,'the agreement button is never available on card input screen');
 });
