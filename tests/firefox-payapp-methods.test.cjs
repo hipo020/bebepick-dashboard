@@ -242,7 +242,7 @@ test('mobile PAYAPP preset has a clear accessible ON/OFF button when the merchan
  const check=x.nodes.find(n=>n.id==='bbpPresetAuto');
  const save=x.nodes.find(n=>n.id==='bbpPresetSave');
  assert.ok(toggle);
- assert.match(source, /@version\\s+0\\.3\\.1/);
+ assert.ok(source.includes('// @version      0.3.1'));
  assert.match(source,/visibility:visible!important/);
  assert.match(source,/Official PAYAPP CSS may hide native checkbox inputs globally/);
  assert.equal(check.checked,false);
