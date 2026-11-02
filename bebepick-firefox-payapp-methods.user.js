@@ -216,8 +216,8 @@
   else if(autoTimer!==null){clearTimeout(autoTimer);autoTimer=null;}
  });
 
- // Explicit per-order agreement helper (never runs on load or a saved
- // preference). It triggers only the real site's own agreement + Next controls.
+ // Optional preauthorized agreement helper acts only on recognized PAYAPP
+ // agreement screens; manual one-tap is always available if it is OFF.
  // Never bypass form validation, and never calls an endpoint directly.
  let termsNextUsed=false;
  const agreementLabel=el=>norm((el&&el.textContent)||'');
@@ -239,37 +239,51 @@
   termsQuick.textContent='⚠ '+reason;
   status.textContent=reason+' · 공식 PAYAPP 화면에서 직접 진행해 줘.';
  }
- termsQuick.addEventListener('click',()=>{
-  if(termsNextUsed||!/^\/WEBPAY_INPUT\//.test(location.pathname))return;
+ function processOfficialTerms(isAutomatic){
+  if(termsNextUsed||!/^\/WEBPAY_INPUT\//.test(location.pathname)||document.hidden)return false;
+  if(isAutomatic&&!autoTerms)return false;
   const labels=staticNodes().map(n=>norm(labelOf(n))).filter(Boolean);
-  if(!['전자금융거래','개인정보','전체동의'].every(word=>
-      labels.some(label=>label.includes(norm(word))))){
-   termsFailure('공식 약관 문구 확인 필요');return;
+  // Match only this familiar PAYAPP agreement screen. We can recognize
+  // visible headings, not whether legal contents behind links have changed.
+  if(!['전자금융거래 이용약관','개인정보 처리방침 동의','전체동의'].every(word=>
+      labels.some(label=>label===norm(word)))){
+   if(!isAutomatic)termsFailure('공식 약관 문구 확인 필요');
+   return false;
   }
   const agree=exactAgree(),next=exactNext();
   if(!agree||!next||next.disabled||next.getAttribute('aria-disabled')==='true'){
-   termsFailure('전체동의/다음 버튼 확인 필요');return;
+   if(!isAutomatic)termsFailure('전체동의/다음 버튼 확인 필요');
+   return false;
   }
-  // One tap on this clearly labelled button is the user's consent for THIS
-  // checkout only. If the official site is already fully agreed, do not
-  // toggle it back off; otherwise click the site's actual agreement element.
+  // Explicitly preauthorized, never from "payment method auto" alone.
+  // This block only operates PAYAPP's own DOM, not direct network calls.
   termsNextUsed=true;termsQuick.disabled=true;
-  termsQuick.textContent='⏳ 공식 약관 동의 확인 중';
+  termsQuick.textContent='⏳ 공식 약관 동의 처리 중';
   const inputs=Array.from(document.querySelectorAll('input[type="checkbox"]'));
   const alreadyAgreed=inputs.length>=2&&inputs.every(n=>n.checked===true);
-  try{if(!alreadyAgreed)agree.click();}catch{termsFailure('전체동의 선택 실패');return;}
+  try{if(!alreadyAgreed)agree.click();}
+  catch{termsFailure('전체동의 선택 실패');return false;}
   setTimeout(()=>{
-   if(!/^\/WEBPAY_INPUT\//.test(location.pathname))return;
+   if(!/^\/WEBPAY_INPUT\//.test(location.pathname)||document.hidden)return;
    const button=exactNext();
    if(!button||button.disabled||button.getAttribute('aria-disabled')==='true'){
     termsFailure('다음 버튼 활성 확인 필요');return;
    }
-   // Let the official PAYAPP page validate its own agreed state. Never
-   // retry a potentially submitted form, even if navigation is slow.
+   // PAYAPP validates agreements; do not retry submission after any click.
    try{button.click();termsQuick.textContent='✅ 다음 단계 이동 요청됨';}
    catch{termsFailure('다음 단계 이동 확인 필요');}
-  },90);
- });
+  },150);
+  return true;
+ }
+ termsQuick.addEventListener('click',()=>processOfficialTerms(false));
+ function scheduleTermsAuto(){
+  if(!autoTerms||termsNextUsed||termsAutoTimer!==null||document.hidden||
+     !/^\/WEBPAY_INPUT\//.test(location.pathname))return;
+  termsAutoTimer=setTimeout(()=>{
+   termsAutoTimer=null;
+   processOfficialTerms(true);
+  },220);
+ }
  // Inspect ONLY visible, static navigation labels and image alt text.
  // In particular: never read form input values or card-field contents.
  function visible(node){
@@ -310,7 +324,7 @@
   if(which==='card_method')return c.sub?'카드결제 세부방식 선택 화면 · '+(chosen==='card'?'카드번호 직접입력':'ISP/안심클릭')+'을 선택해 줘.':'카드 세부방식 화면이야. 직접 확인해 줘.';
   if(which==='card_form')return '카드 입력 화면이야. Firefox 자체 자동완성 또는 직접 입력 후 최종 결제는 본인이 해 줘.';
   if(/^\/WEBPAY_INPUT\//.test(location.pathname))
-   return '첫 단계는 전체동의 및 다음을 직접 눌러야 해. 이후 결제방식 화면에서 자동 선택을 시도해.';
+   return autoTerms?'약관 자동 진행 ON · 공식 동의 화면을 확인하고 있어.':'약관 자동 OFF · 화면의 약관 동의→다음 버튼이나 공식 버튼으로 진행해 줘.';
   return '약관/인증/결제 단계일 수 있어. 공식 화면을 직접 확인해 줘.';
  }
  function findUnique(aliases){
@@ -358,18 +372,18 @@
 
  // A PAYAPP checkout can be an SPA. Once the user enables auto selection,
  // observe route-screen changes and select only the known safe payment tiles.
- // Do not open the helper panel, auto-agree to terms, or approve a payment.
+ // Do not open the helper panel, read card data, or approve any payment.
  function scheduleAuto(){
   if(!autoNavigate||autoTimer!==null||document.hidden)return;
   autoTimer=setTimeout(()=>{autoTimer=null;navigateCurrentStep(true);},60);
  }
  if(typeof MutationObserver==='function'){
-  const observer=new MutationObserver(scheduleAuto);
+  const observer=new MutationObserver(()=>{scheduleAuto();scheduleTermsAuto();});
   observer.observe(document.body||document.documentElement,{
    childList:true,subtree:true,attributes:true,attributeFilter:['class','style','hidden']
   });
  }
- document.addEventListener('visibilitychange',scheduleAuto);
- window.addEventListener('pageshow',scheduleAuto);
- scheduleAuto();
+ document.addEventListener('visibilitychange',()=>{scheduleAuto();scheduleTermsAuto();});
+ window.addEventListener('pageshow',()=>{scheduleAuto();scheduleTermsAuto();});
+ scheduleAuto();scheduleTermsAuto();
 })();
