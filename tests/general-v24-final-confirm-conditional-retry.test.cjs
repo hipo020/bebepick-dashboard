@@ -22,7 +22,7 @@ function scenario(){
   autoOrder:true,dryRun:false,submitClicked:true,manualSubmitObserved:false,payDone:false,
   document:{hidden:false},open:'개봉',expected:()=>true,
   namedMode:()=>false,lockedCandidateValid:()=>true,
-  matchesStorage:v=>v==='보관',el:()=>box
+  matchesStorage:v=>v==='보관',officialConfirmationChoicesMatch:()=>true,el:()=>box
  };
  const check=new Function('ctx','with(ctx){'+body+'return canRetrySameOfficialDialog;}')(ctx);
  return {ctx,box,ok,all,fs,fo,check:()=>check(box,ok,all)};

@@ -26,6 +26,7 @@ textarea{box-sizing:border-box;width:100%;min-height:105px;border:1px solid #d7c
 <strong>버튼이 안 보일 때:</strong> Firefox 확장 기능 → Tampermonkey → 대시보드에서 <strong>베베픽 v2.4 · Firefox 원터치 실행</strong>이 설치되고 켜져 있는지 먼저 확인해. <strong>PAYAPP 결제수단 선택 도우미와는 별도 설치</strong>야. 베베픽 화면에서는 v1.1.0부터 버튼이 <strong>왼쪽 가운데</strong>에 나타나고, 페이지가 다시 그려져도 버튼을 복구해. 새 버전 설치 후 베베픽 페이지를 다시 열어 줘.
 <p class="muted" style="margin-top:8px">💳 카드결제 시험: Firefox 설정의 ‘결제 수단 저장 및 자동 입력’ 기능이 한국 기기에서 제공된다면 브라우저 자체 보안 저장소로만 설정해. PAYAPP 결제창에서 카드 자동완성/간편결제가 실제로 작동하는지는 별도 확인이 필요해. 우리 스크립트는 카드번호·유효기간·CVC를 읽거나 저장하거나 입력하지 않아. 최종 결제 승인은 직접 진행해.</p>
 </div><div class="note" style="margin-top:14px;border:1px solid #d8e1fb;background:#f2f6ff">
+<strong>🧸 주문 도우미 v2.4.1:</strong> 셀러픽/직접 고르기와 닉네임/익명 설정을 추가했어. 기본은 직접 고르기 + 닉네임이며 계정에 옵션이 없으면 공식 주문창에서 자동 진행을 중단해. 첫 주문 전에 기존 Tampermonkey Firefox 원터치 실행 스크립트를 1.1.1로 업데이트해.<br>
 <strong>💳 Firefox PAYAPP 결제수단 선택 도우미 (선택 설치 · 시험판)</strong><br>
 <strong>✅ 사전 설정 v0.3.0:</strong> 베베픽 주문이 닫혀 있어도, 같은 Firefox에서 먼저 도우미를 설치한 뒤 <a href="https://payapp.kr/homepage/index.html" target="_blank" rel="noopener">PAYAPP 공식 홈페이지의 사전 설정 패널</a>로 들어가. <strong>기본 결제수단: 카드번호 직접입력</strong>을 선택하고 <strong>다음 결제부터 결제수단 경로 자동 선택</strong>을 켠 다음 <strong>설정 저장</strong>을 누르면 돼. PAYAPP 공식 홈페이지와 결제화면은 같은 <code>payapp.kr</code> 도메인이므로 선택값과 ON/OFF만 같은 Firefox 브라우저 저장소에 저장돼. 첫 주문에서도 별도 결제 도우미 열기가 필요 없어. 홈페이지에서 설정 버튼이 나타나지 않으면 Firefox에서 Tampermonkey 스크립트가 v0.3.0으로 업데이트되고 켜져 있는지 확인해.<br>
 기본은 <strong>카드번호 직접입력</strong>이고, ISP/안심클릭·네이버페이·카카오페이·토스페이·스마일페이·페이코·애플페이·계좌이체로 바꿀 수 있어.<br>
@@ -83,7 +84,7 @@ Firefox + Tampermonkey에서 <a href="./bebepick-firefox-payapp-methods.user.js"
  agree.click();if(go())return;
  let n=0;const timer=setInterval(()=>{if(go()||++n>=12)clearInterval(timer)},150);
 }
- const src="https://hipo020.github.io/bebepick-dashboard/bebepick-quick-order-general-v24.js?v=20261025-v24-conditional-700-900-v16";
+ const src="https://hipo020.github.io/bebepick-dashboard/bebepick-quick-order-general-v24.js?v=20261102-v241-pick-anon-v1";
  // Chrome Android bookmark URL: never embed raw line breaks or // comments.
  const compactPayApp=payappTermsNext.toString().replace(/^[ \t]*\/\/[^\r\n]*/gm,'').replace(/\r?\n[ \t]*/g,'');
  // Use a SHORT independent launcher on bebepick.me. Android Chrome often

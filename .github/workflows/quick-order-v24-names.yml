@@ -9,6 +9,7 @@ on:
       - 'bebepick-quick-order-v24-install.html'
       - 'bebepick-firefox-one-tap.user.js'
       - 'tests/firefox-one-tap-launcher.test.cjs'
+      - 'tests/firefox-v241-pick-anon.test.cjs'
       - 'bebepick-firefox-payapp-methods.user.js'
       - 'tests/firefox-payapp-methods.test.cjs'
       - 'tests/general-fast-order-v24-names.test.mjs'
@@ -25,6 +26,7 @@ on:
       - 'bebepick-quick-order-v24-install.html'
       - 'bebepick-firefox-one-tap.user.js'
       - 'tests/firefox-one-tap-launcher.test.cjs'
+      - 'tests/firefox-v241-pick-anon.test.cjs'
       - 'bebepick-firefox-payapp-methods.user.js'
       - 'tests/firefox-payapp-methods.test.cjs'
       - 'tests/general-fast-order-v24-names.test.mjs'
@@ -43,6 +45,8 @@ jobs:
           node-version: '22'
       - name: 'Stock dashboard upcoming estimator: existing item +10 restock rule'
         run: node --test tests/upcoming-restock-threshold.test.cjs
+      - name: 'Firefox order pick and anonymous option safety tests'
+        run: node --test tests/firefox-v241-pick-anon.test.cjs
       - name: 'Firefox Android one-tap launcher: route restrictions, no auto-submit'
         run: node --test tests/firefox-one-tap-launcher.test.cjs
       - name: Firefox PAYAPP payment method chooser safety
