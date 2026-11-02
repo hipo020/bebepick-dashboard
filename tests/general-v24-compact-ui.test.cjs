@@ -28,11 +28,14 @@ test('1-4 seconds are available and 60 second option is gone while 8 second defa
  assert.match(source,/schedule\(cycle\*1000\)/);
 });
 test('most advanced actions are folded and primary monitoring state is always visible',()=>{
- for(const id of ['qDeviceImport','qManualDetails','qOrderOptions','qPcOptions','qNameEditor','qSkuEditor'])
+ for(const id of ['qDeviceImport','qManualDetails','qPcOptions','qNameEditor','qSkuEditor'])
   assert.match(html,new RegExp('<details id="'+id+'"'));
  for(const id of ['qQuantitySummary','qSafetyMode','qModeStatus','qStatus','qCycle','qStart','qStop','qLoad'])
   assert.ok(ids.includes(id),'missing '+id);
- assert.match(html,/id="qOrderOptions"/);
+ assert.match(html,/<div id="qOrderOptions"/);
+ assert.match(source,/advanced\.id='qAdvanced'/);
+ assert.match(source,/advanced\.appendChild\(cycleRow\)/);
+ assert.match(source,/actionBar\.style\.cssText='position:sticky/);
  assert.match(source,/updateSafetyLabel\(\)/);
  assert.match(source,/controls\.safetyMode\.textContent=real/);
 });
@@ -41,11 +44,13 @@ test('existing product and ordering gates are intact',()=>{
   assert.ok(ids.includes(id),'missing '+id);
  assert.match(html,/id="qDryRun" checked/);
  assert.doesNotMatch(html,/id="qPayAppPage" checked/);
+ assert.match(source,/controls\.payAppPage\.checked=flowMode==='payapp'/);
+ assert.match(source,/applyFlowMode\(flowMode\)/);
  assert.match(source,/if\(autoOrder&&!dryRun\)/);
  assert.match(source,/if\(!confirm\(exactConsent\)\)return/);
  assert.match(source,/payArmed=autoPay&&!dryRun/);
 });
 test('mixed-mode top summary does not incorrectly say SKU-only',()=>{
- assert.match(source,/current==='mixed'\?'\\n✅ 통합 모드/);
+ assert.match(source,/current==='mixed'\?'\\n기존 상품 \+ 신상 1종을 함께 준비/);
  assert.match(source,/controls\.nameEditor\.open=names\|\|\(current==='mixed'&&!nameCandidates\.length\)/);
 });
