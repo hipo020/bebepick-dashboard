@@ -131,6 +131,7 @@ function basketSummary(){
  '<div style="border:1px solid #e9deef;border-radius:10px;padding:9px 12px;margin-top:8px"><strong style="font-size:12px">인형 선택 · 닉네임 표시</strong><div style="'+rowStyle+'"><label style="flex:1;min-width:130px;font-size:12px">인형 고르기<select id="qPick" style="'+inputStyle+'"><option value="직접 고르기">직접 고르기</option><option value="셀러픽">셀러픽 (셀러에게 맡김)</option></select></label><label style="flex:1;min-width:120px;font-size:12px">주문 표시<select id="qDisplay" style="'+inputStyle+'"><option value="닉네임">닉네임</option><option value="익명">익명</option></select></label></div><small style="color:#786987">셀러픽은 낱개 상품/계정 기능이 필요하고 익명도 이용 권한 또는 주문권이 필요할 수 있어. 공식 주문창에서 확인되지 않으면 자동 진행을 중지해.</small></div>'+
  '<div id="qOrderOptions" style="border:1px solid #e4d8ee;background:#fff;padding:11px 12px;border-radius:12px;margin:9px 0"><strong style="font-size:14px">03 · 어디까지 자동으로 할까?</strong>'+
   '<label style="display:block;font-size:12px;font-weight:700;margin-top:9px">진행 방식<select id="qFlowMode" style="'+inputStyle+'"><option value="payapp">⚡ 결제창까지 자동 이동 (기본)</option><option value="order">주문서까지만 자동 생성</option><option value="dry">주문 직전까지 시험 (주문 안 함)</option><option value="watch">재고 감시만 (주문 클릭 안 함)</option></select></label>'+
+  '<div style="font-size:11px;color:#756880;margin-top:6px">기본 재고 확인 8초 · 확인 간격은 더보기에서 조절</div>'+
   '<div id="qFlowHelp" role="status" aria-live="polite" style="font-size:12px;color:#684058;padding:10px;margin-top:8px;background:#fff4f6;border-radius:9px">실제 주문번호 생성 후 공식 결제하기 버튼까지 자동으로 눌러 PAYAPP으로 이동을 시도해. 결제 승인은 직접 해.</div>'+
   '<div style="display:none" aria-hidden="true"><input type="checkbox" id="qAutoOrder"><input type="checkbox" id="qDryRun" checked><input type="checkbox" id="qPayAppPage"></div>'+
   '<small style="display:block;color:#7b6070;margin-top:7px">⚠ 실제 주문은 시작할 때 별도 동의를 받아. 미결제·취소 제재 위험이 있으니 구매할 상품을 확인해 줘.</small></div>'+
@@ -160,6 +161,15 @@ function basketSummary(){
  advanced.id='qAdvanced';
  advanced.innerHTML='<summary>🛠️ 더보기 · 앱 연결 / 백그라운드 / 진단 기록</summary>';
  panel.appendChild(advanced);
+ const longHelp=advanced.previousElementSibling;
+ if(longHelp?.tagName==='SMALL')advanced.appendChild(longHelp);
+ const cycleRow=el('#qCycle',panel)?.closest('label')?.parentElement;
+ if(cycleRow){
+  const cycleWarning=cycleRow.nextElementSibling;
+  const title=document.createElement('div');title.textContent='⏱️ 재고 확인 간격';title.style.cssText='font-size:12px;font-weight:800;margin-top:10px';
+  advanced.appendChild(title);advanced.appendChild(cycleRow);
+  if(cycleWarning?.tagName==='SMALL')advanced.appendChild(cycleWarning);
+ }
  for(const id of ['#qPcOptions','#qDeviceImport','#qTiming','#qLoad']){
   const node=el(id,panel);
   if(node)advanced.appendChild(node);
