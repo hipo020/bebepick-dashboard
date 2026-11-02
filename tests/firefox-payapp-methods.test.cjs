@@ -315,3 +315,59 @@ test('older apex ON preference safely migrates into per-userscript cross-host st
  const real=setup('https://www.payapp.kr/WEBPAY_INPUT/example',{sharedGMStorage:gm});
  assert.equal(real.autoToggle.checked,true);
 });
+
+
+test('the first PAYAPP agreement screen exposes one clear explicit consent-and-next button',()=>{
+ const x=setup('https://www.payapp.kr/WEBPAY_INPUT/checkout');
+ const quick=x.nodes.find(n=>n.id==='termsNext');
+ assert.ok(quick);
+ assert.equal(quick.hidden,false);
+ assert.match(quick.textContent,/약관 읽고 동의 → 다음/);
+ assert.equal(quick.attrs['aria-label'],'약관을 읽고 동의하며 다음으로 이동');
+ assert.match(source, /@version\\s+0\\.3\\.3/);
+ const card=setup('https://www.payapp.kr/WEBPAY_SCKA1/card',{hasCardField:true});
+ assert.equal(card.nodes.find(n=>n.id==='termsNext').hidden,true,'the agreement button is never available on card input screen');
+});
+test('one explicit tap triggers one official agreement and next, never on page load',()=>{
+ const x=setup('https://www.payapp.kr/WEBPAY_INPUT/test',{autoOn:true});
+ const quick=x.nodes.find(n=>n.id==='termsNext');
+ const agree=x.label('전체동의','div');
+ x.label('전자금융거래 이용약관');
+ x.label('개인정보 처리방침 동의');
+ const next=x.label('다음','button');
+ const pay=x.label('결제','button');
+ x.runTimers();
+ assert.equal(agree.clicked,undefined,'opted-in payment method selection must not imply financial terms consent');
+ assert.equal(next.clicked,undefined);
+ quick.listeners.click();
+ assert.equal(agree.clicked,1);
+ assert.equal(next.clicked,undefined,'submit must follow the official checkbox handler');
+ x.runTimers();
+ assert.equal(next.clicked,1);
+ assert.equal(pay.clicked,undefined);
+ quick.listeners.click();
+ x.runTimers();
+ assert.equal(agree.clicked,1,'never double-click a legal agreement');
+ assert.equal(next.clicked,1,'never submit the same agreement twice');
+});
+test('a missing or ambiguous PAYAPP agreement or Next button fails safely',()=>{
+ for(const option of ['missing-terms','two-next','no-official-label']){
+  const x=setup('https://www.payapp.kr/WEBPAY_INPUT/test');
+  const quick=x.nodes.find(n=>n.id==='termsNext');
+  const agree=x.label('전체동의');
+  if(option!=='no-official-label'){
+   x.label('전자금융거래 이용약관');x.label('개인정보 처리방침 동의');
+  }
+  const next=x.label('다음','button');
+  if(option==='two-next')x.label('다음','button');
+  if(option==='missing-terms')x.buttons.splice(x.buttons.indexOf(agree),1);
+  quick.listeners.click();x.runTimers();
+  assert.equal(next.clicked,undefined);
+  assert.match(quick.textContent,/⚠/);
+ }
+});
+test('explicit consent helper never triggers on the saved homepage, on unknown or non-HTTPS pages',()=>{
+ assert.equal(setup('https://payapp.kr/homepage/index.html').nodes.some(n=>n.id==='termsNext'),false);
+ assert.equal(setup('https://www.payapp.kr/WEBPAY_CKA/test').nodes.some(n=>n.id==='termsNext'),false);
+ assert.equal(setup('http://www.payapp.kr/WEBPAY_INPUT/test').nodes.some(n=>n.id==='termsNext'),false);
+});
