@@ -219,7 +219,7 @@ function basketSummary(){
  let timingStats={checks:0,errors:0,lastRoundMs:null,minRoundMs:null,maxRoundMs:null,rpc:{}};
  const ms=n=>Math.round(n*10)/10;
  function timingReport(){
-  return {kind:'bebepick-quick-order-timing-v24',version:'2.4.1',createdAt:new Date().toISOString(),
+  return {kind:'bebepick-quick-order-timing-v24',version:'2.5.0',createdAt:new Date().toISOString(),
    store:STORE,sku:lockedCandidate?.item.sku||timingSku,items:chosenItems(),watchMode:armedMode,nameCandidates:nameCandidates.map(c=>({...c})),selectedCandidate:lockedCandidate?{name:lockedCandidate.name,sku:lockedCandidate.item.sku}:null,option:option,intervalSeconds:timingCycle,mode:timingMode,payAppAutoOpenRequested:timingPayAppRequested,
    startedAt:timingStartedAt,stats:timingStats,events:timingEvents,
    note:'Browser observation only. LIVE/stock observed time is not actual opening time. Click called is not order accepted. Contains no order number, token, account information, or message body.'};
@@ -468,11 +468,11 @@ function basketSummary(){
   const skuTotal=countQuantities(items,x=>x.option);
   const cartTotal=browserCart===null?null:countQuantities(browserCart,normalized);
   const cartCount=browserCart?.length??'?';
-  controls.nameSummary.textContent='① 신상 이름 후보 '+nameCandidates.length+'종'+((names||current==='mixed')?' · 이번 주문에 후보 1종 포함':' · 저장됨, 현재 주문 제외');
-  controls.skuSummary.textContent='② 기존 SKU '+items.length+'줄 · 총 '+quantityText(skuTotal)+' / 이 브라우저 장바구니 '+cartCount+'줄 · '+quantityText(cartTotal);
-  controls.quantitySummary.textContent='📦 도우미 등록 총 수량: '+quantityText(skuTotal)+' ('+items.length+'줄)'+
-   '\n🛒 이 브라우저 장바구니 총 수량: '+quantityText(cartTotal)+' ('+cartCount+'줄)'+
-   (names?'\n⚠ 이름 후보 1종 주문 모드 · 위 SKU 수량은 이번 주문에서 제외됨':current==='mixed'?'\n✅ 통합 모드 · 기존 SKU 전부 + 신상 후보 중 1종':'\n✅ 현재 SKU 전체 주문 모드 · 인형별 수량으로 진행');
+  controls.nameSummary.textContent='🆕 신상 이름 후보 '+nameCandidates.length+'종'+((names||current==='mixed')?' · 이번 주문에 후보 1종 포함':' · 저장됨, 현재 주문 제외');
+  controls.skuSummary.textContent='🧸 기존 인형 '+items.length+'종 · 총 '+quantityText(skuTotal)+' / 이 브라우저 장바구니 '+cartCount+'줄 · '+quantityText(cartTotal);
+  controls.quantitySummary.textContent='🎯 준비한 기존 인형: '+quantityText(skuTotal)+' ('+items.length+'줄)'+
+   '\n🛒 공식 장바구니: '+quantityText(cartTotal)+' ('+cartCount+'줄)'+
+   (names?'\n신상 이름 후보 중 먼저 판매되는 1종을 주문 대상으로 사용':current==='mixed'?'\n기존 상품 + 신상 1종을 함께 준비':'\n등록한 기존 상품을 주문 대상으로 사용');
   controls.modeStatus.textContent=current==='mixed'?
    '🧸 통합 주문 · 기존 SKU 전부 ('+quantityText(skuTotal)+') + 신상 후보 중 1종을 함께 준비해':
    names?'🟣 이름 후보만 주문 · 기존 SKU 목록은 제외':
@@ -1309,11 +1309,41 @@ function basketSummary(){
  window.addEventListener('pagehide',()=>{stop();ob.disconnect();mini.remove();});
  function updateSafetyLabel(){
   const real=controls.autoOrder.checked&&!controls.dryRun.checked;
+  const pay=real&&controls.payAppPage.checked;
   controls.safetyMode.textContent=real?
-   controls.payAppPage.checked?'⚠ 실제 주문번호 생성 + PAYAPP 열기 시도 · 결제 승인 수동':'⚠ 실제 주문 가능 · 결제하기 수동':
-   controls.autoOrder.checked?'🛡️ 무전송 자동 확인 · 주문번호 생성 안 함':'🛡️ 감시만 · 주문 자동 클릭 OFF';
-  controls.safetyMode.style.color=real?'#9b4e37':'#3e7257';
+   pay?'⚠ 실제 주문 + 결제창 자동 이동 준비됨 · 최종 결제 승인 수동':'⚠ 실제 주문 자동 생성 준비됨 · 결제하기 수동':
+   controls.autoOrder.checked?'🛡️ 무전송 시험 · 실제 주문번호 생성 안 함':'🛡️ 재고 감시만 · 주문 자동 클릭 OFF';
+  controls.safetyMode.style.color=real?'#923e56':'#3e7257';
+  controls.safetyMode.style.background=real?'#fff3f5':'#eaf7f0';
+  controls.safetyMode.style.borderRadius='9px';
+  controls.safetyMode.style.padding='8px 10px';
+  const hints={
+   payapp:'재고와 주문 접수를 확인한 뒤 실제 주문서를 만들고, 공식 결제하기 버튼을 최대 1회 눌러 PAYAPP 열기를 시도해. 카드 입력·결제 승인은 직접 해.',
+   order:'재고와 주문 접수를 확인하고 실제 주문서까지 자동으로 만들게 돼. PAYAPP 결제하기는 직접 눌러야 해.',
+   dry:'주문 직전까지의 공식 단계만 검사해. 최종 주문 버튼은 누르지 않아.',
+   watch:'재고·주문 접수만 확인하고 공식 주문 확인 버튼은 자동으로 누르지 않아.'
+  };
+  controls.flowHelp.textContent=hints[flowMode];
+  controls.flowHelp.style.background=real?'#fff4f6':'#eef8f1';
+  controls.flowHelp.style.color=real?'#754257':'#38694b';
+  if(!active&&!completed){
+   el('#qStart',panel).textContent=flowMode==='payapp'?'⚡ 결제창까지 대기 시작':flowMode==='order'?'🧸 주문서까지 대기 시작':flowMode==='dry'?'🛡️ 무전송 시험 시작':'🔎 재고 감시 시작';
+  }
  }
+ function applyFlowMode(mode){
+  flowMode=['payapp','order','dry','watch'].includes(mode)?mode:'payapp';
+  controls.flowMode.value=flowMode;
+  controls.autoOrder.checked=flowMode!=='watch';
+  controls.dryRun.checked=flowMode==='dry'||flowMode==='watch';
+  controls.payAppPage.checked=flowMode==='payapp';
+  updateSafetyLabel();
+ }
+ controls.flowMode.addEventListener('change',()=>{
+  if(active||completed){controls.flowMode.value=flowMode;message('⚠ 감시/주문 중에는 진행 방식을 바꿀 수 없어');return;}
+  applyFlowMode(controls.flowMode.value);
+  savePref();
+  message('✅ '+controls.flowMode.selectedOptions[0].textContent+' · 시작을 누르기 전에는 실제 주문 요청 없음');
+ });
  [controls.autoOrder,controls.dryRun,controls.payAppPage].forEach(x=>x.addEventListener('change',updateSafetyLabel));
  // Keep visible intent unambiguous; never escalate privileges mid-watch.
  controls.payAppPage.addEventListener('change',()=>{
@@ -1333,8 +1363,8 @@ function basketSummary(){
  });
  controls.backgroundWatch.checked=backgroundWatch;
  controls.backgroundWatch.addEventListener('change',()=>{if(active){controls.backgroundWatch.checked=backgroundWatch;message('⚠ 감시 중 변경 불가 · 중지 후 설정해 줘');return;}backgroundWatch=controls.backgroundWatch.checked;savePref();});
- controls.watchMode.value=watchMode;renderModeSections(true);controls.opt.value=option;controls.cycle.value=String(cycle);controls.open.value=open;controls.storage.value=storage;controls.pick.value=pick;controls.display.value=display;controls.manual.value=sku;updateSafetyLabel();
- window.__bbpGeneralQuickV24={show,stop,__v2:true,version:'2.4.1'};
+ controls.watchMode.value=watchMode;renderModeSections(true);controls.opt.value=option;controls.cycle.value=String(cycle);controls.open.value=open;controls.storage.value=storage;controls.pick.value=pick;controls.display.value=display;controls.manual.value=sku;applyFlowMode(flowMode);
+ window.__bbpGeneralQuickV24={show,stop,__v2:true,version:'2.5.0'};
  renderNames();renderBasket();loadCatalog(false);
 }catch(e){alert('범용 v2 도우미 오류: '+String(e.message||e));}
 })();
