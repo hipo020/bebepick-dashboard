@@ -200,7 +200,7 @@ function basketSummary(){
  let timingStats={checks:0,errors:0,lastRoundMs:null,minRoundMs:null,maxRoundMs:null,rpc:{}};
  const ms=n=>Math.round(n*10)/10;
  function timingReport(){
-  return {kind:'bebepick-quick-order-timing-v24',version:'2.4.0',createdAt:new Date().toISOString(),
+  return {kind:'bebepick-quick-order-timing-v24',version:'2.4.1',createdAt:new Date().toISOString(),
    store:STORE,sku:lockedCandidate?.item.sku||timingSku,items:chosenItems(),watchMode:armedMode,nameCandidates:nameCandidates.map(c=>({...c})),selectedCandidate:lockedCandidate?{name:lockedCandidate.name,sku:lockedCandidate.item.sku}:null,option:option,intervalSeconds:timingCycle,mode:timingMode,payAppAutoOpenRequested:timingPayAppRequested,
    startedAt:timingStartedAt,stats:timingStats,events:timingEvents,
    note:'Browser observation only. LIVE/stock observed time is not actual opening time. Click called is not order accepted. Contains no order number, token, account information, or message body.'};
@@ -957,7 +957,7 @@ function basketSummary(){
   if(cycle<=2&&!confirm('⚠ '+cycle+'초 간격 감시는 공식 서버에 1분마다 최대 약 '+Math.round(60/cycle*2)+'회(주문상태+상품목록) 요청할 수 있어.\n짧은 주기라고 주문 성공을 보장하지 않으며 429/차단 및 배터리 소모 가능성이 커. 3~5초를 권장해. 그래도 계속할까?'))return;
   open=controls.open.value;storage=controls.storage.value;pick=controls.pick.value;display=controls.display.value;savePref();
   if(chosen.some(x=>!validSku(x.sku)||x.qty<1||x.qty>MAX_QTY||itemTarget(x)&&!allowedOption(itemTarget(x),x.option))){message('⚠ 상품코드·수량·풀박스 지원 여부를 확인해 줘');return;}
-  if(pick==='셀러픽'&&!chosen.some(x=>x.option==='single')){message('⚠ 셀러픽은 낱개 상품에만 적용돼. 풀박스만 있다면 직접 고르기를 선택해 줘');return;}
+  if(pick==='셀러픽'&&!chosen.some(x=>x.option==='single')&&!nameCandidates.some(x=>x.option==='single')){message('⚠ 셀러픽은 낱개 상품에만 적용돼. 풀박스만 있다면 직접 고르기를 선택해 줘');return;}
   // The PayApp-page handoff is separate, explicit, and not persisted.
   autoPay=controls.payAppPage.checked===true;
   if(autoPay&&(controls.dryRun.checked||!controls.autoOrder.checked)){
