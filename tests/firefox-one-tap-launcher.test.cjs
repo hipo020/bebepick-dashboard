@@ -75,7 +75,7 @@ test('a real user tap loads the same pinned helper once; no auto ordering',()=>{
  tap();tap();
  const scripts=x.appendLog.filter(n=>n.tag==='script');
  assert.equal(scripts.length,1);
- assert.match(scripts[0].src,/bebepick-quick-order-general-v24\.js\?v=20261102-v25-guided-payapp-default/);
+ assert.match(scripts[0].src,/bebepick-quick-order-general-v24\.js\?v=20261102-v251-free-ship/);
  assert.equal(x.button().disabled,true);
  assert.doesNotMatch(src,/fetch\s*\(|XMLHttpRequest|\.click\s*\(|dispatchEvent|credit.?card|cardnumber|cvv|create_order|payapp\.kr/i);
 });

@@ -21,7 +21,7 @@ assert.ok(begin>0&&end>begin,'real site option guard functions are present');
 const extract=src.slice(begin,end)+'\n;({chosenOrderOptionsSnapshot,officialChoiceRow,correctOrderControls,officialConfirmationChoicesMatch})';
 
 function environment(choice='셀러픽',display='익명',hasPick=true,hasAnon=true){
- let opts={storage:'보관',open:'개봉',note:null,anon:false};
+ let opts={storage:'보관',open:'개봉',note:null,anon:false,use_free_ship:false};
  const optionSets={};
  function group(attribute,values){
   const btns=values.map((value,i)=>{
@@ -42,13 +42,13 @@ function environment(choice='셀러픽',display='익명',hasPick=true,hasAnon=tr
  if(hasAnon)optionSets['#anonRow']=group('anon',['닉네임','익명']);
  const storageBtn={getAttribute:()=> 'true',click:()=>{}};
  const openBtn={getAttribute:()=> 'true',click:()=>{}};
- const panel={querySelector(sel){
+ const panel={querySelectorAll(){return [];},querySelector(sel){
   if(sel==='#noteRow'||sel==='#anonRow')return optionSets[sel]||null;
   if(sel==='[data-storage="보관"]')return storageBtn;
   if(sel==='[data-open="개봉"]')return openBtn;
   return null;
  }};
- const ctx={pick:choice,display,storage:'보관',open:'개봉',OPTS_KEY:'bbp_order_opts',Array,JSON,
+ const ctx={pick:choice,display,storage:'보관',open:'개봉',freeShip:false,OPTS_KEY:'bbp_order_opts',Array,JSON,
   sessionStorage:{getItem:()=>JSON.stringify(opts)},el:(s,p)=>p.querySelector(s)};
  const funcs=vm.runInNewContext(extract,ctx);
  return {opts,optionSets,panel,funcs,ctx};
