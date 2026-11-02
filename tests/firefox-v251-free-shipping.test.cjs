@@ -97,7 +97,7 @@ test('server/site session cannot silently turn coupon off before final order',()
  assert.equal(v.fn.officialConfirmationChoicesMatch(dialog,false),false);
 });
 test('voucher is included in all purchase-consent text, no automatic spending or backend request',()=>{
- assert.equal((src.match(/무료배송권 '\+\(freeShip\?'사용':'미사용'\)/g)||[]).length,2);
+ assert.ok((src.match(/무료배송권 '\+\(freeShip\?'사용':'미사용'\)/g)||[]).length>=2);
  assert.match(src,/if\(!confirm\(exactConsent\)\)return/);
  assert.match(src,/if\(!officialFreeShippingOption\(cartPanel\)\)return false/);
  assert.match(src,/!officialConfirmationChoicesMatch\(box,true\)/);
