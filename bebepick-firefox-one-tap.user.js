@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         베베픽 v2.4 · Firefox 원터치 실행
+// @name         베베픽 v2.4.1 · Firefox 원터치 실행
 // @namespace    https://hipo020.github.io/bebepick-dashboard/
-// @version      1.1.0
+// @version      1.1.1
 // @description  베베픽 공식 주문 화면에 도우미 열기 버튼만 표시합니다. 자동주문/결제 시작 없음.
 // @author       Bebepick dashboard
 // @match        https://bebepick.me/*
@@ -16,7 +16,7 @@
  'use strict';
  const VALID_HOST='bebepick.me';
  const VALID_PATHS=new Set(['/live','/live/','/plus','/plus/']);
- const SOURCE='https://hipo020.github.io/bebepick-dashboard/bebepick-quick-order-general-v24.js?v=20261025-v24-conditional-700-900-v16';
+ const SOURCE='https://hipo020.github.io/bebepick-dashboard/bebepick-quick-order-general-v24.js?v=20261102-v241-pick-anon-v1';
  const BUTTON_ID='bbpFirefoxOneTapLauncher';
  const SCRIPT_ID='bbpFirefoxOneTapHelperSource';
 
@@ -30,8 +30,8 @@
  button.id=BUTTON_ID;
  button.type='button';
  button.textContent='🧸 주문 도우미';
- button.setAttribute('aria-label','베베픽 v2.4 주문 도우미 열기');
- button.title='탭하면 기존 v2.4 창을 열어. 실제 주문 시작은 별도 동의가 필요해.';
+ button.setAttribute('aria-label','베베픽 v2.4.1 주문 도우미 열기');
+ button.title='탭하면 v2.4.1 창을 열어. 실제 주문 시작은 별도 동의가 필요해.';
  button.style.cssText='position:fixed;top:34%;left:8px;z-index:2147483640;max-width:132px;min-height:41px;padding:8px 11px;border:1px solid #e7c8ff;border-radius:14px;background:#7752ad;color:#fff;box-shadow:0 4px 15px #24113f55;font:700 12px/1.4 system-ui,-apple-system,sans-serif;touch-action:manipulation;cursor:pointer;';
 
  // No order, payment or card fields are accessed by this launcher.
