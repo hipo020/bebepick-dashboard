@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         베베픽 · PAYAPP 결제수단 선택 도우미 (카드입력 기본)
 // @namespace    https://hipo020.github.io/bebepick-dashboard/
-// @version      0.3.0
+// @version      0.3.1
 // @description  PAYAPP 결제수단 자동 선택은 사전 동의한 경우에만. 약관·카드정보·인증·결제 승인은 수동.
 // @match        https://payapp.kr/WEBPAY_INPUT/*
 // @match        https://payapp.kr/homepage/*
@@ -59,10 +59,32 @@
    const option=document.createElement('option');option.value=c.id;option.textContent=c.name;method.appendChild(option);
   }
   method.value=chosen;
-  const autoLabel=document.createElement('label');autoLabel.style.cssText='display:flex;align-items:center;gap:8px;margin-top:10px';
+  // Official PAYAPP CSS may hide native checkbox inputs globally.
+  // Render an explicit, accessible ON/OFF button that remains visible on mobile.
+  // The checkbox retains the actual unsaved preference for existing logic.
+  const autoLabel=document.createElement('div');
+  autoLabel.style.cssText='display:flex!important;flex-direction:column;gap:7px;margin-top:12px;padding:10px;border:1px solid #ddd2eb;border-radius:11px;background:#faf8ff';
   const auto=document.createElement('input');auto.type='checkbox';auto.id='bbpPresetAuto';auto.checked=autoNavigate;
+  auto.style.cssText='position:absolute!important;opacity:0!important;width:1px!important;height:1px!important;pointer-events:none!important';
   const autoText=document.createElement('span');autoText.textContent='다음 결제부터 결제수단 경로 자동 선택';
-  autoLabel.append(auto,autoText);
+  autoText.style.cssText='display:block;font-size:12px;font-weight:700';
+  const autoSwitch=document.createElement('button');autoSwitch.type='button';
+  autoSwitch.id='bbpPresetAutoSwitch';
+  autoSwitch.setAttribute('aria-label','결제수단 경로 자동 선택 설정');
+  const syncAutoSwitch=()=>{
+   const on=!!auto.checked;
+   autoSwitch.setAttribute('aria-pressed',String(on));
+   autoSwitch.textContent=on?'✅ 자동 선택 ON':'○ 자동 선택 OFF · 눌러서 켜기';
+   autoSwitch.style.cssText='display:block!important;width:100%!important;min-height:46px!important;padding:10px!important;border:2px solid '+(on?'#32875a':'#9c8dab')+'!important;border-radius:10px!important;background:'+(on?'#e9f7ee':'#fff')+'!important;color:'+(on?'#176237':'#51415d')+'!important;font:700 14px/1.4 system-ui,sans-serif!important;text-align:center!important;cursor:pointer!important;visibility:visible!important;opacity:1!important';
+  };
+  autoSwitch.addEventListener('click',()=>{
+   auto.checked=!auto.checked;
+   syncAutoSwitch();
+   state.textContent='변경한 자동 선택 설정은 아래 [설정 저장]을 누르면 적용돼.';
+  });
+  auto.addEventListener('change',syncAutoSwitch);
+  syncAutoSwitch();
+  autoLabel.append(autoText,autoSwitch,auto);
   const saveButton=document.createElement('button');saveButton.type='button';saveButton.id='bbpPresetSave';saveButton.textContent='설정 저장';
   saveButton.style.cssText='display:block;width:100%;padding:11px;margin:11px 0 5px;border:0;border-radius:10px;background:#7553a9;color:#fff;font-weight:750';
   const state=document.createElement('p');state.id='bbpPresetStatus';state.setAttribute('role','status');
