@@ -41,9 +41,9 @@ test('top-of-panel quantities shown for both the saved items and local cart',()=
  assert.match(src,/id="qQuantitySummary"/);
  const ui=section('function renderModeSections(', 'function renderBasket()');
  assert.match(ui,/quantitySummary\.textContent/);
- assert.match(ui,/도우미 등록 총 수량/);
- assert.match(ui,/이 브라우저 장바구니 총 수량/);
- assert.match(ui,/이름 후보 1종 주문 모드/);
+ assert.match(ui,/준비한 기존 인형/);
+ assert.match(ui,/공식 장바구니/);
+ assert.match(ui,/신상 이름 후보 중 먼저 판매되는 1종/);
 });
 test('new item quantity entry explicitly says it is not the total',()=>{
  assert.match(src,/새로 추가할 인형 수량 \(총합 아님\)/);

@@ -14,10 +14,10 @@ const catalog=[
 const mixed={store:'china',watchMode:'mixed',
  items:[{sku:'D101',option:'single',qty:3},{sku:'D102',option:'single',qty:2}],
  nameCandidates:[{name:'새 인형',option:'single',qty:1}]};
-test('v2.4 can load and labels the new mixed mode',()=>{
+test('v2.5 can load and labels the mixed mode',()=>{
  assert.doesNotThrow(()=>new Function(js));
  assert.match(js,/option value="mixed"/);
- assert.match(js,/기존 SKU 전부 \+ 신상 후보 중 1종/);
+ assert.match(js,/기존 상품 \+ 신상 후보 1종/);
  assert.match(js,/if\(armedMode==='mixed'\)return lockedCandidate\?/);
 });
 test('baseline total 5 and a distinct candidate must ALL be in stock and order intake ON',()=>{
