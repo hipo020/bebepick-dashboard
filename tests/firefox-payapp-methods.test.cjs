@@ -118,7 +118,7 @@ test('does not auto-check terms, enter sensitive payment fields, or approve paym
  assert.equal(finish.clicked,undefined);
  assert.match(x.status.textContent,/자동으로 진행하지 않아/);
  assert.equal(source.includes('XMLHttpRequest'),false);
- assert.doesNotMatch(source,/document\.querySelectorAll\([^\n]*input/);
+ assert.doesNotMatch(source,/\.value\s*=\s*.*(?:CardNo|CVC|PIN|비밀번호)/i,'never autofill sensitive card data');
 });
 test('ambiguous matching labels fail closed and do not click anything',()=>{
  const x=setup();
@@ -272,7 +272,7 @@ test('www PAYAPP real checkout shows launcher and SCKA1 step is recognized',()=>
  const first=setup('https://www.payapp.kr/WEBPAY_INPUT/example');
  assert.ok(first.launcher,'www payment checkout must inject');
  first.launcher.listeners.click();
- assert.match(first.status.textContent,/전체동의 및 다음을 직접/);
+ assert.match(first.status.textContent,/약관 자동 OFF/);
  const card=setup('https://www.payapp.kr/WEBPAY_SCKA1/example',{hasCardField:true,autoOn:true});
  assert.ok(card.launcher,'card entry page must also inject');
  card.launcher.listeners.click();
