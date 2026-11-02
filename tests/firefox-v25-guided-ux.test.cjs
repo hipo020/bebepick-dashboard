@@ -13,7 +13,7 @@ test('v2.5 guided flow builds cleanly and has three understandable steps',()=>{
   assert.ok(src.includes(label),label);
  assert.match(src,/id="qFlowMode"/);
  assert.match(src,/id="qFlowHelp"/);
- assert.match(src,/id="qAdvanced"/);
+ assert.match(src,/advanced\.id='qAdvanced'/);
  assert.match(src,/aria-live="polite"/);
  assert.match(src,/details>summary/);
  assert.match(src,/actionBar\.style\.cssText='position:sticky/);
@@ -47,7 +47,7 @@ test('PAYAPP default is visible but still requires explicit start/consent',()=>{
  assert.equal(e.ctx.controls.autoOrder.checked,true);
  assert.equal(e.ctx.controls.dryRun.checked,false);
  assert.equal(e.ctx.controls.payAppPage.checked,true);
- assert.equal(e.ctx.updated,undefined); // test stub only; underlying user must click Start
+ assert.equal(e.ctx.updated,1); // changing a UI choice updates the summary, not an order
 });
 test('manual, dry-run and order-only choices map to safe distinct flags',()=>{
  const e=env();
