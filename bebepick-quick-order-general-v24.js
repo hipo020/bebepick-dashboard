@@ -59,6 +59,7 @@ function basketSummary(){
  let freeShip=pref.freeShip===true;
  // Remember the preferred flow, not real-order authorization: Start always confirms real order.
  let flowMode=['payapp','order','dry','watch'].includes(pref.flowMode)?pref.flowMode:'payapp';
+ let effectiveStorage=storage,forcedShippingAccepted=false,firstStepChoicesVerified=false;
  let cartProgress=null,cartPrepared=false,awaitingCatalog=false,autoPay=false,autoOrder=false,dryRun=true,active=false,polling=false,confirmed=false,completed=false,payArmed=false,payDone=false,tries=0,timer=null,controllers=new Set(),catalog=[],lastResults=null,triggerMode='',confirmedAt=0,routeBusy=false,lastRouteAt=0,cartTimer=null,uiTimer=null,payWatchTimer=null,payLastObservation='',lastWindowOk=null,wizardTimer=null,submitRetryTimer=null,wizardStage=0,wizardStart=0,finalAgreeAt=0,submitClicked=false,manualSubmitObserved=false,submitAttemptAt=0,submitResourceBaseline=0,payDeadline=0,oldPayOrder='';
 
  function el(q,root){return (root||document).querySelector(q);}
@@ -99,7 +100,7 @@ function basketSummary(){
  if(window.matchMedia&&matchMedia('(max-width:640px)').matches){panel.style.cssText+=';top:8px;bottom:8px;left:5px;right:5px;max-height:calc(100dvh - 16px);max-width:none;padding:12px 12px 8px';}
  const inputStyle='width:100%;margin-top:5px;min-height:44px;border:1px solid #d9d1e5;border-radius:10px;padding:9px 11px;background:#fff;color:#292438;font:inherit;box-sizing:border-box';
  const rowStyle='display:flex;gap:8px;flex-wrap:wrap;margin:8px 0';
- panel.innerHTML='<div style="position:sticky;top:-12px;background:#fff;z-index:3;padding:8px 0;border-bottom:1px solid #e9e0ee;display:flex;align-items:center;justify-content:space-between;gap:8px"><strong style="font-size:15px;letter-spacing:-.3px">🧸 베베픽 · 빠른 주문 <small style="font-size:10px;color:#927da5">v2.5.1</small></strong><button id="qClose" type="button" style="border:0;background:#fff;font-size:23px;color:#333">×</button></div>'+
+ panel.innerHTML='<div style="position:sticky;top:-12px;background:#fff;z-index:3;padding:8px 0;border-bottom:1px solid #e9e0ee;display:flex;align-items:center;justify-content:space-between;gap:8px"><strong style="font-size:15px;letter-spacing:-.3px">🧸 베베픽 · 빠른 주문 <small style="font-size:10px;color:#927da5">v2.5.2</small></strong><button id="qClose" type="button" style="border:0;background:#fff;font-size:23px;color:#333">×</button></div>'+
  '<div style="font-size:12px;color:#71677d;margin:3px 0" id="qChannel"></div>'+
  '<div id="qQuantitySummary" role="status" style="font-weight:750;font-size:13px;background:#f3ecfc;border:1px solid #ddcfed;border-radius:12px;padding:10px 12px;margin:9px 0;white-space:pre-line">📦 저장된 총 수량 확인 중…</div>'+
  '<details id="qDeviceImport" style="border:1px solid #ede0f1;background:#fffafd;border-radius:12px;padding:9px 12px;margin:8px 0"><summary style="font-size:12px;font-weight:700;color:#6b557a;cursor:pointer">📱 갤럭시 앱 연결 · 저장한 인형 목록 보내기</summary><button id="qExportAndroid" type="button" style="width:100%;min-height:40px;background:#fff3ed;border:1px solid #efc4b4;color:#8b4c44;border-radius:10px;font-weight:750;padding:9px;margin:9px 0 1px">🚀 갤럭시 앱으로 인형 목록 한 번에 보내기</button></details>'+
@@ -129,7 +130,7 @@ function basketSummary(){
  '<div id="qBasket" style="border:1px solid #e3d8ed;border-radius:10px;padding:7px;font-size:12px"></div>'+
  '</details>'+
  '<div style="border:1px solid #e5d8ee;background:#fff;border-radius:12px;padding:10px 12px;margin-top:10px"><strong style="font-size:14px">02 · 주문 옵션</strong><div style="'+rowStyle+'"><label style="flex:1;min-width:125px;font-size:12px">서버 확인 주기<select id="qCycle" style="'+inputStyle+'"><option value="1">1초 (매우 잦음)</option><option value="2">2초 (매우 잦음)</option><option value="3">3초 (빠름)</option><option value="4">4초</option><option value="5">5초</option><option value="8">8초 (기본)</option><option value="10">10초</option><option value="15">15초</option><option value="30">30초</option></select></label></div><small style="display:block;color:#966452;margin-top:2px">⚠ 1~2초는 서버 요청량과 차단 위험이 높아. 3~5초 권장 · 429 응답 시 자동으로 60초 쉬어.</small>'+
- '<div style="'+rowStyle+'"><label style="flex:1;min-width:125px;font-size:12px">개봉 옵션<select id="qOpen" style="'+inputStyle+'"><option value="개봉">개봉</option><option value="미개봉">미개봉</option><option value="카드개봉">카드개봉</option></select></label><label style="flex:1;min-width:120px;font-size:12px">받는 방법<select id="qStorage" style="'+inputStyle+'"><option value="보관">보관</option><option value="발송">바로 배송</option></select></label></div></div>'+
+ '<div style="'+rowStyle+'"><label style="flex:1;min-width:125px;font-size:12px">개봉 옵션<select id="qOpen" style="'+inputStyle+'"><option value="개봉">개봉</option><option value="미개봉">미개봉</option><option value="카드개봉">카드개봉</option></select></label><label style="flex:1;min-width:120px;font-size:12px">받는 방법<select id="qStorage" style="'+inputStyle+'"><option value="보관">보관</option><option value="발송">바로 배송</option></select></label></div><small style="display:block;color:#775c67">📦 보관이 사이트에서 강제로 막힌 날에는 배송비가 0원이고 바로 배송만 허용한다고 확인될 때만 자동으로 전환해. 그 외 변경은 중단해.</small></div>'+
  '<div style="border:1px solid #e9deef;border-radius:10px;padding:9px 12px;margin-top:8px"><strong style="font-size:12px">인형 선택 · 닉네임 표시</strong><div style="'+rowStyle+'"><label style="flex:1;min-width:130px;font-size:12px">인형 고르기<select id="qPick" style="'+inputStyle+'"><option value="직접 고르기">직접 고르기</option><option value="셀러픽">셀러픽 (셀러에게 맡김)</option></select></label><label style="flex:1;min-width:120px;font-size:12px">주문 표시<select id="qDisplay" style="'+inputStyle+'"><option value="닉네임">닉네임</option><option value="익명">익명</option></select></label></div><small style="color:#786987">셀러픽은 낱개 상품/계정 기능이 필요하고 익명도 이용 권한 또는 주문권이 필요할 수 있어. 공식 주문창에서 확인되지 않으면 자동 진행을 중지해.</small><label style="display:block;font-size:12px;font-weight:750;margin-top:11px">🎟️ 무료배송권<select id="qFreeShip" style="'+inputStyle+'"><option value="off">사용 안 함 (기본 · 배송권 보존)</option><option value="on">보유 무료배송권 1장 사용</option></select></label><small style="display:block;color:#786987;margin-top:5px">사용을 선택해도 계정에 사용 가능한 배송권이 없으면 자동 주문을 중단해. 실제 결제금액은 공식 화면에서 확인해.</small></div>'+
  '<div id="qOrderOptions" style="border:1px solid #e4d8ee;background:#fff;padding:11px 12px;border-radius:12px;margin:9px 0"><strong style="font-size:14px">03 · 어디까지 자동으로 할까?</strong>'+
   '<label style="display:block;font-size:12px;font-weight:700;margin-top:9px">진행 방식<select id="qFlowMode" style="'+inputStyle+'"><option value="payapp">⚡ 결제창까지 자동 이동 (기본)</option><option value="order">주문서까지만 자동 생성</option><option value="dry">주문 직전까지 시험 (주문 안 함)</option><option value="watch">재고 감시만 (주문 클릭 안 함)</option></select></label>'+
@@ -193,7 +194,7 @@ function basketSummary(){
   official_ui_wait:'공식 주문 화면 반영 대기', route_refresh:'공식 화면 내부 경로 갱신',
   window_closed:'공식 주문 접수 닫힘 관측', window_transition:'주문 접수 닫힘→열림 관측', ui_stale:'공식 화면 미갱신',
   official_ui_ready:'공식 화면 주문 버튼 활성 확인', cart_click:'장바구니 열기 클릭 호출',
-  cart_panel:'공식 장바구니 패널 표시', option_ok:'개봉/보관/인형 고르기/표시 옵션 확인',
+  cart_panel:'공식 장바구니 패널 표시', shipping_forced:'공식 보관 불가 및 무료 바로 배송 강제 확인', option_ok:'개봉/배송/인형 고르기/표시 옵션 확인',
   checkout_click:'주문 확인창 열기 클릭 호출', confirm_visible:'주문 확인창 표시',
   agree_step1:'1단계 확인/계속 클릭 호출', final_visible:'최종 주문 확인 단계 표시',
   final_arm_wait:'공식 최종 주문 가능 시간 대기 (최소 700ms 보호 지연 존중)',
@@ -231,7 +232,7 @@ function basketSummary(){
  let timingStats={checks:0,errors:0,lastRoundMs:null,minRoundMs:null,maxRoundMs:null,rpc:{}};
  const ms=n=>Math.round(n*10)/10;
  function timingReport(){
-  return {kind:'bebepick-quick-order-timing-v24',version:'2.5.1',createdAt:new Date().toISOString(),
+  return {kind:'bebepick-quick-order-timing-v24',version:'2.5.2',createdAt:new Date().toISOString(),
    store:STORE,sku:lockedCandidate?.item.sku||timingSku,items:chosenItems(),watchMode:armedMode,nameCandidates:nameCandidates.map(c=>({...c})),selectedCandidate:lockedCandidate?{name:lockedCandidate.name,sku:lockedCandidate.item.sku}:null,option:option,intervalSeconds:timingCycle,mode:timingMode,payAppAutoOpenRequested:timingPayAppRequested,
    startedAt:timingStartedAt,stats:timingStats,events:timingEvents,
    note:'Browser observation only. LIVE/stock observed time is not actual opening time. Click called is not order accepted. Contains no order number, token, account information, or message body.'};
@@ -653,7 +654,14 @@ function basketSummary(){
  }catch(e){message('⚠ 주문 옵션(무료배송권 포함)을 미리 저장하지 못했어');return false;}}
  function serverOpen(w){return !!(w&&w.reason!=='paused'&&w.open===true&&w.enabled!==false&&w.closed!==true);}
   function openMode(w){return serverOpen(w)?'주문 접수':'';}
-  function matchesStorage(value){const v=String(value||'').trim();return storage==='발송'?(v==='발송'||v==='바로 배송'):(v==='보관');}
+  function matchesStorage(value){
+  const v=String(value||'').replace(/\s+/g,'').trim();
+  const official=v==='보관'?'보관':(v==='발송'||v==='바로배송')?'발송':null;
+  if(!official)return false;
+  if(official!==effectiveStorage && official==='발송')syncForcedDirectShipping();
+  if(effectiveStorage==='발송' && storage==='보관' && !officialForcedDirectShippingEvidence() && !(forcedShippingAccepted&&!el('.panel[data-sheet="cart"]')))return false;
+  return official===effectiveStorage;
+ }
  function latestAvailability(p){return allSaleable()?'선택한 상품 모두 판매 가능':p?'일부 상품 품절/재고 부족':'목록 대기';}
  function schedule(delay){if(timer)clearTimeout(timer);if(active&&!confirmed)timer=setTimeout(poll,delay);}
  async function poll(){
@@ -753,10 +761,42 @@ function basketSummary(){
     setTimeout(()=>{routeBusy=false;if(active&&confirmed)handoff();},1200);
    },250);
   }
+ // A site-mandated option change is not ordinary user consent.
+ // Accept a forced same-day shipment ONLY with explicit store evidence,
+ // disabled storage choice, zero shipping fee and official session state.
+ function officialForcedDirectShippingEvidence(){
+  if(storage!=='보관')return false;
+  const cart=el('.panel[data-sheet="cart"]');
+  if(!cart)return false;
+  const keep=cart.querySelector('[data-storage="보관"]');
+  const send=cart.querySelector('[data-storage="발송"]');
+  if(!keep||!send||send.getAttribute('aria-checked')!=='true')return false;
+  if(!(keep.disabled===true||keep.getAttribute('aria-disabled')==='true'||keep.hasAttribute('disabled')||keep.classList.contains('disabled')))return false;
+  const visible=String(cart.innerText||cart.textContent||'').replace(/\s+/g,' ');
+  if(!/보관.{0,50}(?:일괄\s*발송일|불가|안\s*되)/.test(visible)||
+     !/바로\s*배송만/.test(visible))return false;
+  const prices=[...visible.matchAll(/배송비\s*([0-9,]+)\s*원/g)];
+  if(!prices.length)return false;
+  const fee=Number(prices[prices.length-1][1].replace(/,/g,''));
+  if(fee!==0)return false;
+  let opts;
+  try{opts=JSON.parse(sessionStorage.getItem(OPTS_KEY)||'{}')||{};}catch(e){return false;}
+  return opts.storage==='발송';
+ }
+ function syncForcedDirectShipping(){
+  if(effectiveStorage==='발송')return officialForcedDirectShippingEvidence();
+  if(!officialForcedDirectShippingEvidence())return false;
+  effectiveStorage='발송';
+  forcedShippingAccepted=true;
+  timingOnce('shipping_forced','사이트 보관 불가 · 바로 배송 강제 · 배송비 0원 확인');
+  message('📦 보관 불가 · 공식 사이트가 바로 배송만 허용하고 배송비 0원으로 확인돼 이어서 진행해');
+  return true;
+ }
  function chosenOrderOptionsSnapshot(){
   try{
    const o=JSON.parse(sessionStorage.getItem(OPTS_KEY)||'{}')||{};
-   return o.storage===storage&&o.open===open&&
+   return o.storage===effectiveStorage&&o.open===open&&
+    (effectiveStorage!=='발송'||storage!=='보관'||officialForcedDirectShippingEvidence()||(forcedShippingAccepted&&!el('.panel[data-sheet="cart"]')))&&
     (o.note?.pick===true?'셀러픽':'직접 고르기')===pick&&
     (o.anon===true?'익명':'닉네임')===display&&o.use_free_ship===freeShip;
   }catch(e){return false;}
@@ -793,12 +833,14 @@ function basketSummary(){
   return on===freeShip;
  }
  function correctOrderControls(cartPanel){
-  const chosenStore=el('[data-storage="'+storage+'"]',cartPanel),chosenOpen=el('[data-open="'+open+'"]',cartPanel);
+  syncForcedDirectShipping();
+  const chosenStore=el('[data-storage="'+effectiveStorage+'"]',cartPanel),chosenOpen=el('[data-open="'+open+'"]',cartPanel);
   if(!chosenStore||!chosenOpen)return false;
   const chosen=b=>b.getAttribute('aria-checked')==='true';
-  if(!chosen(chosenStore))chosenStore.click();
+  if(!chosen(chosenStore)&&!chosenStore.disabled&&chosenStore.getAttribute('aria-disabled')!=='true')chosenStore.click();
+  syncForcedDirectShipping();
   if(!chosen(chosenOpen))chosenOpen.click();
-  if(!chosen(chosenStore)||!chosen(chosenOpen))return false;
+  if(!chosen(el('[data-storage="'+effectiveStorage+'"]',cartPanel))||!chosen(chosenOpen))return false;
   if(!officialChoiceRow(cartPanel,'pick',pick,pick==='셀러픽'))return false;
   if(!officialChoiceRow(cartPanel,'anon',display,display==='익명'))return false;
   if(!officialFreeShippingOption(cartPanel))return false;
@@ -807,13 +849,26 @@ function basketSummary(){
  function officialConfirmationChoicesMatch(box,firstStep){
   if(!chosenOrderOptionsSnapshot())return false;
   const note=box.querySelector(firstStep?'#ocNote':'#ocNote2');
-  if((pick==='셀러픽')!==(!!note&&/셀러픽/.test(note.textContent||'')))return false;
-  // Anon appears only in official confirmation step 1, not step 2.
+  // Final step can omit #ocNote2. A seller pick is accepted only if the
+  // official first-step note was verified, and session settings did not change.
+  if(pick==='셀러픽'){
+   if(note&&!/셀러픽/.test(note.textContent||''))return false;
+   if(!note&&(firstStep||!firstStepChoicesVerified))return false;
+  }else if(note&&/셀러픽/.test(note.textContent||''))return false;
   if(firstStep){
    const anonymous=box.querySelector('#ocAnon');
    if((display==='익명')!==(!!anonymous&&/익명/.test(anonymous.textContent||'')))return false;
   }
   return true;
+ }
+ function officialMismatchReason(box,firstStep){
+  const st=box.querySelector(firstStep?'#ocStorage':'#ocStorage2');
+  const op=box.querySelector(firstStep?'#ocOpen':'#ocOpen2');
+  if(!st||!matchesStorage(st.textContent))return '배송 불일치 · 보관 강제 해제 근거/배송비 0원 확인 필요';
+  if(!op||op.textContent.trim()!==open)return '개봉 방식 불일치';
+  if(!chosenOrderOptionsSnapshot())return '공식 주문 옵션 저장값 불일치 (배송·셀러픽·익명·무료배송권)';
+  if(!officialConfirmationChoicesMatch(box,firstStep))return '셀러픽 또는 익명 표시 불일치 · 공식 확인창 표시 검증';
+  return '확인되지 않은 주문 옵션 불일치';
  }
  function staleOfficialUi(reason){
   if(Date.now()-confirmedAt<5000){reloadShow();return;}
@@ -858,12 +913,12 @@ function basketSummary(){
    if(!cartPanel){fail('장바구니를 열지 못했어');return;}
    timingOnce('cart_panel');
    if(!correctOrderControls(cartPanel)){fail('주문 옵션(배송·개봉·무료배송권 포함)을 자동 확인하지 못했어');return;}
-   timingOnce('option_ok',open+' + '+storage+' + '+pick+' + '+display+' + 무료배송권 '+(freeShip?'사용':'미사용'));
+   timingOnce('option_ok',open+' + '+effectiveStorage+(forcedShippingAccepted?' (보관 불가로 자동 전환)':'')+' + '+pick+' + '+display+' + 무료배송권 '+(freeShip?'사용':'미사용'));
    const next=el('#checkout',cartPanel);
    if(!next||next.disabled){fail('주문 버튼이 비활성화돼 있어');return;}
    clearInterval(cartTimer);cartTimer=null;cartProgress=null;
    if(!expected()){timingMark('safety_stop','장바구니 변경');message('⚠ 장바구니가 바뀌어 자동 진행 중단');return;}
-   if(autoOrder){wizardStage=0;wizardStart=Date.now();submitClicked=false;manualSubmitObserved=false;wizardTimer=setInterval(watchWizard,50);}
+   if(autoOrder){wizardStage=0;firstStepChoicesVerified=false;wizardStart=Date.now();submitClicked=false;manualSubmitObserved=false;wizardTimer=setInterval(watchWizard,50);}
    timingOnce('checkout_click','버튼 호출 · 주문 생성 아님');next.click();
    message(autoOrder?'📋 공식 주문 확인 2단계 · 선택값과 동의 확인 중':'📋 공식 확인창 · 최종 동의와 주문 확정은 직접 해 줘');
   };
@@ -1004,7 +1059,8 @@ function basketSummary(){
   backgroundWatch=!!controls.backgroundWatch.checked;
   cycle=allowed.includes(+controls.cycle.value)?+controls.cycle.value:8;
   if(cycle<=2&&!confirm('⚠ '+cycle+'초 간격 감시는 공식 서버에 1분마다 최대 약 '+Math.round(60/cycle*2)+'회(주문상태+상품목록) 요청할 수 있어.\n짧은 주기라고 주문 성공을 보장하지 않으며 429/차단 및 배터리 소모 가능성이 커. 3~5초를 권장해. 그래도 계속할까?'))return;
-  open=controls.open.value;storage=controls.storage.value;pick=controls.pick.value;display=controls.display.value;freeShip=controls.freeShip.value==='on';savePref();
+  open=controls.open.value;storage=controls.storage.value;pick=controls.pick.value;display=controls.display.value;freeShip=controls.freeShip.value==='on';
+  effectiveStorage=storage;forcedShippingAccepted=false;firstStepChoicesVerified=false;savePref();
   if(chosen.some(x=>!validSku(x.sku)||x.qty<1||x.qty>MAX_QTY||itemTarget(x)&&!allowedOption(itemTarget(x),x.option))){message('⚠ 상품코드·수량·풀박스 지원 여부를 확인해 줘');return;}
   if(pick==='셀러픽'&&!chosen.some(x=>x.option==='single')&&!nameCandidates.some(x=>x.option==='single')){message('⚠ 셀러픽은 낱개 상품에만 적용돼. 풀박스만 있다면 직접 고르기를 선택해 줘');return;}
   // The PayApp-page handoff is separate, explicit, and not persisted.
@@ -1027,7 +1083,9 @@ function basketSummary(){
     '기존 목록: '+items.map(x=>x.sku+' ×'+x.qty).join(', ')+String.fromCharCode(10)+
     '신상 후보: '+nameCandidates.map((x,i)=>(i+1)+'. '+x.name+' ×'+x.qty).join(', '):
     summaryItems();
-   const exactConsent=realConsent+String.fromCharCode(10,10)+planDetail+String.fromCharCode(10,10)+(autoPay?
+   const exactConsent=realConsent+String.fromCharCode(10,10)+planDetail+String.fromCharCode(10,10)+
+    (storage==='보관'?'📦 사이트가 보관을 공식적으로 막고 바로 배송만 허용하는 날에는 배송비가 정확히 0원이고 강제 전환을 확인한 경우에만 바로 배송으로 진행할 수 있어. 증거가 부족하거나 배송비가 발생하면 자동 주문은 중단돼. 이 조건에 동의해.\n\n':'')+
+    (autoPay?
     '⚡ PAYAPP 페이지 자동 이동: 공식 주문번호가 실제로 생성된 뒤 새 주문번호가 확인되는 경우에만, 공식 결제하기 버튼을 최대 한 번 눌러 PAYAPP 페이지 열기를 시도해. 결제수단 선택·최종 결제 승인·PAYAPP 다음 버튼은 클릭하지 않아. 팝업 차단 시 수동 진행이 필요해. 미결제 주문 제재 위험을 이해하고 진행할까?':
     '실제 주문번호 생성 후 결제하기 및 결제 승인은 직접 해 줘.');
    if(!confirm(exactConsent))return;
@@ -1147,12 +1205,12 @@ function basketSummary(){
   const st=box.querySelector('#ocStorage'),op=box.querySelector('#ocOpen'),next=box.querySelector('[data-oc="next"]');
   if(st&&op&&next){
    if(wizardStage!==0)return;
-   if(!matchesStorage(st.textContent)||op.textContent.trim()!==open||!officialConfirmationChoicesMatch(box,true)){abortWizard('1단계 배송/개봉/인형 고르기/표시 옵션 불일치');return;}
+   if(!matchesStorage(st.textContent)||op.textContent.trim()!==open||!officialConfirmationChoicesMatch(box,true)){abortWizard('1단계 '+officialMismatchReason(box,true));return;}
    const checks=Array.from(box.querySelectorAll('[data-oc-agree]'));
    if(checks.length!==2||checks.some(c=>!['storage','open'].includes(c.getAttribute('data-oc-agree')))){abortWizard('동의 항목이 기존과 달라 수동 확인 필요');return;}
    checks.forEach(c=>{c.checked=true;c.dispatchEvent(new Event('change',{bubbles:true}));});
    if(next.disabled){abortWizard('1단계 계속 버튼 비활성');return;}
-   wizardStage=1;timingOnce('agree_step1','공식 동의 1단계 클릭');next.click();message('📋 1단계 선택값 확인 · 최종 주문 확인 중');return;
+   firstStepChoicesVerified=true;wizardStage=1;timingOnce('agree_step1','공식 동의 1단계 클릭');next.click();message('📋 1단계 선택값 확인 · 최종 주문 확인 중');return;
   }
   const fs=box.querySelector('#ocStorage2'),fo=box.querySelector('#ocOpen2'),ok=box.querySelector('[data-oc="ok"]');
   if(!fs||!fo||!ok){
@@ -1160,7 +1218,7 @@ function basketSummary(){
    return;
   }
    timingOnce('final_visible','2단계 확인창 DOM 표시');
-  if(!matchesStorage(fs.textContent)||fo.textContent.trim()!==open||!officialConfirmationChoicesMatch(box,false)){abortWizard('최종 선택값(인형 고르기/표시 포함) 불일치');return;}
+  if(!matchesStorage(fs.textContent)||fo.textContent.trim()!==open||!officialConfirmationChoicesMatch(box,false)){abortWizard('최종 선택값 불일치 · '+officialMismatchReason(box,false));return;}
   if(dryRun){timingOnce('dry_run_stop','최종 주문 클릭 0회');abortWizard('무전송 시험 성공 · 실제 주문 요청 0회');return;}
   const all=box.querySelector('#ocAll');
   if(!all){abortWizard('최종 동의 항목 없음');return;}
@@ -1394,7 +1452,7 @@ function basketSummary(){
  controls.backgroundWatch.checked=backgroundWatch;
  controls.backgroundWatch.addEventListener('change',()=>{if(active){controls.backgroundWatch.checked=backgroundWatch;message('⚠ 감시 중 변경 불가 · 중지 후 설정해 줘');return;}backgroundWatch=controls.backgroundWatch.checked;savePref();});
  controls.watchMode.value=watchMode;renderModeSections(true);controls.opt.value=option;controls.cycle.value=String(cycle);controls.open.value=open;controls.storage.value=storage;controls.pick.value=pick;controls.display.value=display;controls.freeShip.value=freeShip?'on':'off';controls.manual.value=sku;applyFlowMode(flowMode);
- window.__bbpGeneralQuickV24={show,stop,__v2:true,version:'2.5.1'};
+ window.__bbpGeneralQuickV24={show,stop,__v2:true,version:'2.5.2'};
  renderNames();renderBasket();loadCatalog(false);
 }catch(e){alert('범용 v2 도우미 오류: '+String(e.message||e));}
 })();

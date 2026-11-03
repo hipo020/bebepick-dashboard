@@ -40,7 +40,8 @@ function fixture({voucher=true,checked=false,requested=false,disabled=false,mult
    return null;
   }
  };
- const ctx={storage:'보관',open:'개봉',pick:'직접 고르기',display:'닉네임',
+ const ctx={storage:'보관',effectiveStorage:'보관',forcedShippingAccepted:false,firstStepChoicesVerified:false,open:'개봉',pick:'직접 고르기',display:'닉네임',
+  syncForcedDirectShipping:()=>false,officialForcedDirectShippingEvidence:()=>false,
   freeShip:requested,OPTS_KEY:'bbp_order_opts',sessionStorage:{getItem:()=>JSON.stringify(opts)},
   Array,JSON,Number,el:(sel,p)=>p.querySelector(sel)};
  const fn=vm.runInNewContext(optionFunctions,ctx);
@@ -102,6 +103,6 @@ test('voucher is included in all purchase-consent text, no automatic spending or
  assert.match(src,/if\(!officialFreeShippingOption\(cartPanel\)\)return false/);
  assert.match(src,/!officialConfirmationChoicesMatch\(box,true\)/);
  assert.match(src,/!officialConfirmationChoicesMatch\(box,false\)/);
- assert.match(launcher,/v=20261102-v251-free-ship/);
- assert.match(launcher,/@version\s+1\.2\.1/);
+ assert.match(launcher,/v=20261103-v252-forced-shipping/);
+ assert.match(launcher,/@version\s+1\.2\.2/);
 });
