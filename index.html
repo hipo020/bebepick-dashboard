@@ -2181,7 +2181,7 @@ $("cartClear").addEventListener("click", () => {
 
 function render() {
   // Keep just the relevant sort options for the current product filter.
-  sort = syncProductSortOptions(filter, sort);
+  sort = syncProductSortOptions(filter === "available" && sourceUnavailable ? "available_public" : filter, sort);
   const q = normalizeSearch(query);
 
   const baseProducts = includeSpecial
@@ -2258,6 +2258,10 @@ function render() {
   list.sort((a, b) => {
     if (sort === "name") return String(a.name).localeCompare(String(b.name), "ko");
     if (sort === "recent_public") {
+      if (filter === "available" && sourceUnavailable) {
+        const newPriority = Number(b.public_is_new === true) - Number(a.public_is_new === true);
+        if (newPriority) return newPriority;
+      }
       const dateOf = p => validTimestamp(p.public_site ? p.first_public_at : p.source_created_at);
       const ta = dateOf(a), tb = dateOf(b);
       if (ta === null) return tb === null ? fallbackStock(a,b) : 1;
