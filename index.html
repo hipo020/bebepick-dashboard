@@ -2628,7 +2628,8 @@ document.addEventListener("keydown", (e) => {
 renderCartPreview();
 startRealtime();
 load();
-setInterval(load, 60000);
+// Match the 30-second public catalog server schedule; this only refreshes our own board.
+setInterval(load, 30000);
 </script>
 </body>
 </html>
