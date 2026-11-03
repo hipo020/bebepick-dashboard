@@ -792,8 +792,8 @@ body{background:var(--sb-bg);color:var(--sb-ink)}
     </div>
 
     <div class="filter-row" aria-label="상품 상태 빠른 필터">
-      <button class="chip on" data-f="available" aria-pressed="true"><span>판매중</span><b id="countAvailable">0</b></button>
-      <button class="chip" data-f="new_site" aria-pressed="false"><span>🌐 새 사이트</span><b id="countNewSite">0</b></button>
+      <button class="chip on" data-f="new_site" aria-pressed="true"><span>🌐 새 사이트</span><b id="countNewSite">0</b></button>
+      <button class="chip" data-f="available" aria-pressed="false"><span>판매중·공개</span><b id="countAvailable">0</b></button>
       <button class="chip" data-f="all" aria-pressed="false"><span>전체</span><b id="countAll">0</b></button>
       <button class="chip" data-f="hidden" aria-pressed="false"><span>숨김 전체</span><b id="countHidden">0</b></button>
       <button class="chip" data-f="hidden_stock" aria-pressed="false"><span>숨김·재고</span><b id="countHiddenStock">0</b></button>
@@ -942,7 +942,7 @@ let products = [];
 let newSiteProducts = [];
 let sourceUnavailable = false;
 let fallbackFilterAutoSelected = false;
-let filter = "available";
+let filter = "new_site";
 let query = "";
 let sort = "desc";
 let includeSpecial = false;
@@ -2325,7 +2325,7 @@ function render() {
   syncSearchClear();
 
   const filterLabel = ({
-    available: "판매중",
+    available: "판매중·공개",
     new_site: "새 사이트 공개",
     hidden_stock: "숨김·재고",
     upcoming: "신상추정",
@@ -2444,11 +2444,15 @@ async function load() {
     newSiteProducts = data.new_site?.fresh === true && Array.isArray(data.new_site.products)
       ? data.new_site.products : [];
     sourceUnavailable = data.source_unavailable === true;
-    if (sourceUnavailable && products.length && filter === "available" && !newSiteProducts.length) {
+    // Prefer the actual vendor's published catalog on initial visit.
+    // Fallback to the archived list only when neither live catalog nor old
+    // inventory is available. Never overwrite a user's manual filter choice.
+    if (sourceUnavailable && products.length && filter === "new_site" && !newSiteProducts.length &&
+        !fallbackFilterAutoSelected) {
       filter = "all";
       fallbackFilterAutoSelected = true;
-    } else if (!sourceUnavailable && fallbackFilterAutoSelected) {
-      if (filter === "all") filter = "available";
+    } else if (newSiteProducts.length && fallbackFilterAutoSelected) {
+      if (filter === "all") filter = "new_site";
       fallbackFilterAutoSelected = false;
     }
     // Periodic server refresh invalidates old cached price/stock histories.

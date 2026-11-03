@@ -4,6 +4,10 @@ const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
 const presets=fs.readFileSync(path.join(__dirname,'../stock-sort-presets.js'),'utf8');
 test('official NEW is a badge in 판매중, never a separate tab or old pre-release estimate',()=>{
  assert.match(html, /data-f="available"/);
+ assert.match(html, /<button class="chip on" data-f="new_site" aria-pressed="true"/);
+ assert.match(html, /<button class="chip" data-f="available" aria-pressed="false"/);
+ assert.match(html, /let filter = "new_site";/);
+ assert.match(html, /판매중·공개/);
  assert.doesNotMatch(html, /data-f="new_products"/);
  assert.match(html, /👀 신상추정/);
  assert.match(html, /const publishedNotOut = publicCards\.filter\(p => p\.public_stock !== "out"\)/);
@@ -33,6 +37,7 @@ test('observed-public sort is integrated without breaking full dashboard JS',()=
  assert.match(presets,/upcoming: \[\["recent_created"/);
  assert.match(html,/if \(sort === "recent_public"\)/);
  assert.match(html,/setInterval\(load, 30000\)/);
+ assert.match(html,/if \(sourceUnavailable && products\.length && filter === "new_site" && !newSiteProducts\.length/);
  const open=html.lastIndexOf('<script>'),end=html.lastIndexOf('</script>');
  assert.doesNotThrow(()=>new vm.Script(html.slice(open+8,end)));
  assert.doesNotThrow(()=>new vm.Script(presets));

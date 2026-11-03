@@ -8,8 +8,9 @@ test('embedded dashboard JavaScript remains syntactically valid',()=>{
 });
 test('archived products remain visible as unverified and cannot trigger stale orders',()=>{
  assert.match(html,/sourceUnavailable = data\.source_unavailable === true/);
- assert.match(html,/sourceUnavailable && products\.length && filter === "available" && !newSiteProducts\.length/);
+ assert.match(html,/sourceUnavailable && products\.length && filter === "new_site" && !newSiteProducts\.length/);
  assert.match(html,/filter = "all";/);
+ assert.match(html,/if \(filter === "all"\) filter = "new_site";/);
  assert.match(html,/const availableCards = \[/);
  assert.match(html,/if \(sourceUnavailable \|\| p\?\.public_site\) return false/);
  assert.match(html,/if \(sourceUnavailable\) throw new Error\("공식 상품목록 확인 불가/);
