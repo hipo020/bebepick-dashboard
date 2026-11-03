@@ -797,7 +797,7 @@ body{background:var(--sb-bg);color:var(--sb-ink)}
       <button class="chip" data-f="all" aria-pressed="false"><span>전체</span><b id="countAll">0</b></button>
       <button class="chip" data-f="hidden" aria-pressed="false"><span>숨김 전체</span><b id="countHidden">0</b></button>
       <button class="chip" data-f="hidden_stock" aria-pressed="false"><span>숨김·재고</span><b id="countHiddenStock">0</b></button>
-      <button class="chip" data-f="upcoming" aria-pressed="false"><span>👀 신상추정</span><b id="countUpcoming">0</b></button>
+      <button class="chip" data-f="upcoming" aria-pressed="false"><span>👀 신상 후보</span><b id="countUpcoming">0</b></button>
       <button class="chip" data-f="unavailable" aria-pressed="false"><span>품절·판매종료</span><b id="countUnavailable">0</b></button>
     </div>
 
@@ -2193,6 +2193,13 @@ function render() {
   const archivedByName = new Map(products.map(p => [
     normalizeSearch(String(p.name || "").replace(/\s+/g, "")), p
   ]));
+  const candidateNow = Date.now();
+  const isPublicCandidate = p => p.public_site && (
+    p.public_is_new === true ||
+    (p.first_public_at && Number.isFinite(Date.parse(p.first_public_at)) &&
+     candidateNow - Date.parse(p.first_public_at) >= 0 &&
+     candidateNow - Date.parse(p.first_public_at) <= 72 * 60 * 60 * 1000)
+  );
   const publicCards = newSiteProducts.map(p => {
     const old = archivedByName.get(normalizeSearch(String(p.name || "").replace(/\s+/g, ""))) || {};
     return {
@@ -2201,6 +2208,10 @@ function render() {
       public_site: true,
       public_sku: p.sku,
       public_stock: p.stock,
+      public_is_new: p.is_new === true,
+      first_public_at: typeof p.first_public_at === "string" ? p.first_public_at : null,
+      public_left: Number.isSafeInteger(p.left) && p.left >= 1 && p.left <= 99 ? p.left : null,
+      public_last3: p.last3 === true,
       name: p.name,
       image_url: p.image_url || old.image_url || "",
       current_stock: null,
@@ -2209,12 +2220,16 @@ function render() {
       state: "hidden",
     };
   });
-  let list = (filter === "new_site" ? publicCards : baseProducts).filter((p) => {
+  const publicCandidates = publicCards.filter(isPublicCandidate);
+  const legacyCandidates = sourceUnavailable ? [] : baseProducts.filter(isUpcomingTabCandidate);
+  let list = (filter === "new_site" ? publicCards
+    : filter === "upcoming" ? [...publicCandidates, ...legacyCandidates]
+    : baseProducts).filter((p) => {
     if (filter === "available" && p.state !== "available") return false;
     if (filter === "unavailable" && p.state === "available") return false;
     if (filter === "hidden" && p.state !== "hidden") return false;
     if (filter === "hidden_stock" && !(p.state === "hidden" && Number(p.current_stock) > 0)) return false;
-    if (filter === "upcoming" && !isUpcomingTabCandidate(p)) return false;
+    if (filter === "upcoming" && !p.public_site && !isUpcomingTabCandidate(p)) return false;
     if (filter === "recent_restock" && !(p.recent_restock_24h ?? isRecentRestock(p))) return false;
     if (q && !normalizeSearch(p.name).includes(q)) return false;
     return true;
@@ -2229,6 +2244,13 @@ function render() {
     || String(a.name || "").localeCompare(String(b.name || ""), "ko");
   list.sort((a, b) => {
     if (sort === "name") return String(a.name).localeCompare(String(b.name), "ko");
+    if (sort === "recent_public") {
+      const dateOf = p => validTimestamp(p.public_site ? p.first_public_at : p.source_created_at);
+      const ta = dateOf(a), tb = dateOf(b);
+      if (ta === null) return tb === null ? fallbackStock(a,b) : 1;
+      if (tb === null) return -1;
+      return (tb-ta) || fallbackStock(a,b);
+    }
     if (sort === "desc") return fallbackStock(a, b);
     if (sort === "asc") return Number(a.current_stock) - Number(b.current_stock) || fallbackStock(a, b);
     if (sort === "popular") {
@@ -2273,7 +2295,7 @@ function render() {
   const hiddenStock = baseProducts.filter(
     (p) => p.state === "hidden" && Number(p.current_stock) > 0
   ).length;
-  const upcoming = baseProducts.filter((p) => isUpcomingTabCandidate(p)).length;
+  const upcoming = publicCandidates.length + legacyCandidates.length;
 
   if ($("countNewSite")) $("countNewSite").textContent = fmt(newSiteProducts.length);
   if ($("countAvailable")) $("countAvailable").textContent = fmt(available);
@@ -2289,7 +2311,7 @@ function render() {
     available: "판매중",
     new_site: "새 사이트 공개",
     hidden_stock: "숨김·재고",
-    upcoming: "신상추정",
+    upcoming: "신상 후보",
     unavailable: "품절·판매종료",
     hidden: "숨김 전체",
     recent_restock: "최근 재입고",
@@ -2298,13 +2320,14 @@ function render() {
   $("summary").innerHTML =
     "<span>" + esc(filterLabel) + " <b>" + list.length + "</b>개</span>" +
     (filter === "upcoming"
-      ? "<span>·</span><span>👀 신상추정 <b>" + fmt(list.filter(isUpcomingCandidate).length) +
-        "</b>개</span><span>·</span><span>🔄 재입고 추정 <b>" +
-        fmt(list.filter((p) => p.state === "hidden" && Number(p.current_stock) > 0 && isLargeExistingRestock(p)).length) +
-        "</b>개</span>"
+      ? "<span>·</span><span>🌐 공식 공개 신상 후보 <b>" + fmt(list.filter(p => p.public_site).length) +
+        "</b>개</span>" +
+        (sourceUnavailable ? "<span>·</span><span>※ 미공개 신상품은 확인할 수 없음</span>"
+          : "<span>·</span><span>📦 이전 재고 기준 후보 <b>" + fmt(list.filter(p => !p.public_site).length) + "</b>개</span>")
       : "") +
     (q ? "<span>·</span><span>검색 결과</span>" : "") +
-    (filter === "new_site" ? "<span>·</span><span>공식 공개 목록 · 정확한 수량 비공개</span>"
+    (filter === "new_site" ? "<span>·</span><span>공식 공개 목록 · 수량은 공개된 경우만 표시</span>"
+      : filter === "upcoming" ? "<span>·</span><span>※ 공개 후 관측 · 미공개 사전 감지 아님</span>"
       : sourceUnavailable ? "<span>·</span><span>⚠️ 보관된 기록 · 현재 상태 미확인</span>" : "");
 
   renderCartPreview();
@@ -2318,7 +2341,7 @@ function render() {
     const pack = Number(p.pack_size) > 1 ? " · " + fmt(p.pack_size) + "입" : "";
     const full = Number(p.fullbox_price) > 0 ? " · 풀박스 " + fmt(p.fullbox_price) + "원" : "";
     const stock = p.public_site
-      ? (p.public_stock === "out" ? "품절" : p.public_stock === "low" ? "매진 임박" : "공개됨")
+      ? (p.public_stock === "out" ? "품절" : p.public_left !== null ? fmt(p.public_left) + "개" : p.public_stock === "low" ? "매진 임박" : "공개됨")
       : sourceUnavailable ? "—" : p.state === "available"
       ? fmt(p.current_stock) + "개"
       : p.state === "sold_out"
@@ -2336,12 +2359,18 @@ function render() {
       ? '<div class="meta">최근 ' + fmt(p.trend_window_minutes || 60) + '분 재고 -' + fmt(p.recent_decrease_60m) + '개</div>'
       : "";
     const prepBadge = p.public_site
-      ? '<div class="prep">🌐 새 사이트 공개 · ' + esc(p.public_sku) + '</div>'
+      ? '<div class="prep">' +
+        (p.public_is_new ? "🆕 공식 NEW" : isPublicCandidate(p) ? "👀 최근 공개 감지" : "🌐 새 사이트 공개") +
+        ' · ' + esc(p.public_sku) + '</div>'
       : sourceUnavailable ? "" : isUpcomingCandidate(p)
       ? '<div class="prep">👀 미공개 신상추정 · 최근 등록</div>'
       : p.state === "hidden" && Number(p.current_stock) > 0 && isLargeExistingRestock(p)
         ? '<div class="prep restock-prep">🔄 재입고 추정 · 최근 +' + fmt(p.last_increase_qty) + '개</div>'
         : "";
+    const publicHints = p.public_site
+      ? (p.first_public_at && isPublicCandidate(p) ? '<div class="meta">처음 공개 관측 · ' + esc(timeShort(p.first_public_at)) + '</div>' : "") +
+        (p.public_last3 ? '<div class="meta">🧸 마지막 샘플 안내 표시 · 정확한 개수 미확인</div>' : "")
+      : "";
     const etaMinutes = p.public_site || sourceUnavailable ? NaN : Number(p.estimated_sellout_minutes);
     const eta = Number.isFinite(etaMinutes) && etaMinutes > 0 && etaMinutes <= 720
       ? '<div class="meta trend out">⏱ 현재 속도면 약 ' + esc(durationText(etaMinutes * 60)) + ' 내 품절 예상</div>'
@@ -2353,7 +2382,7 @@ function render() {
         prepBadge +
         '<div class="name">' + esc(p.name) + '</div>' +
         '<div class="meta">' + esc(price + pack + full) + '</div>' +
-        recentIncrease + recentDecrease + eta + selloutSpeed +
+        publicHints + recentIncrease + recentDecrease + eta + selloutSpeed +
         '<div class="item-actions">' +
           (Number(p.doll_id) > 0
             ? '<button class="history-btn" type="button" onclick="toggleHistory(' + Number(p.doll_id) + ')">' +
@@ -2364,7 +2393,7 @@ function render() {
         '</div>' +
       '</div>' +
       '<div class="stock ' + (p.public_site ? (p.public_stock === "out" ? "sold" : p.public_stock === "low" ? "low" : "hidden") : stockClass(p)) + '">' +
-        stock + '<small>' + (p.public_site ? "정확한 재고 수량 비공개" : sourceUnavailable ? "현재 상태 미확인" : label(p)) + '</small>' +
+        stock + '<small>' + (p.public_site ? (p.public_left !== null && p.public_stock !== "out" ? "공식 공개 수량" : "정확한 재고 수량 미공개") : sourceUnavailable ? "현재 상태 미확인" : label(p)) + '</small>' +
       '</div>' +
       '<div id="history-' + Number(p.doll_id) + '" class="history-panel" hidden></div>' +
     '</article>';

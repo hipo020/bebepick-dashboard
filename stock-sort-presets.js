@@ -5,7 +5,8 @@ const PRODUCT_SORT_CHOICES = {
   all: [["desc","재고 많은 순"],["popular","최근 재고 감소순"],["recent_created","최근 등록순"],["hidden_first","숨김 우선순"],["name","이름순"]],
   hidden: [["hidden_recent","최근 숨김 감지순"],["desc","재고 많은 순"],["recent_created","최근 등록순"],["name","이름순"]],
   hidden_stock: [["hidden_recent","최근 숨김 감지순"],["desc","재고 많은 순"],["recent_created","최근 등록순"],["name","이름순"]],
-  upcoming: [["recent_created","최근 등록순"],["desc","재고 많은 순"],["name","이름순"]],
+  new_site: [["recent_public","최근 공개 감지순"],["name","이름순"]],
+  upcoming: [["recent_public","최근 공개·등록순"],["name","이름순"]],
   unavailable: [["unavailable_recent","최근 종료 감지순"],["unavailable_old","오래된 종료 감지순"],["desc","재고 많은 순"],["recent_created","최근 등록순"],["name","이름순"]],
   recent_restock: [["recent_restock_sort","최근 재입고순"],["desc","재고 많은 순"],["name","이름순"]]
 };
