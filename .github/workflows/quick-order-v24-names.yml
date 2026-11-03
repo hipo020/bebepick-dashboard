@@ -11,6 +11,7 @@ on:
       - 'tests/firefox-one-tap-launcher.test.cjs'
       - 'tests/firefox-v241-pick-anon.test.cjs'
       - 'tests/firefox-v25-guided-ux.test.cjs'
+      - 'tests/firefox-v252-forced-shipping.test.cjs'
       - 'tests/firefox-v251-free-shipping.test.cjs'
       - 'bebepick-firefox-payapp-methods.user.js'
       - 'tests/firefox-payapp-methods.test.cjs'
@@ -30,6 +31,7 @@ on:
       - 'tests/firefox-one-tap-launcher.test.cjs'
       - 'tests/firefox-v241-pick-anon.test.cjs'
       - 'tests/firefox-v25-guided-ux.test.cjs'
+      - 'tests/firefox-v252-forced-shipping.test.cjs'
       - 'tests/firefox-v251-free-shipping.test.cjs'
       - 'bebepick-firefox-payapp-methods.user.js'
       - 'tests/firefox-payapp-methods.test.cjs'
@@ -49,6 +51,8 @@ jobs:
           node-version: '22'
       - name: 'Stock dashboard upcoming estimator: existing item +10 restock rule'
         run: node --test tests/upcoming-restock-threshold.test.cjs
+      - name: 'Forced direct shipping only at 0 won with verified seller pick'
+        run: node --test tests/firefox-v252-forced-shipping.test.cjs
       - name: 'Firefox order pick and anonymous option safety tests'
         run: node --test tests/firefox-v241-pick-anon.test.cjs
       - name: 'Firefox free-shipping voucher: opt-in and official eligibility safety'
