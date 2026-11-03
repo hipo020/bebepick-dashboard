@@ -59,6 +59,7 @@ function basketSummary(){
  let freeShip=pref.freeShip===true;
  // Remember the preferred flow, not real-order authorization: Start always confirms real order.
  let flowMode=['payapp','order','dry','watch'].includes(pref.flowMode)?pref.flowMode:'payapp';
+ let effectiveStorage=storage,forcedShippingAccepted=false,firstStepChoicesVerified=false;
  let cartProgress=null,cartPrepared=false,awaitingCatalog=false,autoPay=false,autoOrder=false,dryRun=true,active=false,polling=false,confirmed=false,completed=false,payArmed=false,payDone=false,tries=0,timer=null,controllers=new Set(),catalog=[],lastResults=null,triggerMode='',confirmedAt=0,routeBusy=false,lastRouteAt=0,cartTimer=null,uiTimer=null,payWatchTimer=null,payLastObservation='',lastWindowOk=null,wizardTimer=null,submitRetryTimer=null,wizardStage=0,wizardStart=0,finalAgreeAt=0,submitClicked=false,manualSubmitObserved=false,submitAttemptAt=0,submitResourceBaseline=0,payDeadline=0,oldPayOrder='';
 
  function el(q,root){return (root||document).querySelector(q);}
@@ -653,7 +654,14 @@ function basketSummary(){
  }catch(e){message('⚠ 주문 옵션(무료배송권 포함)을 미리 저장하지 못했어');return false;}}
  function serverOpen(w){return !!(w&&w.reason!=='paused'&&w.open===true&&w.enabled!==false&&w.closed!==true);}
   function openMode(w){return serverOpen(w)?'주문 접수':'';}
-  function matchesStorage(value){const v=String(value||'').trim();return storage==='발송'?(v==='발송'||v==='바로 배송'):(v==='보관');}
+  function matchesStorage(value){
+  const v=String(value||'').replace(/\s+/g,'').trim();
+  const official=v==='보관'?'보관':(v==='발송'||v==='바로배송')?'발송':null;
+  if(!official)return false;
+  if(official!==effectiveStorage && official==='발송')syncForcedDirectShipping();
+  if(effectiveStorage==='발송' && storage==='보관' && !officialForcedDirectShippingEvidence())return false;
+  return official===effectiveStorage;
+ }
  function latestAvailability(p){return allSaleable()?'선택한 상품 모두 판매 가능':p?'일부 상품 품절/재고 부족':'목록 대기';}
  function schedule(delay){if(timer)clearTimeout(timer);if(active&&!confirmed)timer=setTimeout(poll,delay);}
  async function poll(){
@@ -753,10 +761,42 @@ function basketSummary(){
     setTimeout(()=>{routeBusy=false;if(active&&confirmed)handoff();},1200);
    },250);
   }
+ // A site-mandated option change is not ordinary user consent.
+ // Accept a forced same-day shipment ONLY with explicit store evidence,
+ // disabled storage choice, zero shipping fee and official session state.
+ function officialForcedDirectShippingEvidence(){
+  if(storage!=='보관')return false;
+  const cart=el('.panel[data-sheet="cart"]');
+  if(!cart)return false;
+  const keep=cart.querySelector('[data-storage="보관"]');
+  const send=cart.querySelector('[data-storage="발송"]');
+  if(!keep||!send||send.getAttribute('aria-checked')!=='true')return false;
+  if(!(keep.disabled===true||keep.getAttribute('aria-disabled')==='true'||keep.hasAttribute('disabled')||keep.classList.contains('disabled')))return false;
+  const visible=String(cart.innerText||cart.textContent||'').replace(/\s+/g,' ');
+  if(!/보관.{0,50}(?:일괄\s*발송일|불가|안\s*되)/.test(visible)||
+     !/바로\s*배송만/.test(visible))return false;
+  const prices=[...visible.matchAll(/배송비\s*([0-9,]+)\s*원/g)];
+  if(!prices.length)return false;
+  const fee=Number(prices[prices.length-1][1].replace(/,/g,''));
+  if(fee!==0)return false;
+  let opts;
+  try{opts=JSON.parse(sessionStorage.getItem(OPTS_KEY)||'{}')||{};}catch(e){return false;}
+  return opts.storage==='발송';
+ }
+ function syncForcedDirectShipping(){
+  if(effectiveStorage==='발송')return officialForcedDirectShippingEvidence();
+  if(!officialForcedDirectShippingEvidence())return false;
+  effectiveStorage='발송';
+  forcedShippingAccepted=true;
+  timingOnce('shipping_forced','사이트 보관 불가 · 바로 배송 강제 · 배송비 0원 확인');
+  message('📦 보관 불가 · 공식 사이트가 바로 배송만 허용하고 배송비 0원으로 확인돼 이어서 진행해');
+  return true;
+ }
  function chosenOrderOptionsSnapshot(){
   try{
    const o=JSON.parse(sessionStorage.getItem(OPTS_KEY)||'{}')||{};
-   return o.storage===storage&&o.open===open&&
+   return o.storage===effectiveStorage&&o.open===open&&
+    (effectiveStorage!=='발송'||storage!=='보관'||officialForcedDirectShippingEvidence())&&
     (o.note?.pick===true?'셀러픽':'직접 고르기')===pick&&
     (o.anon===true?'익명':'닉네임')===display&&o.use_free_ship===freeShip;
   }catch(e){return false;}
@@ -793,12 +833,14 @@ function basketSummary(){
   return on===freeShip;
  }
  function correctOrderControls(cartPanel){
-  const chosenStore=el('[data-storage="'+storage+'"]',cartPanel),chosenOpen=el('[data-open="'+open+'"]',cartPanel);
+  syncForcedDirectShipping();
+  const chosenStore=el('[data-storage="'+effectiveStorage+'"]',cartPanel),chosenOpen=el('[data-open="'+open+'"]',cartPanel);
   if(!chosenStore||!chosenOpen)return false;
   const chosen=b=>b.getAttribute('aria-checked')==='true';
-  if(!chosen(chosenStore))chosenStore.click();
+  if(!chosen(chosenStore)&&!chosenStore.disabled&&chosenStore.getAttribute('aria-disabled')!=='true')chosenStore.click();
+  syncForcedDirectShipping();
   if(!chosen(chosenOpen))chosenOpen.click();
-  if(!chosen(chosenStore)||!chosen(chosenOpen))return false;
+  if(!chosen(el('[data-storage="'+effectiveStorage+'"]',cartPanel))||!chosen(chosenOpen))return false;
   if(!officialChoiceRow(cartPanel,'pick',pick,pick==='셀러픽'))return false;
   if(!officialChoiceRow(cartPanel,'anon',display,display==='익명'))return false;
   if(!officialFreeShippingOption(cartPanel))return false;
@@ -858,7 +900,7 @@ function basketSummary(){
    if(!cartPanel){fail('장바구니를 열지 못했어');return;}
    timingOnce('cart_panel');
    if(!correctOrderControls(cartPanel)){fail('주문 옵션(배송·개봉·무료배송권 포함)을 자동 확인하지 못했어');return;}
-   timingOnce('option_ok',open+' + '+storage+' + '+pick+' + '+display+' + 무료배송권 '+(freeShip?'사용':'미사용'));
+   timingOnce('option_ok',open+' + '+effectiveStorage+(forcedShippingAccepted?' (보관 불가로 자동 전환)':'')+' + '+pick+' + '+display+' + 무료배송권 '+(freeShip?'사용':'미사용'));
    const next=el('#checkout',cartPanel);
    if(!next||next.disabled){fail('주문 버튼이 비활성화돼 있어');return;}
    clearInterval(cartTimer);cartTimer=null;cartProgress=null;
