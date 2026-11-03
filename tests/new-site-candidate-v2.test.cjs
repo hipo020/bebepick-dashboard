@@ -32,6 +32,7 @@ test('observed-public sort is integrated without breaking full dashboard JS',()=
  assert.match(html,/filter === "available" && sourceUnavailable \? "available_public" : filter/);
  assert.match(presets,/upcoming: \[\["recent_created"/);
  assert.match(html,/if \(sort === "recent_public"\)/);
+ assert.match(html,/setInterval\(load, 30000\)/);
  const open=html.lastIndexOf('<script>'),end=html.lastIndexOf('</script>');
  assert.doesNotThrow(()=>new vm.Script(html.slice(open+8,end)));
  assert.doesNotThrow(()=>new vm.Script(presets));
