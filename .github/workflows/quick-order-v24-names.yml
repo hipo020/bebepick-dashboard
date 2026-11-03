@@ -6,6 +6,7 @@ on:
       - 'bebepick-quick-order-general-v24.js'
       - 'index.html'
       - 'tests/upcoming-restock-threshold.test.cjs'
+      - 'tests/catalog-unavailable-frontend.test.cjs'
       - 'bebepick-quick-order-v24-install.html'
       - 'bebepick-firefox-one-tap.user.js'
       - 'tests/firefox-one-tap-launcher.test.cjs'
@@ -26,6 +27,7 @@ on:
       - 'bebepick-quick-order-general-v24.js'
       - 'index.html'
       - 'tests/upcoming-restock-threshold.test.cjs'
+      - 'tests/catalog-unavailable-frontend.test.cjs'
       - 'bebepick-quick-order-v24-install.html'
       - 'bebepick-firefox-one-tap.user.js'
       - 'tests/firefox-one-tap-launcher.test.cjs'
@@ -51,6 +53,8 @@ jobs:
           node-version: '22'
       - name: 'Stock dashboard upcoming estimator: existing item +10 restock rule'
         run: node --test tests/upcoming-restock-threshold.test.cjs
+      - name: 'Dashboard stale catalog fallback: no unsafe ordering'
+        run: node --test tests/catalog-unavailable-frontend.test.cjs
       - name: 'Forced direct shipping only at 0 won with verified seller pick'
         run: node --test tests/firefox-v252-forced-shipping.test.cjs
       - name: 'Firefox order pick and anonymous option safety tests'
