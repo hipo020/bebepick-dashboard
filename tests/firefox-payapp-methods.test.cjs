@@ -248,7 +248,7 @@ test('mobile PAYAPP preset has a clear accessible ON/OFF button when the merchan
  const check=x.nodes.find(n=>n.id==='bbpPresetAuto');
  const save=x.nodes.find(n=>n.id==='bbpPresetSave');
  assert.ok(toggle);
- assert.ok(source.includes('// @version      0.4.0'));
+ assert.ok(source.includes('// @version      0.4.1'));
  assert.match(source,/visibility:visible!important/);
  assert.match(source,/Official PAYAPP CSS may hide native checkbox inputs globally/);
  assert.equal(check.checked,false);
@@ -324,7 +324,7 @@ test('the first PAYAPP agreement screen exposes one clear explicit consent-and-n
  assert.equal(quick.hidden,false);
  assert.match(quick.textContent,/약관 읽고 동의 → 다음/);
  assert.equal(quick.attrs['aria-label'],'약관을 읽고 동의하며 다음으로 이동');
- assert.ok(source.includes('// @version      0.4.0'));
+ assert.ok(source.includes('// @version      0.4.1'));
  const card=setup('https://www.payapp.kr/WEBPAY_SCKA1/card',{hasCardField:true});
  assert.equal(card.nodes.find(n=>n.id==='termsNext').hidden,true,'the agreement button is never available on card input screen');
 });
@@ -430,4 +430,43 @@ test('turning auto terms OFF prevents future automatic agreement despite stale o
  p.label('전자금융거래 이용약관');p.label('개인정보 처리방침 동의');
  p.runTimers();
  assert.equal(agree.clicked,undefined);assert.equal(next.clicked,undefined);
+});
+
+test('PAYAPP v0.4.1 recognizes the actual payment-method title and selects card automatically',()=>{
+ const x=setup('https://payapp.kr/WEBPAY_INPUT/demo',{autoOn:true});
+ x.label('결제수단 선택');
+ const card=x.label('신용/체크 카드');
+ x.runTimers();
+ assert.equal(card.clicked,1);
+ x.mutate();x.runTimers();
+ assert.equal(card.clicked,1,'same payment screen must never be clicked twice');
+});
+test('checkout can explicitly enable the independent agreement auto-switch',()=>{
+ const x=setup('https://payapp.kr/WEBPAY_INPUT/demo');
+ const toggle=x.nodes.find(n=>n.id==='bbpCheckoutTermsAuto');
+ assert.ok(toggle);
+ assert.equal(toggle.attrs['aria-pressed'],'false');
+ const agree=x.label('전체동의','div');
+ x.label('전자금융거래 이용약관','label');
+ x.label('개인정보 처리방침 동의','label');
+ const next=x.label('다음','button');
+ toggle.listeners.click();
+ assert.equal(x.gmStorage.get('bbp_payapp_auto_terms_v1'),'on');
+ assert.equal(toggle.attrs['aria-pressed'],'true');
+ x.runTimers();
+ assert.equal(agree.clicked,1);
+ assert.equal(next.clicked,1);
+ toggle.listeners.click();
+ assert.equal(x.gmStorage.get('bbp_payapp_auto_terms_v1'),'off');
+});
+test('unknown or duplicate payment tiles fail closed and card security data is untouched',()=>{
+ const x=setup('https://payapp.kr/WEBPAY_INPUT/demo',{autoOn:true});
+ x.label('결제수단 선택');
+ const a=x.label('신용/체크 카드'),b=x.label('신용/체크 카드');
+ x.runTimers();
+ assert.equal(a.clicked,undefined);
+ assert.equal(b.clicked,undefined);
+ assert.equal(x.storage.size,1,'only existing navigation preference is stored');
+ assert.doesNotMatch(source,/CardNo1\s*\.\s*value/);
+ assert.doesNotMatch(source,/birth(?:day|date)|cardPin|password\s*\.\s*value/i);
 });
