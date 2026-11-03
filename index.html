@@ -793,7 +793,6 @@ body{background:var(--sb-bg);color:var(--sb-ink)}
 
     <div class="filter-row" aria-label="상품 상태 빠른 필터">
       <button class="chip on" data-f="available" aria-pressed="true"><span>판매중</span><b id="countAvailable">0</b></button>
-      <button class="chip" data-f="new_products" aria-pressed="false"><span>🆕 신상품</span><b id="countNewProducts">0</b></button>
       <button class="chip" data-f="new_site" aria-pressed="false"><span>🌐 새 사이트</span><b id="countNewSite">0</b></button>
       <button class="chip" data-f="all" aria-pressed="false"><span>전체</span><b id="countAll">0</b></button>
       <button class="chip" data-f="hidden" aria-pressed="false"><span>숨김 전체</span><b id="countHidden">0</b></button>
@@ -1582,7 +1581,7 @@ async function toggleHistory(id) {
 }
 
 function syncFilterUI() {
-  const quickFilters = new Set(["available", "new_products", "new_site", "all", "hidden", "hidden_stock", "upcoming", "unavailable"]);
+  const quickFilters = new Set(["available", "new_site", "all", "hidden", "hidden_stock", "upcoming", "unavailable"]);
   document.querySelectorAll(".chip").forEach((button) => {
     const on = button.dataset.f === filter;
     button.classList.toggle("on", on);
@@ -2182,7 +2181,7 @@ $("cartClear").addEventListener("click", () => {
 
 function render() {
   // Keep just the relevant sort options for the current product filter.
-  sort = syncProductSortOptions(filter, sort);
+  sort = syncProductSortOptions(filter === "available" && sourceUnavailable ? "available_public" : filter, sort);
   const q = normalizeSearch(query);
 
   const baseProducts = includeSpecial
@@ -2223,13 +2222,23 @@ function render() {
   });
   // Published NEW products are not hidden pre-release "신상추정" candidates.
   // The original upcoming estimator is only valid when old exact-stock data is healthy.
-  const publicNewProducts = publicCards.filter(p => p.public_is_new === true);
   const legacyCandidates = sourceUnavailable ? [] : baseProducts.filter(isUpcomingTabCandidate);
-  let list = (filter === "new_site" ? publicCards
-    : filter === "new_products" ? publicNewProducts
+  // Keep officially published product cards in the existing 판매중 list, including
+  // official NEW badges. Unknown public stock does NOT prove checkout availability.
+  const publishedNotOut = publicCards.filter(p => p.public_stock !== "out");
+  const knownPublicNames = new Set(publishedNotOut.map(p =>
+    normalizeSearch(String(p.name || "").replace(/\s+/g, ""))));
+  const availableCards = [
+    ...publishedNotOut,
+    ...(sourceUnavailable ? [] : baseProducts.filter(p =>
+      p.state === "available" &&
+      !knownPublicNames.has(normalizeSearch(String(p.name || "").replace(/\s+/g, ""))))),
+  ];
+  let list = (filter === "available" ? availableCards
+    : filter === "new_site" ? publicCards
     : filter === "upcoming" ? legacyCandidates
     : baseProducts).filter((p) => {
-    if (filter === "available" && p.state !== "available") return false;
+    if (filter === "available" && !p.public_site && p.state !== "available") return false;
     if (filter === "unavailable" && p.state === "available") return false;
     if (filter === "hidden" && p.state !== "hidden") return false;
     if (filter === "hidden_stock" && !(p.state === "hidden" && Number(p.current_stock) > 0)) return false;
@@ -2249,6 +2258,10 @@ function render() {
   list.sort((a, b) => {
     if (sort === "name") return String(a.name).localeCompare(String(b.name), "ko");
     if (sort === "recent_public") {
+      if (filter === "available" && sourceUnavailable) {
+        const newPriority = Number(b.public_is_new === true) - Number(a.public_is_new === true);
+        if (newPriority) return newPriority;
+      }
       const dateOf = p => validTimestamp(p.public_site ? p.first_public_at : p.source_created_at);
       const ta = dateOf(a), tb = dateOf(b);
       if (ta === null) return tb === null ? fallbackStock(a,b) : 1;
@@ -2292,7 +2305,7 @@ function render() {
     return fallbackStock(a, b);
   });
 
-  const available = baseProducts.filter((p) => p.state === "available").length;
+  const available = availableCards.length;
   const sold = baseProducts.filter((p) => p.state === "sold_out").length;
   const unavailable = baseProducts.filter((p) => p.state !== "available").length;
   const hidden = baseProducts.filter((p) => p.state === "hidden").length;
@@ -2301,7 +2314,6 @@ function render() {
   ).length;
   const upcoming = legacyCandidates.length;
 
-  if ($("countNewProducts")) $("countNewProducts").textContent = fmt(publicNewProducts.length);
   if ($("countNewSite")) $("countNewSite").textContent = fmt(newSiteProducts.length);
   if ($("countAvailable")) $("countAvailable").textContent = fmt(available);
   if ($("countAll")) $("countAll").textContent = fmt(baseProducts.length);
@@ -2315,7 +2327,6 @@ function render() {
   const filterLabel = ({
     available: "판매중",
     new_site: "새 사이트 공개",
-    new_products: "공식 신상품",
     hidden_stock: "숨김·재고",
     upcoming: "신상추정",
     unavailable: "품절·판매종료",
@@ -2335,14 +2346,14 @@ function render() {
       : "") +
     (q ? "<span>·</span><span>검색 결과</span>" : "") +
     (filter === "new_site" ? "<span>·</span><span>공식 공개 목록 · 수량은 공개된 경우만 표시</span>"
-      : filter === "new_products" ? "<span>·</span><span>이미 홈페이지에 공개된 공식 NEW 상품</span>"
+      : filter === "available" && publishedNotOut.some(p => p.public_stock === "unknown") ? "<span>·</span><span>공개 상품 포함 · 구매 가능 여부 미확인 항목 있음</span>"
       : filter === "upcoming" ? "<span>·</span><span>판매 페이지 공개 전 추정 · 현재 원본 상태에 따라 감지 제한</span>"
       : sourceUnavailable ? "<span>·</span><span>⚠️ 보관된 기록 · 현재 상태 미확인</span>" : "");
 
   renderCartPreview();
   if (!list.length) {
     $("grid").innerHTML = filter === "upcoming" && sourceUnavailable
-      ? '<div class="empty">👀 미공개 신상 확인 불가<br>예전 재고 원본이 끊겨 현재는 공개 전 재고 징후를 판단할 수 없어.<br>이미 공개된 인형은 🆕 신상품 탭에서 확인해 줘.</div>'
+      ? '<div class="empty">👀 미공개 신상 확인 불가<br>예전 재고 원본이 끊겨 현재는 공개 전 재고 징후를 판단할 수 없어.<br>이미 공개된 인형은 판매중 또는 🌐 새 사이트 탭에서 확인해 줘.</div>'
       : '<div class="empty">조건에 맞는 상품이 없어</div>';
     return;
   }
@@ -2352,7 +2363,7 @@ function render() {
     const pack = Number(p.pack_size) > 1 ? " · " + fmt(p.pack_size) + "입" : "";
     const full = Number(p.fullbox_price) > 0 ? " · 풀박스 " + fmt(p.fullbox_price) + "원" : "";
     const stock = p.public_site
-      ? (p.public_stock === "out" ? "품절" : p.public_left !== null ? fmt(p.public_left) + "개" : p.public_stock === "low" ? "매진 임박" : "공개됨")
+      ? (p.public_stock === "out" ? "품절" : p.public_left !== null ? fmt(p.public_left) + "개" : p.public_stock === "low" ? "매진 임박" : "공개됨 · 구매 미확인")
       : sourceUnavailable ? "—" : p.state === "available"
       ? fmt(p.current_stock) + "개"
       : p.state === "sold_out"
@@ -2371,7 +2382,7 @@ function render() {
       : "";
     const prepBadge = p.public_site
       ? '<div class="prep">' +
-        (p.public_is_new ? "🆕 공식 NEW" : isPublicCandidate(p) ? "👀 최근 공개 감지" : "🌐 새 사이트 공개") +
+        (p.public_is_new ? "🆕 NEW" : isPublicCandidate(p) ? "🌐 최근 공개 감지" : "🌐 새 사이트 공개") +
         ' · ' + esc(p.public_sku) + '</div>'
       : sourceUnavailable ? "" : isUpcomingCandidate(p)
       ? '<div class="prep">👀 미공개 신상추정 · 최근 등록</div>'
@@ -2433,11 +2444,11 @@ async function load() {
     newSiteProducts = data.new_site?.fresh === true && Array.isArray(data.new_site.products)
       ? data.new_site.products : [];
     sourceUnavailable = data.source_unavailable === true;
-    if (sourceUnavailable && products.length && filter === "available") {
-      filter = newSiteProducts.length ? "new_site" : "all";
+    if (sourceUnavailable && products.length && filter === "available" && !newSiteProducts.length) {
+      filter = "all";
       fallbackFilterAutoSelected = true;
     } else if (!sourceUnavailable && fallbackFilterAutoSelected) {
-      if (filter === "all" || filter === "new_site") filter = "available";
+      if (filter === "all") filter = "available";
       fallbackFilterAutoSelected = false;
     }
     // Periodic server refresh invalidates old cached price/stock histories.
