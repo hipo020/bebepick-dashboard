@@ -793,6 +793,7 @@ body{background:var(--sb-bg);color:var(--sb-ink)}
 
     <div class="filter-row" aria-label="상품 상태 빠른 필터">
       <button class="chip on" data-f="available" aria-pressed="true"><span>판매중</span><b id="countAvailable">0</b></button>
+      <button class="chip" data-f="new_site" aria-pressed="false"><span>🌐 새 사이트</span><b id="countNewSite">0</b></button>
       <button class="chip" data-f="all" aria-pressed="false"><span>전체</span><b id="countAll">0</b></button>
       <button class="chip" data-f="hidden" aria-pressed="false"><span>숨김 전체</span><b id="countHidden">0</b></button>
       <button class="chip" data-f="hidden_stock" aria-pressed="false"><span>숨김·재고</span><b id="countHiddenStock">0</b></button>
@@ -938,6 +939,7 @@ let broadcastCheckFailed = false;
 let liveRefreshTimer = null;
 let statsHydratedAt = 0;
 let products = [];
+let newSiteProducts = [];
 let sourceUnavailable = false;
 let fallbackFilterAutoSelected = false;
 let filter = "available";
@@ -1579,7 +1581,7 @@ async function toggleHistory(id) {
 }
 
 function syncFilterUI() {
-  const quickFilters = new Set(["available", "all", "hidden", "hidden_stock", "upcoming", "unavailable"]);
+  const quickFilters = new Set(["available", "new_site", "all", "hidden", "hidden_stock", "upcoming", "unavailable"]);
   document.querySelectorAll(".chip").forEach((button) => {
     const on = button.dataset.f === filter;
     button.classList.toggle("on", on);
@@ -1643,7 +1645,7 @@ function cartUnitPrice(p, kind) {
 // Both visible and hidden products with stock are selectable.
 // The seller's official create_web_order RPC decides whether the order is accepted.
 function cartIsAvailable(p, kind) {
-  if (sourceUnavailable) return false;
+  if (sourceUnavailable || p?.public_site) return false;
   return Boolean(p && (p.state === "available" || p.state === "hidden") &&
     Number(p.current_stock) >= (kind === "fullbox" ? Math.max(1, Number(p.pack_size) || 1) : 1) &&
     cartUnitPrice(p, kind) > 0);
@@ -2186,7 +2188,28 @@ function render() {
     ? products
     : products.filter((p) => !isSpecialProduct(p));
 
-  let list = baseProducts.filter((p) => {
+  // Join new public SKU records to archived doll metadata by normalized name.
+  // Public cards NEVER inherit old stock numbers or grant checkout eligibility.
+  const archivedByName = new Map(products.map(p => [
+    normalizeSearch(String(p.name || "").replace(/\s+/g, "")), p
+  ]));
+  const publicCards = newSiteProducts.map(p => {
+    const old = archivedByName.get(normalizeSearch(String(p.name || "").replace(/\s+/g, ""))) || {};
+    return {
+      ...old,
+      doll_id: Number(old.doll_id || 0),
+      public_site: true,
+      public_sku: p.sku,
+      public_stock: p.stock,
+      name: p.name,
+      image_url: p.image_url || old.image_url || "",
+      current_stock: null,
+      price: 0,
+      fullbox_price: 0,
+      state: "hidden",
+    };
+  });
+  let list = (filter === "new_site" ? publicCards : baseProducts).filter((p) => {
     if (filter === "available" && p.state !== "available") return false;
     if (filter === "unavailable" && p.state === "available") return false;
     if (filter === "hidden" && p.state !== "hidden") return false;
@@ -2252,6 +2275,7 @@ function render() {
   ).length;
   const upcoming = baseProducts.filter((p) => isUpcomingTabCandidate(p)).length;
 
+  if ($("countNewSite")) $("countNewSite").textContent = fmt(newSiteProducts.length);
   if ($("countAvailable")) $("countAvailable").textContent = fmt(available);
   if ($("countAll")) $("countAll").textContent = fmt(baseProducts.length);
   if ($("countHidden")) $("countHidden").textContent = fmt(hidden);
@@ -2263,6 +2287,7 @@ function render() {
 
   const filterLabel = ({
     available: "판매중",
+    new_site: "새 사이트 공개",
     hidden_stock: "숨김·재고",
     upcoming: "신상추정",
     unavailable: "품절·판매종료",
@@ -2279,7 +2304,8 @@ function render() {
         "</b>개</span>"
       : "") +
     (q ? "<span>·</span><span>검색 결과</span>" : "") +
-    (sourceUnavailable ? "<span>·</span><span>⚠️ 보관된 기록 · 현재 상태 미확인</span>" : "");
+    (filter === "new_site" ? "<span>·</span><span>공식 공개 목록 · 정확한 수량 비공개</span>"
+      : sourceUnavailable ? "<span>·</span><span>⚠️ 보관된 기록 · 현재 상태 미확인</span>" : "");
 
   renderCartPreview();
   if (!list.length) {
@@ -2288,31 +2314,35 @@ function render() {
   }
 
   $("grid").innerHTML = list.map((p) => {
-    const price = Number(p.price) > 0 ? fmt(p.price) + "원" : "";
+    const price = p.public_site ? "" : Number(p.price) > 0 ? fmt(p.price) + "원" : "";
     const pack = Number(p.pack_size) > 1 ? " · " + fmt(p.pack_size) + "입" : "";
     const full = Number(p.fullbox_price) > 0 ? " · 풀박스 " + fmt(p.fullbox_price) + "원" : "";
-    const stock = sourceUnavailable ? "—" : p.state === "available"
+    const stock = p.public_site
+      ? (p.public_stock === "out" ? "품절" : p.public_stock === "low" ? "매진 임박" : "공개됨")
+      : sourceUnavailable ? "—" : p.state === "available"
       ? fmt(p.current_stock) + "개"
       : p.state === "sold_out"
         ? "0개"
         : Number.isFinite(Number(p.current_stock))
           ? fmt(p.current_stock) + "개"
           : "—";
-    const recentIncrease = !sourceUnavailable && Number(p.last_increase_qty) > 0 && p.last_increase_at
+    const recentIncrease = !p.public_site && !sourceUnavailable && Number(p.last_increase_qty) > 0 && p.last_increase_at
       ? '<div class="meta trend up">최근 입고 +' + fmt(p.last_increase_qty) + ' · ' + esc(timeShort(p.last_increase_at)) + '</div>'
       : "";
-    const selloutSpeed = !sourceUnavailable && p.last_sellout_duration_seconds != null && p.last_sold_out_at
+    const selloutSpeed = !p.public_site && !sourceUnavailable && p.last_sellout_duration_seconds != null && p.last_sold_out_at
       ? '<div class="meta trend out">최근 품절까지 ' + esc(durationText(p.last_sellout_duration_seconds)) + '</div>'
       : "";
-    const recentDecrease = !sourceUnavailable && Number(p.recent_decrease_60m || 0) > 0
+    const recentDecrease = !p.public_site && !sourceUnavailable && Number(p.recent_decrease_60m || 0) > 0
       ? '<div class="meta">최근 ' + fmt(p.trend_window_minutes || 60) + '분 재고 -' + fmt(p.recent_decrease_60m) + '개</div>'
       : "";
-    const prepBadge = sourceUnavailable ? "" : isUpcomingCandidate(p)
+    const prepBadge = p.public_site
+      ? '<div class="prep">🌐 새 사이트 공개 · ' + esc(p.public_sku) + '</div>'
+      : sourceUnavailable ? "" : isUpcomingCandidate(p)
       ? '<div class="prep">👀 미공개 신상추정 · 최근 등록</div>'
       : p.state === "hidden" && Number(p.current_stock) > 0 && isLargeExistingRestock(p)
         ? '<div class="prep restock-prep">🔄 재입고 추정 · 최근 +' + fmt(p.last_increase_qty) + '개</div>'
         : "";
-    const etaMinutes = sourceUnavailable ? NaN : Number(p.estimated_sellout_minutes);
+    const etaMinutes = p.public_site || sourceUnavailable ? NaN : Number(p.estimated_sellout_minutes);
     const eta = Number.isFinite(etaMinutes) && etaMinutes > 0 && etaMinutes <= 720
       ? '<div class="meta trend out">⏱ 현재 속도면 약 ' + esc(durationText(etaMinutes * 60)) + ' 내 품절 예상</div>'
       : "";
@@ -2325,14 +2355,16 @@ function render() {
         '<div class="meta">' + esc(price + pack + full) + '</div>' +
         recentIncrease + recentDecrease + eta + selloutSpeed +
         '<div class="item-actions">' +
-          '<button class="history-btn" type="button" onclick="toggleHistory(' + Number(p.doll_id) + ')">📋 변경기록</button>' +
+          (Number(p.doll_id) > 0
+            ? '<button class="history-btn" type="button" onclick="toggleHistory(' + Number(p.doll_id) + ')">' +
+              (p.public_site ? '📋 과거 기록' : '📋 변경기록') + '</button>' : '') +
           ((cartIsAvailable(p, "single") || cartIsAvailable(p, "fullbox")) ?
             '<button class="cart-open-trigger" type="button" data-open-cart="' +
               Number(p.doll_id) + '" aria-haspopup="dialog">🛒 담기 ⌄</button>' : '') +
         '</div>' +
       '</div>' +
-      '<div class="stock ' + stockClass(p) + '">' +
-        stock + '<small>' + (sourceUnavailable ? "현재 상태 미확인" : label(p)) + '</small>' +
+      '<div class="stock ' + (p.public_site ? (p.public_stock === "out" ? "sold" : p.public_stock === "low" ? "low" : "hidden") : stockClass(p)) + '">' +
+        stock + '<small>' + (p.public_site ? "정확한 재고 수량 비공개" : sourceUnavailable ? "현재 상태 미확인" : label(p)) + '</small>' +
       '</div>' +
       '<div id="history-' + Number(p.doll_id) + '" class="history-panel" hidden></div>' +
     '</article>';
@@ -2358,20 +2390,24 @@ async function load() {
 
     const data = await res.json();
     products = Array.isArray(data.products) ? data.products : [];
+    newSiteProducts = data.new_site?.fresh === true && Array.isArray(data.new_site.products)
+      ? data.new_site.products : [];
     sourceUnavailable = data.source_unavailable === true;
     if (sourceUnavailable && products.length && filter === "available") {
-      filter = "all";
+      filter = newSiteProducts.length ? "new_site" : "all";
       fallbackFilterAutoSelected = true;
     } else if (!sourceUnavailable && fallbackFilterAutoSelected) {
-      if (filter === "all") filter = "available";
+      if (filter === "all" || filter === "new_site") filter = "available";
       fallbackFilterAutoSelected = false;
     }
     // Periodic server refresh invalidates old cached price/stock histories.
     historyCache.clear();
 
-    $("status").className = data.last_error ? "status err" : "status";
-    $("statusMain").textContent = data.last_error
-      ? "⚠️ 감시 오류 · " + data.last_error
+    const newSiteWorking = newSiteProducts.length > 0;
+    $("status").className = data.last_error && !newSiteWorking ? "status err" : "status";
+    $("statusMain").textContent = sourceUnavailable && newSiteWorking
+      ? "💚 새 사이트 공개 " + fmt(newSiteProducts.length) + "종 확인 · 과거 재고 수량은 미확인"
+      : data.last_error ? "⚠️ 감시 오류 · " + data.last_error
       : "💚 정상 감시 중 · " + time(data.checked_at);
 
     products.forEach((p) => {
