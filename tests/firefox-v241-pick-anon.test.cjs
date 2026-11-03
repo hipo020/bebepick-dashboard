@@ -48,7 +48,8 @@ function environment(choice='셀러픽',display='익명',hasPick=true,hasAnon=tr
   if(sel==='[data-open="개봉"]')return openBtn;
   return null;
  }};
- const ctx={pick:choice,display,storage:'보관',open:'개봉',freeShip:false,OPTS_KEY:'bbp_order_opts',Array,JSON,
+ const ctx={pick:choice,display,storage:'보관',effectiveStorage:'보관',forcedShippingAccepted:false,firstStepChoicesVerified:false,open:'개봉',freeShip:false,OPTS_KEY:'bbp_order_opts',Array,JSON,
+  syncForcedDirectShipping:()=>false,officialForcedDirectShippingEvidence:()=>false,
   sessionStorage:{getItem:()=>JSON.stringify(opts)},el:(s,p)=>p.querySelector(s)};
  const funcs=vm.runInNewContext(extract,ctx);
  return {opts,optionSets,panel,funcs,ctx};
