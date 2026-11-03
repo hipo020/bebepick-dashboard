@@ -28,6 +28,8 @@ test('vendor disclosed left count is shown only if safe integer and stock not so
 });
 test('observed-public sort is integrated without breaking full dashboard JS',()=>{
  assert.match(presets,/new_site: \[\["recent_public"/);
+ assert.match(presets,/available_public: \[\["recent_public"/);
+ assert.match(html,/filter === "available" && sourceUnavailable \? "available_public" : filter/);
  assert.match(presets,/upcoming: \[\["recent_created"/);
  assert.match(html,/if \(sort === "recent_public"\)/);
  const open=html.lastIndexOf('<script>'),end=html.lastIndexOf('</script>');
