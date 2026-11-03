@@ -88,13 +88,13 @@ test('a restock-only old product is in the filter despite no new-product signal'
  assert.equal(isUpcomingCandidate(p),false);
  assert.equal(isUpcomingTabCandidate(p),true);
 });
-test('single candidate tab preserves old rules only while old source is healthy',()=>{
+test('original 신상추정 remains hidden-plus-stock only, disabled when source is unavailable',()=>{
  assert.equal((html.match(/data-f="upcoming"/g)||[]).length,1);
  assert.match(html,/const legacyCandidates = sourceUnavailable \? \[\] : baseProducts\.filter\(isUpcomingTabCandidate\)/);
- assert.match(html,/filter === "upcoming" \? \[\.\.\.publicCandidates, \.\.\.legacyCandidates\]/);
- assert.match(html,/const upcoming = publicCandidates\.length \+ legacyCandidates\.length/);
- assert.match(html,/if \(filter === "upcoming" && !p\.public_site && !isUpcomingTabCandidate\(p\)\) return false/);
- assert.doesNotMatch(html,/data-f="large_restock"/);
+ assert.match(html,/filter === "upcoming" \? legacyCandidates/);
+ assert.match(html,/const upcoming = legacyCandidates\.length/);
+ assert.match(html,/if \(filter === "upcoming" && !isUpcomingTabCandidate\(p\)\) return false/);
+ assert.match(html,/구 재고 원본 중단 · 미공개 신상 확인 불가/);
  assert.match(html,/👀 미공개 신상추정/);
  assert.match(html,/🔄 재입고 추정 · 최근 \+/);
  assert.match(html,/const LARGE_RESTOCK_INCREASE = 10/);
