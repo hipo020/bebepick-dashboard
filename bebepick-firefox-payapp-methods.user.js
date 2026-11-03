@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         베베픽 · PAYAPP 결제수단 선택 도우미 (카드입력 기본)
 // @namespace    https://hipo020.github.io/bebepick-dashboard/
-// @version      0.4.0
-// @description  명시적으로 설정한 경우 첫 화면 약관 동의→다음 및 결제수단 경로 자동 선택. 카드·인증·최종 결제 승인은 수동.
+// @version      0.4.1
+// @description  결제창에서 별도 동의한 경우 약관→다음 신속 진행, 결제수단 자동 선택. 카드 인증·최종 결제 승인은 수동.
 // @match        https://payapp.kr/WEBPAY_INPUT/*
 // @match        https://www.payapp.kr/WEBPAY_INPUT/*
 // @match        https://payapp.kr/WEBPAY_SCKA1/*
@@ -194,10 +194,34 @@
  const go=document.createElement('button');go.type='button';go.id='go';go.textContent='현재 화면에서 선택한 경로로 이동';
  const status=document.createElement('p');status.id='status';status.setAttribute('role','status');
  const notice=document.createElement('p');notice.id='notice';notice.textContent='🔒 카드번호·유효기간·카드 비밀번호·본인확인 정보를 읽거나 저장하지 않아. 최종 결제 버튼도 누르지 않아.';
- title.appendChild(close);panel.append(title,desc,autoLabel,select,go,status,notice);shadow.append(style,launch,termsQuick,panel);
+ // The legal agreement auto-flow is a SEPARATE, persistent opt-in on the checkout itself.
+ // Setting payment-route auto ON must never silently enable legal consent.
+ const checkoutTermsToggle=document.createElement('button');
+ checkoutTermsToggle.type='button';checkoutTermsToggle.id='bbpCheckoutTermsAuto';
+ const syncCheckoutTermsToggle=()=>{
+  checkoutTermsToggle.setAttribute('aria-pressed',String(autoTerms));
+  checkoutTermsToggle.textContent=autoTerms?'✅ 약관 전체동의 → 다음 자동 ON':'○ 약관 전체동의 → 다음 자동 OFF · 누르면 켜기';
+  checkoutTermsToggle.style.cssText='display:block;width:100%;margin-top:8px;padding:10px;border:2px solid '+(autoTerms?'#32875a':'#9b86aa')+';border-radius:10px;background:'+(autoTerms?'#e7f5ed':'#fff8f0')+';color:#383047;font-weight:750;font-size:12px';
+  checkoutTermsToggle.title='전자금융거래·개인정보 약관을 읽고 자동 동의 및 다음 이동에 동의할 때만 ON. 약관 변경을 자동으로 판별하지 못할 수 있어.';
+ };
+ syncCheckoutTermsToggle();
+ title.appendChild(close);panel.append(title,desc,autoLabel,checkoutTermsToggle,select,go,status,notice);shadow.append(style,launch,termsQuick,panel);
  (document.body||document.documentElement).appendChild(host);
  launch.addEventListener('click',()=>{panel.hidden=!panel.hidden;if(!panel.hidden)status.textContent=hint();});
  close.addEventListener('click',()=>{panel.hidden=true;});
+ checkoutTermsToggle.addEventListener('click',()=>{
+  const requested=!autoTerms;
+  if(!saveTermsAuto(requested)){
+   status.textContent='⚠ 약관 자동 진행 설정 저장 실패. 수동으로 진행해 줘.';
+   return;
+  }
+  autoTerms=requested;syncCheckoutTermsToggle();
+  status.textContent=autoTerms
+   ?'✅ 약관 자동 진행 ON. 공식 화면의 전체동의·다음을 각각 한 번만 눌러. 카드 인증·결제 승인은 수동이야.'
+   :'약관 자동 진행 OFF. 공식 화면에서 직접 동의하거나 한 번 누르기 버튼을 사용해 줘.';
+  if(autoTerms)scheduleTermsAuto();
+  else if(termsAutoTimer!==null){clearTimeout(termsAutoTimer);termsAutoTimer=null;}
+ });
  select.addEventListener('change',()=>{
   if(!choices.some(x=>x.id===select.value))return;
   chosen=select.value;save(chosen);lastActionStage='';lastActionMode='';
@@ -272,7 +296,7 @@
    // PAYAPP validates agreements; do not retry submission after any click.
    try{button.click();termsQuick.textContent='✅ 다음 단계 이동 요청됨';}
    catch{termsFailure('다음 단계 이동 확인 필요');}
-  },150);
+  },60);
   return true;
  }
  termsQuick.addEventListener('click',()=>processOfficialTerms(false));
@@ -282,7 +306,7 @@
   termsAutoTimer=setTimeout(()=>{
    termsAutoTimer=null;
    processOfficialTerms(true);
-  },220);
+  },70);
  }
  // Inspect ONLY visible, static navigation labels and image alt text.
  // In particular: never read form input values or card-field contents.
@@ -304,7 +328,7 @@
   return '';
  }
  function staticNodes(){
-  return Array.from(document.querySelectorAll('h1,h2,h3,h4,button,a,[role="button"],li,div,span,p,strong,small,img'))
+  return Array.from(document.querySelectorAll('h1,h2,h3,h4,button,a,[role="button"],li,div,span,p,strong,small,img,label'))
    .filter(el=>visible(el)&&!el.closest('#bbpPayappMethodHelper'));
  }
  function stage(){
@@ -313,7 +337,7 @@
      typeof document.getElementById==='function'&&document.getElementById('CardNo1'))
    return 'card_form';
   const labels=new Set(staticNodes().map(labelOf).map(norm).filter(Boolean));
-  if(labels.has(norm('결제방식 선택')))return 'method';
+  if(['결제방식 선택','결제수단 선택','결제방법 선택'].some(x=>labels.has(norm(x))))return 'method';
   if(labels.has(norm('결제카드 선택')))return 'card_method';
   if(labels.has(norm('카드번호'))&&labels.has(norm('유효기간')))return 'card_form';
   return 'other';
@@ -339,6 +363,7 @@
   return el;
  }
  function navigateCurrentStep(isAutomatic){
+  if(!/^\/WEBPAY_(?:INPUT|SCKA1)\//.test(location.pathname))return false;
   if(isAutomatic&&(!autoNavigate||document.hidden))return false;
   const which=stage(),c=choices.find(x=>x.id===chosen)||choices[0];
   if(which==='card_form'){if(!isAutomatic)status.textContent='카드정보 입력·결제 승인은 자동으로 진행하지 않아.';return false;}
@@ -375,7 +400,7 @@
  // Do not open the helper panel, read card data, or approve any payment.
  function scheduleAuto(){
   if(!autoNavigate||autoTimer!==null||document.hidden)return;
-  autoTimer=setTimeout(()=>{autoTimer=null;navigateCurrentStep(true);},60);
+  autoTimer=setTimeout(()=>{autoTimer=null;navigateCurrentStep(true);},25);
  }
  if(typeof MutationObserver==='function'){
   const observer=new MutationObserver(()=>{scheduleAuto();scheduleTermsAuto();});
