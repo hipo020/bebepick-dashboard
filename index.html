@@ -938,6 +938,8 @@ let broadcastCheckFailed = false;
 let liveRefreshTimer = null;
 let statsHydratedAt = 0;
 let products = [];
+let sourceUnavailable = false;
+let fallbackFilterAutoSelected = false;
 let filter = "available";
 let query = "";
 let sort = "desc";
@@ -1027,6 +1029,8 @@ function liveState(visible, stock) {
 }
 
 async function refreshLiveProducts() {
+  // Never mix a historical outage fallback with unverified partial realtime data.
+  if (sourceUnavailable) return;
   try {
     const [dollsRes, shopRes] = await Promise.all([
       liveSb.from("dolls").select("id,name,price,current_stock,fullbox_price,pack_size,is_new,created_at,image_url"),
@@ -1639,6 +1643,7 @@ function cartUnitPrice(p, kind) {
 // Both visible and hidden products with stock are selectable.
 // The seller's official create_web_order RPC decides whether the order is accepted.
 function cartIsAvailable(p, kind) {
+  if (sourceUnavailable) return false;
   return Boolean(p && (p.state === "available" || p.state === "hidden") &&
     Number(p.current_stock) >= (kind === "fullbox" ? Math.max(1, Number(p.pack_size) || 1) : 1) &&
     cartUnitPrice(p, kind) > 0);
@@ -1922,6 +1927,7 @@ function listOrderSnapshot() {
   });
 }
 async function validateCheckoutSnapshot() {
+  if (sourceUnavailable) throw new Error("공식 상품목록 확인 불가 · 오래된 재고 기록으로 주문할 수 없어.");
   const lines=listOrderSnapshot();
   if(!lines.length)throw new Error("장바구니가 비어 있어.");
   const ids=[...new Set(lines.map(x=>x.id))];
@@ -2272,7 +2278,8 @@ function render() {
         fmt(list.filter((p) => p.state === "hidden" && Number(p.current_stock) > 0 && isLargeExistingRestock(p)).length) +
         "</b>개</span>"
       : "") +
-    (q ? "<span>·</span><span>검색 결과</span>" : "");
+    (q ? "<span>·</span><span>검색 결과</span>" : "") +
+    (sourceUnavailable ? "<span>·</span><span>⚠️ 보관된 기록 · 현재 상태 미확인</span>" : "");
 
   renderCartPreview();
   if (!list.length) {
@@ -2284,28 +2291,28 @@ function render() {
     const price = Number(p.price) > 0 ? fmt(p.price) + "원" : "";
     const pack = Number(p.pack_size) > 1 ? " · " + fmt(p.pack_size) + "입" : "";
     const full = Number(p.fullbox_price) > 0 ? " · 풀박스 " + fmt(p.fullbox_price) + "원" : "";
-    const stock = p.state === "available"
+    const stock = sourceUnavailable ? "—" : p.state === "available"
       ? fmt(p.current_stock) + "개"
       : p.state === "sold_out"
         ? "0개"
         : Number.isFinite(Number(p.current_stock))
           ? fmt(p.current_stock) + "개"
           : "—";
-    const recentIncrease = Number(p.last_increase_qty) > 0 && p.last_increase_at
+    const recentIncrease = !sourceUnavailable && Number(p.last_increase_qty) > 0 && p.last_increase_at
       ? '<div class="meta trend up">최근 입고 +' + fmt(p.last_increase_qty) + ' · ' + esc(timeShort(p.last_increase_at)) + '</div>'
       : "";
-    const selloutSpeed = p.last_sellout_duration_seconds != null && p.last_sold_out_at
+    const selloutSpeed = !sourceUnavailable && p.last_sellout_duration_seconds != null && p.last_sold_out_at
       ? '<div class="meta trend out">최근 품절까지 ' + esc(durationText(p.last_sellout_duration_seconds)) + '</div>'
       : "";
-    const recentDecrease = Number(p.recent_decrease_60m || 0) > 0
+    const recentDecrease = !sourceUnavailable && Number(p.recent_decrease_60m || 0) > 0
       ? '<div class="meta">최근 ' + fmt(p.trend_window_minutes || 60) + '분 재고 -' + fmt(p.recent_decrease_60m) + '개</div>'
       : "";
-    const prepBadge = isUpcomingCandidate(p)
+    const prepBadge = sourceUnavailable ? "" : isUpcomingCandidate(p)
       ? '<div class="prep">👀 미공개 신상추정 · 최근 등록</div>'
       : p.state === "hidden" && Number(p.current_stock) > 0 && isLargeExistingRestock(p)
         ? '<div class="prep restock-prep">🔄 재입고 추정 · 최근 +' + fmt(p.last_increase_qty) + '개</div>'
         : "";
-    const etaMinutes = Number(p.estimated_sellout_minutes);
+    const etaMinutes = sourceUnavailable ? NaN : Number(p.estimated_sellout_minutes);
     const eta = Number.isFinite(etaMinutes) && etaMinutes > 0 && etaMinutes <= 720
       ? '<div class="meta trend out">⏱ 현재 속도면 약 ' + esc(durationText(etaMinutes * 60)) + ' 내 품절 예상</div>'
       : "";
@@ -2325,7 +2332,7 @@ function render() {
         '</div>' +
       '</div>' +
       '<div class="stock ' + stockClass(p) + '">' +
-        stock + '<small>' + label(p) + '</small>' +
+        stock + '<small>' + (sourceUnavailable ? "현재 상태 미확인" : label(p)) + '</small>' +
       '</div>' +
       '<div id="history-' + Number(p.doll_id) + '" class="history-panel" hidden></div>' +
     '</article>';
@@ -2351,6 +2358,14 @@ async function load() {
 
     const data = await res.json();
     products = Array.isArray(data.products) ? data.products : [];
+    sourceUnavailable = data.source_unavailable === true;
+    if (sourceUnavailable && products.length && filter === "available") {
+      filter = "all";
+      fallbackFilterAutoSelected = true;
+    } else if (!sourceUnavailable && fallbackFilterAutoSelected) {
+      if (filter === "all") filter = "available";
+      fallbackFilterAutoSelected = false;
+    }
     // Periodic server refresh invalidates old cached price/stock histories.
     historyCache.clear();
 
@@ -2367,7 +2382,7 @@ async function load() {
       refreshLiveProducts(),
       refreshBroadcastState()
     ]);
-    await hydrateClientStats();
+    if (!sourceUnavailable) await hydrateClientStats();
   } catch (e) {
     $("status").className = "status err";
     $("statusMain").textContent = "⚠️ 재고를 불러오지 못했어 · " + e.message;
