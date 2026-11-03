@@ -24,7 +24,7 @@ test('new-site public records have separate safe status and no invented stock qu
  assert.match(html,/price: 0,/);
  assert.match(html,/p\.public_stock === "low" \? "매진 임박"/);
  assert.match(html,/p\.public_stock === "out" \? "품절"/);
- assert.match(html,/공식 공개 목록 · 정확한 수량 비공개/);
- assert.match(html,/p\.public_site \? "정확한 재고 수량 비공개"/);
+ assert.match(html,/공식 공개 목록 · 수량은 공개된 경우만 표시/);
+ assert.match(html,/p\.public_site \? \(p\.public_left !== null/);
  assert.doesNotMatch(html,/fetch\(.+\/rpc\/create_orders/);
 });
