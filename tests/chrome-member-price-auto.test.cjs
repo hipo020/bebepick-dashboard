@@ -1,0 +1,60 @@
+'use strict';
+const test=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+const vm=require('node:vm');
+const chrome=fs.readFileSync(path.join(__dirname,'../bebepick-chrome-member-auto-prices.js'),'utf8');
+const board=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');
+const installer=fs.readFileSync(path.join(__dirname,'../bebepick-chrome-member-auto-prices-install.html'),'utf8');
+test('Chrome watcher script and dashboard JavaScript both compile',()=>{
+ assert.doesNotThrow(()=>new vm.Script(chrome));
+ const start=board.lastIndexOf('<script>'),end=board.lastIndexOf('</script>');
+ assert.ok(start>0 && end>start);
+ assert.doesNotThrow(()=>new vm.Script(board.slice(start+8,end)));
+});
+test('only signed-in vendor list_products is polled, no vendor orders or credential uploads',()=>{
+ assert.match(chrome,/location\.origin!=='https:\/\/bebepick\.me'/);
+ assert.match(chrome,/window\.APP_CONFIG/);
+ assert.match(chrome,/eqytdtxemjlygnobhiio\.supabase\.co/);
+ assert.match(chrome,/sb\.auth\.getSession\(\)/);
+ assert.match(chrome,/sb\.rpc\('list_products',\{p_brand:BRAND\}\)/);
+ assert.match(chrome,/autoRefreshToken:false/);
+ assert.match(chrome,/setInterval\(\(\)=>void poll\(\),PERIOD\)/);
+ assert.match(chrome,/const PERIOD=30000/);
+ assert.doesNotMatch(chrome,/\brpc\(['"](?:create_orders|payapp_start|reserve|create_order)/i);
+ assert.doesNotMatch(chrome,/(?:document\.cookie|service_role|SUPABASE_SERVICE_ROLE_KEY|location\.hash)/);
+ assert.doesNotMatch(chrome,/fetch\(DASH_URL\)|navigator\.sendBeacon|XMLHttpRequest/);
+});
+test('Chrome sends only sanitized product fields through origin-fixed opened window',()=>{
+ assert.match(chrome,/dash\.postMessage\(/);
+ assert.match(chrome,/\},DASH\)/);
+ assert.match(chrome,/products:lastRows\.map\(p=>\(\{sku:p\.sku,name:p\.name,price:p\.price,fullbox_price:p\.fullbox_price\}\)\)/);
+ assert.match(chrome,/ev\.origin===DASH&&ev\.source===dash/);
+ assert.match(chrome,/window\.open\(DASH_URL,'bbp-member-price-board'\)/);
+ assert.doesNotMatch(chrome,/authorization\s*:|access_token\s*:|refresh_token\s*:/i);
+});
+test('stock board trusts only its actual official-site opener, applies bounded member prices only in memory',()=>{
+ assert.match(board,/const memberPriceData = new Map\(\)/);
+ assert.match(board,/event\.origin !== MEMBER_PRICE_ORIGIN \|\| !window\.opener/);
+ assert.match(board,/event\.source !== window\.opener/);
+ assert.match(board,/payload\.type !== "bbp-member-price-snapshot-v1"/);
+ assert.match(board,/payload\.products\.length > 1200/);
+ assert.match(board,/Math\.abs\(Date\.now\(\) - when\) > MEMBER_PRICE_MAX_AGE_MS/);
+ assert.match(board,/function freshMemberPrice\(sku, name\)/);
+ assert.match(board,/memberPriceData\.set\(item\.sku,item\)/);
+ assert.match(board,/memberPrice \? "회원가 "/);
+ assert.match(board,/회원 풀박스/);
+ assert.match(board,/이전 가격/);
+ assert.match(board,/member_only: p\.member_only === true/);
+ assert.match(board,/회원 목록에서 확인 · 공개 재고 상태는 미확인/);
+ assert.match(board,/current_stock: null/);
+ assert.match(board,/if \(sourceUnavailable \|\| p\?\.public_site\) return false/);
+ assert.doesNotMatch(board,/localStorage\.setItem\(["']bbp_member_price/);
+});
+test('installer creates locally embedded bookmarklet and explains tab-lifetime limit',()=>{
+ assert.match(installer,/bebepick-chrome-member-auto-prices\.js/);
+ assert.match(installer,/code='javascript:'\+compact/);
+ assert.match(installer,/navigator\.clipboard\.writeText\(code\)/);
+ assert.match(installer,/백그라운드/);
+});
