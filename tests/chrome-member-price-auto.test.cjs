@@ -43,7 +43,8 @@ test('stock board trusts only its actual official-site opener, applies bounded m
  assert.match(board,/Math\.abs\(Date\.now\(\) - when\) > MEMBER_PRICE_MAX_AGE_MS/);
  assert.match(board,/function freshMemberPrice\(sku, name\)/);
  assert.match(board,/memberPriceData\.set\(item\.sku,item\)/);
- assert.match(board,/memberPrice \? "회원가 "/);
+ assert.match(board,/p\.public_site && memberPrice\?\.price != null/);
+ assert.match(board,/"회원가 " \+ fmt\(memberPrice\.price\)/);
  assert.match(board,/회원 풀박스/);
  assert.match(board,/이전 가격/);
  assert.match(board,/member_only: p\.member_only === true/);
