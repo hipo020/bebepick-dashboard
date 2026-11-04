@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>베베픽 크롬 자동 회원 가격 확인 · 설치</title>
+<style>
+:root{color-scheme:light}*{box-sizing:border-box}
+body{margin:0;background:#f5f3fa;color:#25263c;font:15px/1.58 system-ui,-apple-system,sans-serif}
+main{max-width:740px;margin:auto;padding:20px 14px 70px}
+h1{font-size:22px;margin:0 0 4px}h2{font-size:17px}
+.card{background:#fff;border:1px solid #e2ddea;border-radius:15px;padding:16px;margin:14px 0}
+.action{display:block;width:100%;padding:13px 16px;background:#6253a8;color:#fff;border:0;border-radius:11px;font-size:15px;font-weight:800;cursor:pointer;margin:9px 0}
+.action.secondary{background:#f0ecfa;color:#423771;border:1px solid #d8cff2}
+small,.muted{color:#6b667b}li{padding:5px 0}
+.notice{background:#eaf8f1;border-radius:10px;padding:12px;color:#255c48}
+code{background:#f0edf6;padding:2px 5px;border-radius:5px;overflow-wrap:anywhere}
+#result{white-space:pre-wrap;overflow-wrap:anywhere;color:#365b4c}
+</style></head><body><main>
+<h1>🧸 베베픽 회원 가격 자동 확인</h1>
+<p class="muted">갤럭시·PC 크롬용 · 로그인한 공식 홈페이지에서 30초마다 회원 가격 읽기 · 재고판과 탭 간 연결</p>
+<section class="card">
+<h2>① 크롬 북마크 코드 복사</h2>
+<button id="copy" class="action">📋 자동 가격 확인 코드 복사</button>
+<p id="result">코드를 준비하고 있어…</p>
+<p><small>본인 계정 로그인 토큰이나 비밀번호를 입력할 필요는 없어. 코드는 공식 사이트의 회원 상품 조회만 사용해.</small></p>
+</section>
+<section class="card"><h2>② 북마크에 설치</h2>
+<ol>
+<li>크롬에서 아무 페이지나 북마크해.</li>
+<li>북마크 편집에서 이름을 <strong>베베픽 자동가격</strong>으로 바꿔.</li>
+<li>북마크 URL을 지우고 <strong>복사한 코드</strong>를 붙여 넣어 저장해.</li>
+<li>로그인된 <a href="https://bebepick.me/plus">베베픽 플러스</a> 또는 <a href="https://bebepick.me/live">베베픽 본점</a>을 열어.</li>
+<li>주소창에 <strong>베베픽 자동가격</strong>을 입력하고 검색 제안의 <strong>북마크 항목</strong>을 눌러 실행해.</li>
+</ol>
+<p><small>갤럭시 크롬은 주소창에 <code>javascript:</code>를 직접 입력하면 보안상 잘릴 수 있어. 저장된 북마크를 선택해야 해.</small></p></section>
+<section class="card"><h2>③ 자동 조회 + 재고판 연결</h2>
+<p>실행 즉시 회원 가격을 조회하고 <strong>30초마다 자동 갱신</strong>해. 표시된 도구에서 <strong>📊 재고판 연결</strong>을 누르면 새 탭으로 재고판을 열고 최근 회원 가격을 보여줘.</p>
+<div class="notice"><strong>자동 작동 범위</strong><br>크롬의 베베픽 탭이 살아 있는 동안만 갱신해. 갤럭시에서 화면을 끄거나 백그라운드로 보내면 브라우저가 시간을 늦추거나 실행을 중지할 수 있어. 서버나 ntfy에 회원 가격을 올리는 기능은 아직 포함하지 않았어.</div>
+</section>
+<p class="muted">안전: 주문 생성/결제/재고 점유 요청 없음 · 본인 계정의 공식 <code>list_products</code>만 읽음 · 계정 인증 토큰/쿠키/주문내역 전송 없음 · 가격은 열린 두 브라우저 탭 사이에서만 전달</p>
+</main>
+<script>
+(async()=>{
+const btn=document.getElementById('copy'),state=document.getElementById('result');
+let code='';
+try{
+ const response=await fetch('./bebepick-chrome-member-auto-prices.js',{cache:'no-store'});
+ if(!response.ok)throw Error('스크립트 로드 '+response.status);
+ const source=await response.text();
+ if(!source.includes('bbp-member-price-snapshot-v1')||!source.includes("sb.rpc('list_products'"))throw Error('다른 코드가 읽혔어');
+ // Entire self-contained bookmarklet: no cross-origin code injection needed.
+ // Strip only standalone JS comments, never quoted URL strings.
+ const compact=source.replace(/^\s*\/\/[^\n]*$/gm,'').replace(/^\/\*[\s\S]*?\*\/\s*/,'').replace(/\n\s*/g,' ');
+ code='javascript:'+compact;
+ state.textContent='✅ 코드 준비 완료 · '+(code.length/1024).toFixed(1)+'KB · 코드 복사 버튼을 눌러 줘.';
+}catch(e){
+ state.textContent='⚠ 자동 코드 준비 실패. 재고판 링크를 새로고침해 줘. ('+String(e.message).slice(0,90)+')';
+ btn.disabled=true;
+}
+btn.onclick=async()=>{
+ try{
+  await navigator.clipboard.writeText(code);
+  state.textContent='✅ 복사 완료! 크롬 북마크 URL 칸에 붙여넣어 줘.';
+  btn.textContent='✅ 북마크 코드 복사 완료';
+ }catch{
+  state.textContent='⚠ 클립보드 권한이 막혔어. 주소창에서 HTTPS 설치 페이지를 열고 다시 눌러 줘.';
+ }
+};
+})();
+</script></body></html>
