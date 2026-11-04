@@ -23,10 +23,10 @@ test('new-site public records have separate safe status and no invented stock qu
  assert.match(html,/data-f="new_site"/);
  assert.match(html,/const publicCards = newSiteProducts\.map/);
  assert.match(html,/current_stock: null,/);
- assert.match(html,/price: 0,/);
+ assert.match(html,/price: Number\.isSafeInteger\(Number\(old\.price\)\)/);
  assert.match(html,/p\.public_stock === "low" \? "매진 임박"/);
  assert.match(html,/p\.public_stock === "out" \? "품절"/);
  assert.match(html,/공식 공개 목록 · 수량은 공개된 경우만 표시/);
- assert.match(html,/p\.public_site \? \(p\.public_left !== null/);
+ assert.match(html,/p\.public_site \? \(p\.public_stock === "out"/);
  assert.doesNotMatch(html,/fetch\(.+\/rpc\/create_orders/);
 });

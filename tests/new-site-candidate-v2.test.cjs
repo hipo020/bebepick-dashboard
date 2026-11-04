@@ -13,12 +13,12 @@ test('official NEW is a badge in 판매중, never a separate tab or old pre-rele
  assert.match(html, /const publishedNotOut = publicCards\.filter\(p => p\.public_stock !== "out"\)/);
  assert.match(html, /const availableCards = \[/);
  assert.match(html, /filter === "available" \? availableCards/);
- assert.match(html, /p\.public_is_new \? "🆕 NEW"/);
+ assert.match(html, /p\.public_is_new \? "🆕 NEW · "/);
  assert.match(html, /const legacyCandidates = sourceUnavailable \? \[\] : baseProducts\.filter\(isUpcomingTabCandidate\)/);
  assert.match(html, /filter === "upcoming" \? legacyCandidates/);
  assert.match(html, /const upcoming = legacyCandidates\.length/);
  assert.match(html, /공개 상품 포함 · 구매 가능 여부 미확인 항목 있음/);
- assert.match(html, /공개됨 · 구매 미확인/);
+ assert.match(html, /구매·수량 미확인/);
  assert.match(html, /예전 재고 원본이 끊겨 현재는 공개 전 재고 징후를 판단할 수 없어/);
  assert.match(html, /first_public_at: typeof p\.first_public_at === "string"/);
 });
