@@ -8,6 +8,7 @@ on:
       - 'tests/upcoming-restock-threshold.test.cjs'
       - 'tests/catalog-unavailable-frontend.test.cjs'
       - 'tests/new-site-candidate-v2.test.cjs'
+      - 'tests/public-archived-prices-ui.test.cjs'
       - 'stock-sort-presets.js'
       - 'bebepick-quick-order-v24-install.html'
       - 'bebepick-firefox-one-tap.user.js'
@@ -31,6 +32,7 @@ on:
       - 'tests/upcoming-restock-threshold.test.cjs'
       - 'tests/catalog-unavailable-frontend.test.cjs'
       - 'tests/new-site-candidate-v2.test.cjs'
+      - 'tests/public-archived-prices-ui.test.cjs'
       - 'stock-sort-presets.js'
       - 'bebepick-quick-order-v24-install.html'
       - 'bebepick-firefox-one-tap.user.js'
@@ -61,6 +63,8 @@ jobs:
         run: node --test tests/catalog-unavailable-frontend.test.cjs
       - name: 'Public candidate v2 and disclosed inventory safety'
         run: node --test tests/new-site-candidate-v2.test.cjs
+      - name: 'Archived prices and compact public cards'
+        run: node --test tests/public-archived-prices-ui.test.cjs
       - name: 'Forced direct shipping only at 0 won with verified seller pick'
         run: node --test tests/firefox-v252-forced-shipping.test.cjs
       - name: 'Firefox order pick and anonymous option safety tests'
