@@ -21,7 +21,9 @@ test('archived products remain visible as unverified and cannot trigger stale or
 test('new-site public records have separate safe status and no invented stock quantities',()=>{
  assert.match(html,/data\.new_site\?\.fresh === true/);
  assert.match(html,/data-f="new_site"/);
- assert.match(html,/const publicCards = newSiteProducts\.map/);
+ assert.match(html,/const memberOnlyProducts = \[\.\.\.memberPriceData\.values\(\)\]/);
+ assert.match(html,/const publicCards = \[\.\.\.newSiteProducts, \.\.\.memberOnlyProducts\]\.map/);
+ assert.match(html,/member_only: p\.member_only === true/);
  assert.match(html,/current_stock: null,/);
  assert.match(html,/price: Number\.isSafeInteger\(Number\(old\.price\)\)/);
  assert.match(html,/p\.public_stock === "low" \? "매진 임박"/);
