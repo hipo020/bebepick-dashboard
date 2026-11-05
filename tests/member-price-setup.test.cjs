@@ -27,3 +27,11 @@ test('setup links only to real existing browser-only option and first-party logi
  assert.match(monitor,/href="\.\/member-price-setup\.html"/);
  assert.match(monitor,/미연결/);
 });
+
+test('admin stop instructions are available without offering public shutdown',()=>{
+ assert.match(page,/private\.bebepick_member_price_disconnect\(false\)/);
+ assert.match(page,/private\.bebepick_member_price_disconnect\(true\)/);
+ assert.match(page,/Supabase 관리자 화면 열기/);
+ assert.match(page,/SQL Editor에서 직접 실행해야 해/);
+ assert.match(page,/지금은 본계정이 연결되지 않아서 실행할 필요 없어/);
+});

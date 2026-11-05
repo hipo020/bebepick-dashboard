@@ -73,6 +73,17 @@ small{color:var(--muted)}.footer{margin:22px 0 0;text-align:center;font-size:11p
  <li>기존 공개 재고 30초 감시, 인형 사진 알림과 주문 자동화는 변경하지 않아.</li>
 </ul>
 </section>
+<section class="card" aria-labelledby="disconnectTitle">
+<h2 id="disconnectTitle">🚨 나중에 연결을 끊고 싶을 때</h2>
+<p class="note"><strong>회원 가격 긴급 중지 장치 설치 완료</strong><br>본계정 세션이 서버에 연결된 뒤에도, 이 기능으로 우리 서버의 로그인 세션과 가격 감시를 중단할 수 있어. <strong>지금은 본계정이 연결되지 않아서 실행할 필요 없어.</strong></p>
+<p class="lead">공개 페이지에 관리자 버튼을 만들면 다른 사람이 누를 위험이 있으니, 중지 명령은 네 Supabase 관리자 화면에서만 실행되게 했어.</p>
+<h3>① 연결만 중단 · 이전 가격 기록 보존</h3>
+<pre style="white-space:pre-wrap;overflow-wrap:anywhere;padding:12px;background:#f5f1fb;border-radius:10px;font-size:12px"><code>select * from private.bebepick_member_price_disconnect(false);</code></pre>
+<h3>② 연결 중단 · 가격 기록까지 모두 삭제</h3>
+<pre style="white-space:pre-wrap;overflow-wrap:anywhere;padding:12px;background:#f5f1fb;border-radius:10px;font-size:12px"><code>select * from private.bebepick_member_price_disconnect(true);</code></pre>
+<div class="buttons"><a class="action outline" href="https://supabase.com/dashboard/projects" target="_blank" rel="noopener noreferrer">Supabase 관리자 화면 열기</a><a class="action outline" href="./new-site.html">현재 재고 감시 확인</a></div>
+<p><small>관리자 → 해당 프로젝트 → SQL Editor에서 직접 실행해야 해. 이 페이지는 SQL을 실행하거나 세션을 읽지 않아. 우리 서버에서 삭제해도 베베픽 자체 로그인 세션이 자동으로 취소되지는 않을 수 있어.</small></p>
+</section>
 <section class="card" aria-labelledby="otherTitle">
 <h2 id="otherTitle">지금 사용할 수 있는 기능</h2>
 <p class="note"><strong>브라우저 가격 확인:</strong> 네가 베베픽에 직접 로그인한 탭에서 상품 가격만 확인하는 도구는 이미 있어. 다만 이 도구는 탭을 닫거나 컴퓨터를 끄면 멈추며 서버 24시간 연동은 아니야.</p>
