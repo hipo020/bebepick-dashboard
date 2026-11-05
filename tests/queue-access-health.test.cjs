@@ -28,3 +28,10 @@ test('page inline javascript still parses',()=>{
  assert.ok(scripts.length>0);
  for(const script of scripts)assert.doesNotThrow(()=>new vm.Script(script));
 });
+
+test('official live and plus queue links remain accessible from outage dashboard',()=>{
+ assert.match(html,/href="https:\/\/bebepick\.me\/live\/queue"/);
+ assert.match(html,/href="https:\/\/bebepick\.me\/plus\/queue"/);
+ assert.match(html,/공식 순서표 바로가기/);
+ assert.match(html,/공식 사이트에서는 로그인이 필요할 수 있어/);
+});
