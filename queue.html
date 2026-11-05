@@ -76,6 +76,12 @@ footer{padding-top:20px}
     <button type="button" data-channel="bebepick_plus" aria-pressed="true">💜 베베픽플러스</button>
   </div>
 
+  <section class="card" id="queueHealthBanner" hidden aria-live="polite" style="border-color:#967444;background:#292536">
+    <div class="header-row"><h2 id="queueHealthTitle" style="margin:0;color:#ffcd90">⚠️ 순번 감시 상태 확인 중</h2><span class="pill warn">감시 점검</span></div>
+    <p id="queueHealthMessage" class="muted" style="margin:8px 0">순번표 감시 상태를 확인하는 중이야.</p>
+    <p id="queueHealthTime" class="tiny"></p>
+  </section>
+
   <section class="card" aria-live="polite">
     <div class="header-row"><h2 style="margin:0" id="broadcastTitle">방송 순번 불러오는 중…</h2><span id="freshness" class="pill">확인 중</span></div>
     <p id="broadcastMeta" class="muted">관측 기록 기준 · 공식 주문 진행 안내가 아님</p>
@@ -230,6 +236,12 @@ function syncNicknameTarget(row){
 function renderEstimate() {
   const row = selectedData();
   const target = $("myPosition").value;
+  if(!payload?.monitor?.healthy || !row?.monitoring_recent){
+    setText("etaTitle","실시간 순번 확인 중단 · 지난 기록만 표시");
+    setText("etaValue","—");setText("etaRange","");
+    setText("etaDetail","공식 순번표를 현재 읽지 못하고 있어. 내 차례 예상 시간은 표시하지 않아.");
+    return;
+  }
   if(!row?.available){setText("etaTitle","기록을 기다리고 있어");setText("etaValue","—");setText("etaRange","");setText("etaDetail","해당 방송 데이터가 없어.");return;}
   if(!target){setText("etaTitle",BebepickQueueIdentity.read()&&targetMode==="auto"?"닉네임 대기열 확인 대기":"내 순번을 입력하면 예상 시간이 나타나");setText("etaValue","—");setText("etaRange","");setText("etaDetail","");return;}
   const info=BebepickQueueMath.estimate(row,target,Date.now());
@@ -286,7 +298,22 @@ function renderTimeline(row) {
 function render() {
   document.querySelectorAll("[data-channel]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.channel===selectedChannel)));
   const row=selectedData();
-  setText("broadcastTitle",row?.available?CHANNEL_NAMES[selectedChannel]+" · 순번 진행":CHANNEL_NAMES[selectedChannel]+" · 관측 대기");
+  const monitor=payload?.monitor||{};
+  const access=String(monitor.status||"pending");
+  const banner=$("queueHealthBanner");
+  const showBanner=access!=="ok";
+  banner.hidden=!showBanner;
+  if(showBanner){
+    const restricted=access==="restricted";
+    setText("queueHealthTitle",restricted?"🚨 공식 순번표 접근 차단":access==="stale"?"⚠️ 순번 감시 점검 지연":"⚠️ 순번 감시 상태 확인 필요");
+    setText("queueHealthMessage",restricted
+      ?"판매자 순번표 읽기가 권한 거부(401) 상태야. 내 차례 ntfy는 지금 보장할 수 없어. 아래 숫자는 지난 방송 기록이므로 현재 순번으로 사용하지 마. 서버는 1분마다 접근을 다시 확인 중이야."
+      :"새 순번 관측이 정상적으로 확인되지 않았어. 아래 숫자는 과거 기록일 수 있어.");
+    setText("queueHealthTime","서버 마지막 점검 "+clock(monitor.checked_at)+" · 순번 공개 권한은 판매자 측 설정");
+  }
+  setText("broadcastTitle",row?.available
+    ? CHANNEL_NAMES[selectedChannel]+(row.monitoring_recent?" · 순번 진행":" · 과거 순번 기록")
+    : CHANNEL_NAMES[selectedChannel]+" · 관측 대기");
   const prevId=loadedBroadcast;
   const nextId=row?.available?row.channel_slug+":"+row.broadcast_id:null;
   if(nextId!==prevId){loadedBroadcast=nextId;targetMode="auto";$("myPosition").value=row?.available?readTarget(row):"";shownAll=false;}
@@ -300,14 +327,25 @@ function render() {
     renderTimeline(null);renderEstimate();return;
   }
   const ageMs=Date.now()-Date.parse(row.observed_at);
-  const monitor=payload?.monitor;
   const fresh=Boolean(row.monitoring_recent);
   const oldBroadcast=ageMs > 6*60*60*1000;
   const badge=oldBroadcast?"지난 방송 기록":fresh?"감시 정상":"감시 지연 확인 필요";
   setText("freshness",badge);$("freshness").className="pill "+(fresh&&!oldBroadcast?"ok":"warn");
   setText("broadcastMeta",row.broadcast_name+" · 방송 ID "+row.broadcast_id+" · 마지막 변화 "+clock(row.observed_at));
-  setText("currentNumber",row.current_position?fmt(row.current_position)+"번째":"대기 중");
-  setText("totalNumber",fmt(row.queue_length)+"명");
+  setText("currentNumber",fresh&&row.current_position?fmt(row.current_position)+"번째":"—");
+  setText("totalNumber",fresh?fmt(row.queue_length)+"명":"—");
+  if(!fresh){
+    setText("lastTurnMeta","실시간 순번 확인 불가 · 마지막 순번 기록은 "+clock(row.observed_at)+"이야.");
+    setText("broadcastStarted",clock(row.broadcast_first_seen_at));
+    setText("firstTurn",clock(row.first_turn_observed_at));
+    setText("lastUpdated",clock(row.observed_at));
+    setText("monitorChecked",clock(monitor.checked_at));
+    $("progressBar").style.width="0%";
+    const durationStats=BebepickQueueMath.recentDurationStats(row);
+    setText("medianTime",durationStats.averageSeconds===null?"기록 부족":mins(durationStats.averageSeconds));
+    setText("sampleCount",durationStats.count+"개 (과거 기록)");
+    renderTimeline(row);renderEstimate();return;
+  }
   // Reuse the existing conservative per-turn estimator with NO extra API call.
   // "Last position" does not claim the actual YouTube stream will end then.
   const last = Number(row.queue_length);
@@ -339,23 +377,28 @@ function render() {
 async function refresh(){
  if(loading)return;
  loading=true;$("refresh").disabled=true;
- setText("syncStatus","순번 기록 확인 중…");
+ setText("syncStatus","순번 감시 상태 확인 중…");
  try{
-  const results=await Promise.allSettled([
-   fetch(QUEUE_API+"?t="+Date.now(),{
+  const response=await fetch(QUEUE_API+"?t="+Date.now(),{
     method:"GET",headers:{"apikey":QUEUE_PUBLIC_ANON_JWT,"Authorization":"Bearer "+QUEUE_PUBLIC_ANON_JWT},
     cache:"no-store"
-   }).then(async res=>{if(!res.ok)throw new Error("HTTP "+res.status);return res.json();}),
-   fetchNicknameRows()
-  ]);
-  const official=results[0];
-  if(results[1].status==="fulfilled"){nickRows=results[1].value;nickFetchError="";}
-  else{nickRows=[];nickFetchError="공개 대기열 조회가 지연 중";}
-  if(official.status!=="fulfilled")throw official.reason;
-  const data=official.value;
+  });
+  if(!response.ok)throw new Error("HTTP "+response.status);
+  const data=await response.json();
   if(!data.ok||!Array.isArray(data.channels))throw new Error("invalid_response");
+  // Do not keep retrying a vendor endpoint the seller explicitly denied.
+  if(data.monitor?.status==="ok"){
+    try{nickRows=await fetchNicknameRows();nickFetchError="";}
+    catch{nickRows=[];nickFetchError="공식 순번 자료 조회 실패";}
+  }else{
+    nickRows=[];
+    nickFetchError=data.monitor?.status==="restricted"?"공식 순번표 접근 권한 거부":"공식 순번 자료 확인 지연";
+  }
   payload=data;render();
-  setText("syncStatus","마지막 조회 "+clock(data.generated_at)+" · 30초마다 자동 확인 · 예상 시각은 오차가 있을 수 있어");
+  const blocked=data.monitor?.status==="restricted";
+  setText("syncStatus",blocked
+    ?"마지막 조회 "+clock(data.generated_at)+" · 순번표 접근 차단 · 서버는 1분마다 재확인 중"
+    :"마지막 조회 "+clock(data.generated_at)+" · 화면은 30초마다 확인 · 예상 시각은 오차가 있을 수 있어");
  }catch(e){
   nickRows=[];nickFetchError="공식 순번 자료 조회 실패";
   if(payload)render();
