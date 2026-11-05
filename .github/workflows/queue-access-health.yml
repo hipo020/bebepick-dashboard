@@ -1,0 +1,22 @@
+name: Queue access health UI safety
+on:
+  pull_request:
+    paths:
+      - 'queue.html'
+      - 'tests/queue-access-health.test.cjs'
+      - '.github/workflows/queue-access-health.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'queue.html'
+      - 'tests/queue-access-health.test.cjs'
+      - '.github/workflows/queue-access-health.yml'
+jobs:
+  html-safety:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test tests/queue-access-health.test.cjs
