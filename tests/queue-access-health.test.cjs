@@ -13,7 +13,7 @@ test('queue page announces a vendor access outage prominently',()=>{
 });
 test('queue screen never displays old queue positions as real-time values',()=>{
  assert.match(html,/setText\("currentNumber",fresh&&row\.current_position/);
- assert.match(html,/setText\("totalNumber",fresh\?fmt\(row\.queue_length\):"—"\)/);
+ assert.match(html,/setText\("totalNumber",fresh\?fmt\(row\.queue_length\)\+"명":"—"\)/);
  assert.match(html,/실시간 순번 확인 중단 · 지난 기록만 표시/);
  assert.match(html,/renderTimeline\(row\);renderEstimate\(\);return;/);
  assert.match(html,/row\.monitoring_recent\?" · 순번 진행":" · 과거 순번 기록"/);
