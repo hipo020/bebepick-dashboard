@@ -1,0 +1,24 @@
+name: Member price setup safety
+on:
+  pull_request:
+    paths:
+      - 'member-price-setup.html'
+      - 'new-site.html'
+      - 'tests/member-price-setup.test.cjs'
+      - '.github/workflows/member-price-setup-safety.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'member-price-setup.html'
+      - 'new-site.html'
+      - 'tests/member-price-setup.test.cjs'
+      - '.github/workflows/member-price-setup-safety.yml'
+jobs:
+  static-setup-safety:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test tests/member-price-setup.test.cjs
