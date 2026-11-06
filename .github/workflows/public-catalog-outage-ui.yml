@@ -1,0 +1,22 @@
+name: Public catalog outage UI safety
+on:
+  pull_request:
+    paths:
+      - 'new-site.html'
+      - 'tests/public-catalog-outage-ui.test.cjs'
+      - '.github/workflows/public-catalog-outage-ui.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'new-site.html'
+      - 'tests/public-catalog-outage-ui.test.cjs'
+      - '.github/workflows/public-catalog-outage-ui.yml'
+jobs:
+  health-banner:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test tests/public-catalog-outage-ui.test.cjs
