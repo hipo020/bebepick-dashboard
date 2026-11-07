@@ -101,7 +101,7 @@ function basketSummary(){
  if(window.matchMedia&&matchMedia('(max-width:640px)').matches){panel.style.cssText+=';top:8px;bottom:8px;left:5px;right:5px;max-height:calc(100dvh - 16px);max-width:none;padding:12px 12px 8px';}
  const inputStyle='width:100%;margin-top:5px;min-height:44px;border:1px solid #d9d1e5;border-radius:10px;padding:9px 11px;background:#fff;color:#292438;font:inherit;box-sizing:border-box';
  const rowStyle='display:flex;gap:8px;flex-wrap:wrap;margin:8px 0';
- panel.innerHTML='<div style="position:sticky;top:-12px;background:#fff;z-index:3;padding:8px 0;border-bottom:1px solid #e9e0ee;display:flex;align-items:center;justify-content:space-between;gap:8px"><strong style="font-size:15px;letter-spacing:-.3px">🧸 베베픽 · 빠른 주문 <small style="font-size:10px;color:#927da5">v2.5.3</small></strong><button id="qClose" type="button" style="border:0;background:#fff;font-size:23px;color:#333">×</button></div>'+
+ panel.innerHTML='<div style="position:sticky;top:-12px;background:#fff;z-index:3;padding:8px 0;border-bottom:1px solid #e9e0ee;display:flex;align-items:center;justify-content:space-between;gap:8px"><strong style="font-size:15px;letter-spacing:-.3px">🧸 베베픽 · 빠른 주문 <small style="font-size:10px;color:#927da5">v2.5.4</small></strong><button id="qClose" type="button" style="border:0;background:#fff;font-size:23px;color:#333">×</button></div>'+
  '<div style="font-size:12px;color:#71677d;margin:3px 0" id="qChannel"></div>'+
  '<div id="qQuantitySummary" role="status" style="font-weight:750;font-size:13px;background:#f3ecfc;border:1px solid #ddcfed;border-radius:12px;padding:10px 12px;margin:9px 0;white-space:pre-line">📦 저장된 총 수량 확인 중…</div>'+
  '<details id="qDeviceImport" style="border:1px solid #ede0f1;background:#fffafd;border-radius:12px;padding:9px 12px;margin:8px 0"><summary style="font-size:12px;font-weight:700;color:#6b557a;cursor:pointer">📱 갤럭시 앱 연결 · 저장한 인형 목록 보내기</summary><button id="qExportAndroid" type="button" style="width:100%;min-height:40px;background:#fff3ed;border:1px solid #efc4b4;color:#8b4c44;border-radius:10px;font-weight:750;padding:9px;margin:9px 0 1px">🚀 갤럭시 앱으로 인형 목록 한 번에 보내기</button></details>'+
@@ -235,7 +235,7 @@ function basketSummary(){
  let timingStats={checks:0,errors:0,lastRoundMs:null,minRoundMs:null,maxRoundMs:null,rpc:{}};
  const ms=n=>Math.round(n*10)/10;
  function timingReport(){
-  return {kind:'bebepick-quick-order-timing-v24',version:'2.5.3',createdAt:new Date().toISOString(),
+  return {kind:'bebepick-quick-order-timing-v24',version:'2.5.4',createdAt:new Date().toISOString(),
    store:STORE,sku:lockedCandidate?.item.sku||timingSku,items:chosenItems(),watchMode:armedMode,nameCandidates:nameCandidates.map(c=>({...c})),selectedCandidate:lockedCandidate?{name:lockedCandidate.name,sku:lockedCandidate.item.sku}:null,option:option,intervalSeconds:timingCycle,mode:timingMode,payAppAutoOpenRequested:timingPayAppRequested,
    startedAt:timingStartedAt,stats:timingStats,events:timingEvents,
    note:'Browser observation only. LIVE/stock observed time is not actual opening time. Click called is not order accepted. Contains no order number, token, account information, or message body.'};
@@ -460,15 +460,43 @@ function basketSummary(){
   function endPolling(){backgroundNotify('watch-stop');if(uiTimer)clearInterval(uiTimer);uiTimer=null;active=false;if(timer)clearTimeout(timer);timer=null;controllers.forEach(c=>c.abort());controllers.clear();polling=false;}
   function recentSubmit(){try{const prev=JSON.parse(sessionStorage.getItem('bbp_general_v2_submit_'+STORE)||'null');return prev&&Date.now()-prev.at<180000?prev:null;}catch(e){return null;}}
  function config(){const c=window.APP_CONFIG||{};if(!c.supabaseUrl||!c.supabaseAnonKey)throw Error('공식 홈페이지 서버 설정 없음');const base=String(c.supabaseUrl).replace(/\/$/,'');if(base!=='https://eqytdtxemjlygnobhiio.supabase.co')throw Error('공식 서버가 예상한 주소와 다름');return {base:base,key:c.supabaseAnonKey};}
- async function rpc(fn,args){const rpcAt=performance.now(),c=config(),ctl=new AbortController();controllers.add(ctl);const to=setTimeout(()=>ctl.abort(),7500);
+ let readSdkClient=null,readSdkKey=null;
+ function browserAccess(){
   try{
-    const headers={apikey:c.key,'content-type':'application/json',accept:'application/json'};
-    try{const user=JSON.parse(localStorage.getItem('sb-eqytdtxemjlygnobhiio-auth-token')||'null');
-      if(user&&typeof user.access_token==='string'&&Number(user.expires_at)>Math.floor(Date.now()/1000)+10)headers.authorization='Bearer '+user.access_token;
-    }catch(e){}
-    const r=await fetch(c.base+'/rest/v1/rpc/'+fn,{method:'POST',credentials:'omit',cache:'no-store',mode:'cors',signal:ctl.signal,headers,body:JSON.stringify(args||{})});
-   if(!r.ok){let reason=null;try{const body=await r.json();if(body?.message==='origin_rejected'||body?.code==='origin_rejected')reason='origin_rejected';}catch(e){}
-    const e=new Error('HTTP '+r.status+' '+fn);e.httpStatus=r.status;e.catalogReason=reason;throw e;}return await r.json();
+   const saved=JSON.parse(localStorage.getItem('sb-eqytdtxemjlygnobhiio-auth-token')||'null');
+   if(!saved||typeof saved.access_token!=='string'||!saved.access_token)return {token:null,expired:false};
+   const fresh=Number.isFinite(Number(saved.expires_at))&&Number(saved.expires_at)>Math.floor(Date.now()/1000)+10;
+   return {token:fresh?saved.access_token:null,expired:!fresh};
+  }catch{return {token:null,expired:true};}
+ }
+ function readClient(c){
+  if(typeof window.supabase?.createClient!=='function')throw Error('공식 페이지 SDK가 준비되지 않았어. 상품 페이지를 다시 확인해 줘');
+  if(readSdkClient&&readSdkKey===c.key)return readSdkClient;
+  // Use the actual SDK already installed by the official page. It owns protocol headers.
+  // This client does not initialize another Auth session or refresh the page's login.
+  readSdkClient=window.supabase.createClient(c.base,c.key,{
+   accessToken:async()=>browserAccess().token,
+   auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false,storageKey:'bbp-quick-readonly-v254'},
+   global:{fetch:(input,init)=>{
+    const url=new URL(typeof input==='string'?input:input.url);
+    const method=String(init?.method||input?.method||'GET').toUpperCase();
+    if(url.origin!==c.base||!['/rest/v1/rpc/list_products','/rest/v1/rpc/order_windows'].includes(url.pathname)||method!=='POST')throw Error('허용하지 않은 SDK 요청');
+    return window.fetch(input,init);
+   }}
+  });readSdkKey=c.key;return readSdkClient;
+ }
+ async function rpc(fn,args){
+  if(!['list_products','order_windows'].includes(fn))throw Error('허용하지 않은 조회');
+  const rpcAt=performance.now(),c=config(),ctl=new AbortController();controllers.add(ctl);const to=setTimeout(()=>ctl.abort(),7500);
+  try{
+   if(browserAccess().expired){const e=new Error('이 브라우저의 로그인 확인이 필요해');e.httpStatus=401;throw e;}
+   let request=readClient(c).rpc(fn,args||{});
+   if(typeof request.abortSignal!=='function'||typeof request.retry!=='function')throw Error('공식 SDK의 조회 취소·재시도 제어를 확인하지 못했어');
+   request=request.abortSignal(ctl.signal).retry(false);
+   const response=await request;
+   if(response.error){const e=new Error('HTTP '+(Number(response.status)||0)+' '+fn);e.httpStatus=Number(response.status)||0;
+    e.catalogReason=response.error.message==='origin_rejected'||response.error.code==='origin_rejected'?'origin_rejected':null;throw e;}
+   return response.data;
   }finally{timingRpc(fn,performance.now()-rpcAt);clearTimeout(to);controllers.delete(ctl);}
  }
  function validSku(value){return /^[A-Z0-9-]{2,24}$/.test(String(value||''));}
@@ -1499,7 +1527,7 @@ function basketSummary(){
  controls.backgroundWatch.checked=backgroundWatch;
  controls.backgroundWatch.addEventListener('change',()=>{if(active){controls.backgroundWatch.checked=backgroundWatch;message('⚠ 감시 중 변경 불가 · 중지 후 설정해 줘');return;}backgroundWatch=controls.backgroundWatch.checked;savePref();});
  controls.watchMode.value=watchMode;renderModeSections(true);controls.opt.value=option;controls.cycle.value=String(cycle);controls.open.value=open;controls.storage.value=storage;controls.pick.value=pick;controls.display.value=display;controls.freeShip.value=freeShip?'on':'off';controls.manual.value=sku;applyFlowMode(flowMode);
- window.__bbpGeneralQuickV24={show,stop,__v2:true,version:'2.5.3'};
+ window.__bbpGeneralQuickV24={show,stop,__v2:true,version:'2.5.4'};
  renderNames();renderBasket();loadCatalog(false);
 }catch(e){alert('범용 v2 도우미 오류: '+String(e.message||e));}
 })();
