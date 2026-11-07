@@ -103,6 +103,7 @@ test('voucher is included in all purchase-consent text, no automatic spending or
  assert.match(src,/if\(!officialFreeShippingOption\(cartPanel\)\)return false/);
  assert.match(src,/!officialConfirmationChoicesMatch\(box,true\)/);
  assert.match(src,/!officialConfirmationChoicesMatch\(box,false\)/);
- assert.match(launcher,/v=20261103-v252-forced-shipping/);
- assert.match(launcher,/@version\s+1\.2\.2/);
+ assert.match(launcher,/v=20261107-v253-visible-catalog/);
+ assert.match(launcher,/@version\s+1\.2\.3/);
 });
+

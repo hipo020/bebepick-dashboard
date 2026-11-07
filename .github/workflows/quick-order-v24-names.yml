@@ -19,6 +19,7 @@ on:
       - 'tests/firefox-v241-pick-anon.test.cjs'
       - 'tests/firefox-v25-guided-ux.test.cjs'
       - 'tests/firefox-v252-forced-shipping.test.cjs'
+      - 'tests/firefox-v253-catalog-import.test.cjs'
       - 'tests/firefox-v251-free-shipping.test.cjs'
       - 'bebepick-firefox-payapp-methods.user.js'
       - 'tests/firefox-payapp-methods.test.cjs'
@@ -46,6 +47,7 @@ on:
       - 'tests/firefox-v241-pick-anon.test.cjs'
       - 'tests/firefox-v25-guided-ux.test.cjs'
       - 'tests/firefox-v252-forced-shipping.test.cjs'
+      - 'tests/firefox-v253-catalog-import.test.cjs'
       - 'tests/firefox-v251-free-shipping.test.cjs'
       - 'bebepick-firefox-payapp-methods.user.js'
       - 'tests/firefox-payapp-methods.test.cjs'
@@ -73,6 +75,8 @@ jobs:
         run: node --test tests/public-archived-prices-ui.test.cjs
       - name: 'Chrome private member-price auto polling and board handoff safety'
         run: node --test tests/chrome-member-price-auto.test.cjs
+      - name: 'Visible product import stays selection-only after RPC denial'
+        run: node --test tests/firefox-v253-catalog-import.test.cjs
       - name: 'Forced direct shipping only at 0 won with verified seller pick'
         run: node --test tests/firefox-v252-forced-shipping.test.cjs
       - name: 'Firefox order pick and anonymous option safety tests'
@@ -93,3 +97,4 @@ jobs:
         run: node --test tests/general-v24-postclick-observation.test.cjs tests/general-v24-submit-origin.test.cjs tests/general-v24-final-confirm-conditional-retry.test.cjs
       - name: v2.4 name candidates and legacy v2.3/2.3.1/2.3.2 regressions
         run: node --test tests/general-fast-order-v24-names.test.mjs tests/general-fast-order-v23-multi.test.mjs tests/quick-order-presubmit-v231.test.mjs tests/quick-order-presubmit-v232-names.test.mjs
+
