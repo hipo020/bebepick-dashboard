@@ -101,7 +101,7 @@ function basketSummary(){
  if(window.matchMedia&&matchMedia('(max-width:640px)').matches){panel.style.cssText+=';top:8px;bottom:8px;left:5px;right:5px;max-height:calc(100dvh - 16px);max-width:none;padding:12px 12px 8px';}
  const inputStyle='width:100%;margin-top:5px;min-height:44px;border:1px solid #d9d1e5;border-radius:10px;padding:9px 11px;background:#fff;color:#292438;font:inherit;box-sizing:border-box';
  const rowStyle='display:flex;gap:8px;flex-wrap:wrap;margin:8px 0';
- panel.innerHTML='<div style="position:sticky;top:-12px;background:#fff;z-index:3;padding:8px 0;border-bottom:1px solid #e9e0ee;display:flex;align-items:center;justify-content:space-between;gap:8px"><strong style="font-size:15px;letter-spacing:-.3px">🧸 베베픽 · 빠른 주문 <small style="font-size:10px;color:#927da5">v2.5.4</small></strong><button id="qClose" type="button" style="border:0;background:#fff;font-size:23px;color:#333">×</button></div>'+
+ panel.innerHTML='<div id="qHeader" style="position:sticky;top:-12px;background:#fff;z-index:3;padding:8px 0;border-bottom:1px solid #e9e0ee;display:flex;align-items:center;justify-content:space-between;gap:8px"><strong style="font-size:15px;letter-spacing:-.3px">🧸 베베픽 · 빠른 주문 <small style="font-size:10px;color:#927da5">v2.5.5</small></strong><button id="qClose" type="button" aria-label="주문 도우미 닫기 및 대기 중지" style="border:0;background:#fff;font-size:23px;color:#333">×</button></div>'+
  '<div style="font-size:12px;color:#71677d;margin:3px 0" id="qChannel"></div>'+
  '<div id="qQuantitySummary" role="status" style="font-weight:750;font-size:13px;background:#f3ecfc;border:1px solid #ddcfed;border-radius:12px;padding:10px 12px;margin:9px 0;white-space:pre-line">📦 저장된 총 수량 확인 중…</div>'+
  '<details id="qDeviceImport" style="border:1px solid #ede0f1;background:#fffafd;border-radius:12px;padding:9px 12px;margin:8px 0"><summary style="font-size:12px;font-weight:700;color:#6b557a;cursor:pointer">📱 갤럭시 앱 연결 · 저장한 인형 목록 보내기</summary><button id="qExportAndroid" type="button" style="width:100%;min-height:40px;background:#fff3ed;border:1px solid #efc4b4;color:#8b4c44;border-radius:10px;font-weight:750;padding:9px;margin:9px 0 1px">🚀 갤럭시 앱으로 인형 목록 한 번에 보내기</button></details>'+
@@ -144,7 +144,7 @@ function basketSummary(){
  '<details id="qPcOptions" style="border:1px solid #ece2f3;border-radius:12px;padding:9px 12px;margin:9px 0;background:#fff"><summary style="font-weight:700;font-size:12px;cursor:pointer">🖥️ PC 백그라운드 감시 (선택)</summary><label style="display:block;margin-top:8px;font-size:12px"><input type="checkbox" id="qBackgroundWatch"> PC 확장 프로그램 연결 · 최소 30초 간격</label></details>'+
  '<div id="qBackgroundStatus" hidden style="font-size:12px;margin:7px 0;padding:8px;border:1px solid #ddd2e6;border-radius:8px"></div>'+
  '<div id="qStatus" role="status" style="font-weight:700;padding:8px 9px;background:#f5effc;border-radius:8px;margin:9px 0">📦 상품 목록을 불러오는 중…</div>'+
- '<div id="qActions" style="position:sticky;bottom:-11px;z-index:3;background:#fff;padding:9px 0 6px;border-top:1px solid #e7ddec;display:flex;gap:7px;margin-top:8px"><button id="qStart" type="button" style="flex:1;border:0;border-radius:10px;padding:11px;background:#6b4aac;color:#fff;font-weight:700">대기 시작</button><button id="qStop" type="button" style="border:1px solid #cbbadf;border-radius:10px;background:#fff;padding:10px">중지</button><button id="qLoad" type="button" style="border:1px solid #cbbadf;border-radius:10px;background:#fff;padding:10px">목록 갱신</button></div>'+
+ '<div id="qActions" style="position:sticky;bottom:-11px;z-index:3;background:#fff;padding:9px 0 6px;border-top:1px solid #e7ddec;display:flex;gap:7px;margin-top:8px"><button id="qStart" type="button" style="flex:1;border:0;border-radius:10px;padding:11px;background:#6b4aac;color:#fff;font-weight:700">대기 시작</button><button id="qStop" type="button" style="color:#4b3264;min-width:76px;flex-shrink:0;border:1px solid #cbbadf;border-radius:10px;background:#fff;padding:10px">중지</button><button id="qLoad" type="button" style="border:1px solid #cbbadf;border-radius:10px;background:#fff;padding:10px">목록 갱신</button></div>'+
  '<button id="qReload" type="button" hidden style="display:none;width:100%;margin-top:8px;border:0;border-radius:9px;background:#332340;color:#fff;padding:11px;font-weight:700">🛒 판매 가능 확인 · 공식 화면 새로고침</button>'+
  '<details id="qTiming" style="margin:9px 0;padding:10px;border:1px solid #d7c4e7;background:#faf7ff;border-radius:10px"><summary style="cursor:pointer;font-weight:750">⏱️ 자동주문 구간별 속도 기록 (로컬 저장)</summary>'+
  '<div id="qTimingSummary" style="margin:6px 0;font-size:12px;color:#4c376a">대기 시작 후 기록이 표시돼.</div>'+
@@ -156,8 +156,28 @@ function basketSummary(){
  document.body.appendChild(panel);
  // Primary start/stop is pinned near the top; optional tools live in one advanced section.
  const uiStyle=document.createElement('style');
- uiStyle.textContent="\n #bbpQuickGeneralV24 *{box-sizing:border-box}\n #bbpQuickGeneralV24 details>summary{list-style-position:inside;cursor:pointer;padding:2px 0;font-size:13px;line-height:1.6}\n #bbpQuickGeneralV24 details[open]>summary{margin-bottom:7px}\n #bbpQuickGeneralV24 input:focus-visible,#bbpQuickGeneralV24 select:focus-visible,#bbpQuickGeneralV24 button:focus-visible,#bbpQuickGeneralV24 summary:focus-visible{outline:3px solid #9777db;outline-offset:2px}\n #bbpQuickGeneralV24 select{accent-color:#7151ab}\n #bbpQuickGeneralV24 #qFlowMode{border:2px solid #8b6cc1;font-weight:750;background:#faf7ff}\n #bbpQuickGeneralV24 #qStepProducts,#bbpQuickGeneralV24 #qOrderOptions{box-shadow:0 1px 3px #25164d0b}\n #bbpQuickGeneralV24 #qActions #qStart{background:#6544a5;min-height:46px;font-weight:800;font-size:14px}\n #bbpQuickGeneralV24 #qActions #qStop{min-height:46px;font-weight:700}\n #bbpQuickGeneralV24 #qActions button:hover{filter:brightness(.97)}\n #bbpQuickGeneralV24 #qAdvanced{margin:13px 0 8px;background:#f7f4fb;border:1px solid #e1d9eb;border-radius:12px;padding:11px}\n #bbpQuickGeneralV24 #qAdvanced>summary{font-weight:750}\n #bbpQuickGeneralV24 #qQuantitySummary{font-size:12px;padding:9px 11px;background:#f5f0fb;border:1px solid #e2d8ed}\n #bbpQuickGeneralV24 #qModeStatus{padding:5px 9px;font-size:11px}\n #bbpQuickGeneralV24 #qStatus{font-size:12px;line-height:1.55;word-break:keep-all;border:1px solid #e7ddec}\n @media(max-width:640px){#bbpQuickGeneralV24 #qActions{top:40px!important}}\n";
+ uiStyle.textContent="\n #bbpQuickGeneralV24 *{box-sizing:border-box}\n #bbpQuickGeneralV24 details>summary{list-style-position:inside;cursor:pointer;padding:2px 0;font-size:13px;line-height:1.6}\n #bbpQuickGeneralV24 details[open]>summary{margin-bottom:7px}\n #bbpQuickGeneralV24 input:focus-visible,#bbpQuickGeneralV24 select:focus-visible,#bbpQuickGeneralV24 button:focus-visible,#bbpQuickGeneralV24 summary:focus-visible{outline:3px solid #9777db;outline-offset:2px}\n #bbpQuickGeneralV24 select{accent-color:#7151ab}\n #bbpQuickGeneralV24 #qFlowMode{border:2px solid #8b6cc1;font-weight:750;background:#faf7ff}\n #bbpQuickGeneralV24 #qStepProducts,#bbpQuickGeneralV24 #qOrderOptions{box-shadow:0 1px 3px #25164d0b}\n #bbpQuickGeneralV24 #qActions #qStart{background:#6544a5;min-height:46px;font-weight:800;font-size:14px}\n #bbpQuickGeneralV24 #qActions #qStop{min-height:46px;font-weight:700}\n #bbpQuickGeneralV24 #qActions button:hover{filter:brightness(.97)}\n #bbpQuickGeneralV24 #qAdvanced{margin:13px 0 8px;background:#f7f4fb;border:1px solid #e1d9eb;border-radius:12px;padding:11px}\n #bbpQuickGeneralV24 #qAdvanced>summary{font-weight:750}\n #bbpQuickGeneralV24 #qQuantitySummary{font-size:12px;padding:9px 11px;background:#f5f0fb;border:1px solid #e2d8ed}\n #bbpQuickGeneralV24 #qModeStatus{padding:5px 9px;font-size:11px}\n #bbpQuickGeneralV24 #qStatus{font-size:12px;line-height:1.55;word-break:keep-all;border:1px solid #e7ddec}\n @media(max-width:640px){#bbpQuickGeneralV24 #qActions{top:var(--bbp-header-height,50px)!important;display:grid!important;grid-template-columns:minmax(0,1fr) 80px}#bbpQuickGeneralV24 #qStart{min-width:0;white-space:normal;overflow-wrap:anywhere}}\n";
+ uiStyle.textContent+='\n#bbpQuickGeneralV24{color-scheme:light!important}\n#bbpQuickGeneralV24 button{font-family:inherit;line-height:1.4;touch-action:manipulation}\n#bbpQuickGeneralV24 button:disabled{opacity:.7!important;filter:grayscale(1)}\n#bbpQuickGeneralV24 #qClose{flex:0 0 44px;min-width:44px;min-height:44px;line-height:1}\n#bbpQuickGeneralV24 #qStop{background:#f0e6f8!important;border-color:#bba4d1!important;min-width:76px;white-space:nowrap}\n#bbpQuickGeneralV24 #qActions{top:var(--bbp-header-height,50px)!important}\n';
  panel.prepend(uiStyle);
+ // Color only our own controls. The host's dark theme must not erase white-surface labels.
+ function styleHelperButtons(){
+  panel.querySelectorAll('button').forEach(button=>{
+   const color=button.style.getPropertyValue('color')||'#513a68';
+   button.style.setProperty('color',color,'important');
+   button.style.setProperty('-webkit-text-fill-color',color,'important');
+  });
+ }
+ styleHelperButtons();
+ if(typeof MutationObserver==='function')new MutationObserver(styleHelperButtons).observe(panel,{childList:true,subtree:true});
+ function measureHelperHeader(){
+  const header=el('#qHeader',panel);if(!header)return;
+  const height=Math.max(44,Math.ceil(header.getBoundingClientRect().height)-12);
+  panel.style.setProperty('--bbp-header-height',height+'px');
+ }
+ measureHelperHeader();
+ if(typeof ResizeObserver==='function')new ResizeObserver(measureHelperHeader).observe(el('#qHeader',panel));
+ window.addEventListener('resize',measureHelperHeader);
+
  const actionBar=el('#qActions',panel);
  actionBar.style.cssText='position:sticky;top:41px;z-index:5;background:#fcfbfe;padding:8px 1px;border-top:1px solid #e7ddec;border-bottom:1px solid #e7ddec;display:flex;gap:8px;margin:5px 0 9px';
  el('#qChannel',panel).insertAdjacentElement('afterend',actionBar);
@@ -179,6 +199,15 @@ function basketSummary(){
  for(const id of ['#qPcOptions','#qDeviceImport','#qTiming','#qLoad']){
   const node=el(id,panel);
   if(node)advanced.appendChild(node);
+ }
+ // Keep our optional diagnostic toggle in the helper's tools instead of over its close button.
+ if(window.__bbpCatalogReadDiagnosticV1){
+  const diagnosticToggle=[...document.querySelectorAll('body > button')].find(button=>
+   button.textContent.trim()==='🔎 목록 진단'&&button.style.position==='fixed'&&button.style.zIndex==='2147483647');
+  if(diagnosticToggle){
+   diagnosticToggle.style.position='static';diagnosticToggle.style.inset='auto';diagnosticToggle.style.width='100%';
+   diagnosticToggle.style.marginTop='9px';diagnosticToggle.style.zIndex='auto';advanced.appendChild(diagnosticToggle);
+  }
  }
  const load=el('#qLoad',panel);
  if(load){load.textContent='↻ 공식 상품 목록 갱신';load.style.cssText='width:100%;padding:10px;margin:9px 0;border:1px solid #cbbadf;border-radius:10px;background:#fff;color:#583a81;font-weight:700';}
@@ -235,7 +264,7 @@ function basketSummary(){
  let timingStats={checks:0,errors:0,lastRoundMs:null,minRoundMs:null,maxRoundMs:null,rpc:{}};
  const ms=n=>Math.round(n*10)/10;
  function timingReport(){
-  return {kind:'bebepick-quick-order-timing-v24',version:'2.5.4',createdAt:new Date().toISOString(),
+  return {kind:'bebepick-quick-order-timing-v24',version:'2.5.5',createdAt:new Date().toISOString(),
    store:STORE,sku:lockedCandidate?.item.sku||timingSku,items:chosenItems(),watchMode:armedMode,nameCandidates:nameCandidates.map(c=>({...c})),selectedCandidate:lockedCandidate?{name:lockedCandidate.name,sku:lockedCandidate.item.sku}:null,option:option,intervalSeconds:timingCycle,mode:timingMode,payAppAutoOpenRequested:timingPayAppRequested,
    startedAt:timingStartedAt,stats:timingStats,events:timingEvents,
    note:'Browser observation only. LIVE/stock observed time is not actual opening time. Click called is not order accepted. Contains no order number, token, account information, or message body.'};
@@ -1527,7 +1556,7 @@ function basketSummary(){
  controls.backgroundWatch.checked=backgroundWatch;
  controls.backgroundWatch.addEventListener('change',()=>{if(active){controls.backgroundWatch.checked=backgroundWatch;message('⚠ 감시 중 변경 불가 · 중지 후 설정해 줘');return;}backgroundWatch=controls.backgroundWatch.checked;savePref();});
  controls.watchMode.value=watchMode;renderModeSections(true);controls.opt.value=option;controls.cycle.value=String(cycle);controls.open.value=open;controls.storage.value=storage;controls.pick.value=pick;controls.display.value=display;controls.freeShip.value=freeShip?'on':'off';controls.manual.value=sku;applyFlowMode(flowMode);
- window.__bbpGeneralQuickV24={show,stop,__v2:true,version:'2.5.4'};
+ window.__bbpGeneralQuickV24={show,stop,__v2:true,version:'2.5.5'};
  renderNames();renderBasket();loadCatalog(false);
 }catch(e){alert('범용 v2 도우미 오류: '+String(e.message||e));}
 })();
