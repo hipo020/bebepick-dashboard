@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         베베픽 · PAYAPP 결제수단 선택 도우미 (카드입력 기본)
 // @namespace    https://hipo020.github.io/bebepick-dashboard/
-// @version      0.4.1
+// @version      0.4.2
 // @description  결제창에서 별도 동의한 경우 약관→다음 신속 진행, 결제수단 자동 선택. 카드 인증·최종 결제 승인은 수동.
 // @match        https://payapp.kr/WEBPAY_INPUT/*
 // @match        https://www.payapp.kr/WEBPAY_INPUT/*
@@ -266,7 +266,14 @@
  function processOfficialTerms(isAutomatic){
   if(termsNextUsed||!/^\/WEBPAY_INPUT\//.test(location.pathname)||document.hidden)return false;
   if(isAutomatic&&!autoTerms)return false;
-  const labels=staticNodes().map(n=>norm(labelOf(n))).filter(Boolean);
+  // Checkbox labels can mix a direct text node with input/icon/"보기" children.
+  // The route selector intentionally ignores such containers; legal headings
+  // also need their own visible text. Never inspect form input values.
+  const labels=staticNodes().flatMap(n=>[
+   labelOf(n),
+   Array.from(n.childNodes||[]).filter(child=>child.nodeType===3).map(child=>child.textContent||'').join('')
+  ]).map(norm).filter(Boolean);
+
   // Match only this familiar PAYAPP agreement screen. We can recognize
   // visible headings, not whether legal contents behind links have changed.
   if(!['전자금융거래 이용약관','개인정보 처리방침 동의','전체동의'].every(word=>
@@ -412,3 +419,4 @@
  window.addEventListener('pageshow',()=>{scheduleAuto();scheduleTermsAuto();});
  scheduleAuto();scheduleTermsAuto();
 })();
+
