@@ -248,7 +248,7 @@ test('mobile PAYAPP preset has a clear accessible ON/OFF button when the merchan
  const check=x.nodes.find(n=>n.id==='bbpPresetAuto');
  const save=x.nodes.find(n=>n.id==='bbpPresetSave');
  assert.ok(toggle);
- assert.ok(source.includes('// @version      0.4.1'));
+ assert.ok(source.includes('// @version      0.4.2'));
  assert.match(source,/visibility:visible!important/);
  assert.match(source,/Official PAYAPP CSS may hide native checkbox inputs globally/);
  assert.equal(check.checked,false);
@@ -324,7 +324,7 @@ test('the first PAYAPP agreement screen exposes one clear explicit consent-and-n
  assert.equal(quick.hidden,false);
  assert.match(quick.textContent,/약관 읽고 동의 → 다음/);
  assert.equal(quick.attrs['aria-label'],'약관을 읽고 동의하며 다음으로 이동');
- assert.ok(source.includes('// @version      0.4.1'));
+ assert.ok(source.includes('// @version      0.4.2'));
  const card=setup('https://www.payapp.kr/WEBPAY_SCKA1/card',{hasCardField:true});
  assert.equal(card.nodes.find(n=>n.id==='termsNext').hidden,true,'the agreement button is never available on card input screen');
 });
@@ -469,4 +469,29 @@ test('unknown or duplicate payment tiles fail closed and card security data is u
  assert.equal(x.storage.size,1,'only existing navigation preference is stored');
  assert.doesNotMatch(source,/CardNo1\s*\.\s*value/);
  assert.doesNotMatch(source,/birth(?:day|date)|cardPin|password\s*\.\s*value/i);
+});
+
+
+test('automatic terms recognizes visible direct text beside checkbox and View children without reading input values',()=>{
+ const gm=new Map([['bbp_payapp_auto_terms_v1','on']]);
+ const p=setup('https://payapp.kr/WEBPAY_INPUT/order',{sharedGMStorage:gm});
+ const agree=p.label('전체동의');const next=p.label('다음','button');const pay=p.label('결제','button');
+ for(const text of ['전자금융거래 이용약관','개인정보 처리방침 동의']){
+  const label=p.label(text+' 보기','label');
+  const input={tagName:'INPUT'};Object.defineProperty(input,'value',{get(){throw Error('must not read field values');}});
+  label.children=[input,{tagName:'A',textContent:'보기'}];
+  label.childNodes=[input,{nodeType:3,textContent:' '+text+' '},label.children[1]];
+ }
+ p.runTimers();
+ assert.equal(agree.clicked,1);assert.equal(next.clicked,1);assert.equal(pay.clicked,undefined);
+ p.mutate();p.runTimers();assert.equal(agree.clicked,1);assert.equal(next.clicked,1);
+});
+test('nested checkbox text still rejects a changed legal heading',()=>{
+ const gm=new Map([['bbp_payapp_auto_terms_v1','on']]);
+ const p=setup('https://payapp.kr/WEBPAY_INPUT/order',{sharedGMStorage:gm});
+ const agree=p.label('전체동의'),next=p.label('다음','button');
+ for(const text of ['전자금융거래 이용약관','개인정보 처리방침 동의 추가선택']){
+  const label=p.label(text,'label');label.children=[{tagName:'INPUT'}];label.childNodes=[{nodeType:3,textContent:text}];
+ }
+ p.runTimers();assert.equal(agree.clicked,undefined);assert.equal(next.clicked,undefined);
 });
