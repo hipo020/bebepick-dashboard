@@ -1,0 +1,25 @@
+name: Firefox Catalog Read-only Diagnostic Safety
+on:
+  pull_request:
+    paths:
+      - 'bebepick-firefox-catalog-diagnostic.user.js'
+      - 'tests/firefox-catalog-diagnostic.test.cjs'
+      - '.github/workflows/firefox-catalog-readonly-diagnostic.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'bebepick-firefox-catalog-diagnostic.user.js'
+      - 'tests/firefox-catalog-diagnostic.test.cjs'
+      - '.github/workflows/firefox-catalog-readonly-diagnostic.yml'
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check bebepick-firefox-catalog-diagnostic.user.js
+      - run: node --test tests/firefox-catalog-diagnostic.test.cjs
